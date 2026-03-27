@@ -147,7 +147,8 @@ export function PropertiesPanel() {
 
   return (
     <aside
-      className="flex h-full w-60 shrink-0 flex-col border-l border-border bg-background"
+      className="glass flex h-full w-60 shrink-0 flex-col border-l border-[var(--border-glass)]"
+      style={{ borderRadius: 0 }}
       aria-label="Properties"
     >
       <div className="flex h-10 items-center border-b border-border px-4">

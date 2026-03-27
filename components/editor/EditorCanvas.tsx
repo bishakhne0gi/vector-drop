@@ -185,7 +185,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full overflow-hidden bg-[hsl(0,0%,93%)] dark:bg-[hsl(0,0%,10%)]"
+      className="relative h-full w-full overflow-hidden bg-[hsl(0,0%,94%)] dark:bg-[hsl(240,10%,6%)]"
       onClick={() => clearSelection()}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
@@ -230,8 +230,9 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
             style={{
               display: "block",
               maxWidth: "none",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
               background: "#fff",
+              borderRadius: "4px",
             }}
           >
             {paths.map((p) => (

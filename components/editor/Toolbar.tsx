@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useEditorStore } from "@/stores/editorStore";
 import { serializeSvg } from "./EditorCanvas";
-import { GenerateIconPanel } from "./GenerateIconPanel";
+// Icon Generation - Coming Soon (v2)
+// import { GenerateIconPanel } from "./GenerateIconPanel";
 
 interface ToolbarProps {
   projectId: string;
@@ -26,9 +28,7 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [generateOpen, setGenerateOpen] = useState(false);
 
-  // Global keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -52,25 +52,19 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
     if (!svgMeta || saveState === "saving") return;
     setSaveState("saving");
     setErrorMsg(null);
-
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-    }
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
 
     const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
-
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ svg_content: svgContent }),
       });
-
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message ?? `Save failed (${res.status})`);
       }
-
       setSaveState("success");
       successTimerRef.current = setTimeout(() => setSaveState("idle"), 2500);
     } catch (err) {
@@ -83,119 +77,147 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
     }
   }
 
+  function handleDownload() {
+    if (!svgMeta) return;
+    const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
+    const blob = new Blob([svgContent], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${projectName}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function handleCopySvg() {
+    if (!svgMeta) return;
+    const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
+    void navigator.clipboard.writeText(svgContent);
+  }
+
   return (
-    <div className="shrink-0">
-      <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4">
-        {/* Left: project name */}
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="truncate text-sm font-medium text-foreground">{projectName}</span>
+    <header
+      className="glass flex h-14 shrink-0 items-center justify-between px-4"
+      style={{ borderRadius: 0, borderBottom: "1px solid var(--border-glass)" }}
+    >
+      {/* Left: back + project name */}
+      <div className="flex min-w-0 items-center gap-3">
+        <Link
+          href="/dashboard"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-glass)] bg-[var(--bg-glass)] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          aria-label="Back to dashboard"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </Link>
+        <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
+          {projectName}
+        </span>
+      </div>
+
+      {/* Center: undo/redo */}
+      <div className="flex items-center gap-1" role="group" aria-label="History controls">
+        <button
+          onClick={undo}
+          disabled={!canUndo}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Undo (Cmd+Z)"
+          title="Undo"
+        >
+          <UndoIcon />
+        </button>
+        <button
+          onClick={redo}
+          disabled={!canRedo}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Redo (Cmd+Shift+Z)"
+          title="Redo"
+        >
+          <RedoIcon />
+        </button>
+      </div>
+
+      {/* Right: coming soon badge + download + save */}
+      <div className="flex items-center gap-2">
+        {saveState === "error" && errorMsg && (
+          <span className="text-xs text-[var(--destructive)]" role="alert">
+            {errorMsg}
+          </span>
+        )}
+        {saveState === "success" && (
+          <span className="text-xs text-emerald-500" role="status">
+            Saved
+          </span>
+        )}
+
+        {/* Icon Generation - Coming Soon (v2) */}
+        {/* <GenerateIconPanel /> */}
+        <div className="hidden items-center gap-1.5 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] md:flex">
+          <span>✨ Icon Gen</span>
+          <span className="rounded-full bg-[var(--accent-glow)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--accent)]">
+            Soon
+          </span>
         </div>
 
-        {/* Center: undo/redo */}
-        <div className="flex items-center gap-1" role="group" aria-label="History controls">
+        {/* Download SVG */}
+        <div className="relative group">
           <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="flex h-8 w-8 items-center justify-center rounded transition-colors hover:bg-foreground/8 disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Undo (Cmd+Z)"
-            title="Undo"
+            onClick={handleDownload}
+            disabled={!svgMeta}
+            className="btn-accent flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label="Download SVG"
           >
-            <UndoIcon />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span className="hidden sm:inline">Download SVG</span>
           </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="flex h-8 w-8 items-center justify-center rounded transition-colors hover:bg-foreground/8 disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Redo (Cmd+Shift+Z)"
-            title="Redo"
-          >
-            <RedoIcon />
-          </button>
+          {/* Copy SVG dropdown */}
+          <div className="invisible absolute right-0 top-full z-50 mt-1 min-w-max rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass-strong)] p-1 opacity-0 shadow-xl backdrop-blur-xl transition-all duration-150 group-hover:visible group-hover:opacity-100">
+            <button
+              onClick={handleCopySvg}
+              disabled={!svgMeta}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] disabled:opacity-40"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Copy SVG code
+            </button>
+          </div>
         </div>
 
-        {/* Right: generate + save + toast */}
-        <div className="flex items-center gap-3">
-          {saveState === "error" && errorMsg && (
-            <span className="text-xs text-destructive" role="alert">
-              {errorMsg}
-            </span>
+        <button
+          onClick={() => void handleSave()}
+          disabled={saveState === "saving" || !svgMeta}
+          className="flex h-8 items-center gap-2 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-4 text-xs font-medium text-[var(--text-primary)] transition-all hover:bg-[var(--bg-glass-strong)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Save project (Cmd+S)"
+        >
+          {saveState === "saving" && (
+            <span
+              className="h-3 w-3 rounded-full border-2 border-current/30 border-t-current"
+              style={{ animation: "spin 0.7s linear infinite" }}
+              aria-hidden="true"
+            />
           )}
-          {saveState === "success" && (
-            <span className="text-xs text-green-600 dark:text-green-400" role="status">
-              Saved
-            </span>
-          )}
-          <button
-            onClick={() => setGenerateOpen((o) => !o)}
-            className={[
-              "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              generateOpen
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-background text-foreground hover:bg-foreground/8",
-            ].join(" ")}
-            aria-label="Generate icon with AI"
-            aria-expanded={generateOpen}
-          >
-            <SparkleIcon />
-            Generate
-          </button>
-          <button
-            onClick={() => void handleSave()}
-            disabled={saveState === "saving" || !svgMeta}
-            className="flex h-8 items-center gap-2 rounded-md bg-foreground px-4 text-xs font-medium text-background transition-opacity hover:opacity-80 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Save project"
-          >
-            {saveState === "saving" ? (
-              <span
-                className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-background/30 border-t-background"
-                aria-hidden="true"
-              />
-            ) : null}
-            Save
-          </button>
-        </div>
-      </header>
-
-      {generateOpen && (
-        <GenerateIconPanel
-          projectId={projectId}
-          onClose={() => setGenerateOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-function SparkleIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path
-        d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
+          Save
+        </button>
+      </div>
+    </header>
   );
 }
 
 function UndoIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M3 6H9.5C11.433 6 13 7.567 13 9.5S11.433 13 9.5 13H5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5.5 3.5L3 6l2.5 2.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M3 6H9.5C11.433 6 13 7.567 13 9.5S11.433 13 9.5 13H5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5.5 3.5L3 6l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -203,19 +225,8 @@ function UndoIcon() {
 function RedoIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M13 6H6.5C4.567 6 3 7.567 3 9.5S4.567 13 6.5 13H11"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10.5 3.5L13 6l-2.5 2.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M13 6H6.5C4.567 6 3 7.567 3 9.5S4.567 13 6.5 13H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10.5 3.5L13 6l-2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

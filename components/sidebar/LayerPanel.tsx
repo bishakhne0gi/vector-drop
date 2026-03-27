@@ -9,11 +9,12 @@ export function LayerPanel() {
 
   return (
     <aside
-      className="flex h-full w-48 shrink-0 flex-col border-r border-border bg-background"
+      className="glass flex h-full w-48 shrink-0 flex-col border-r border-[var(--border-glass)]"
+      style={{ borderRadius: 0 }}
       aria-label="Layers"
     >
-      <div className="flex h-10 items-center border-b border-border px-4">
-        <span className="text-xs font-semibold uppercase tracking-widest text-foreground/40">
+      <div className="flex h-10 items-center border-b border-[var(--border-glass)] px-4">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
           Layers
         </span>
       </div>
@@ -36,8 +37,8 @@ export function LayerPanel() {
                 className={[
                   "flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs transition-colors",
                   isSelected
-                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    : "text-foreground/70 hover:bg-foreground/5",
+                    ? "bg-[var(--accent-glow)] text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-glass)]",
                 ].join(" ")}
               >
                 {/* Color swatch */}

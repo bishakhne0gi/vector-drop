@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Upload, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -60,7 +60,7 @@ export function DropZone({ onFile, disabled = false }: DropZoneProps) {
   );
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -77,35 +77,72 @@ export function DropZone({ onFile, disabled = false }: DropZoneProps) {
             document.getElementById("dropzone-input")?.click();
           }
         }}
+        onClick={() => {
+          if (!disabled) document.getElementById("dropzone-input")?.click();
+        }}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-16 transition-colors duration-150 outline-none",
-          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "glass-card relative flex cursor-pointer flex-col items-center justify-center gap-5 p-16 transition-all duration-200 outline-none",
+          "focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2",
           dragging
-            ? "border-foreground bg-foreground/5"
-            : "border-border hover:border-foreground/40 hover:bg-foreground/[0.02]",
+            ? "scale-[1.01] border-[var(--accent)]/60"
+            : "hover:border-[var(--accent)]/30 hover:bg-[var(--bg-glass-strong)]",
           disabled && "pointer-events-none opacity-50",
         )}
+        style={
+          dragging
+            ? {
+                background: "var(--accent-glow)",
+                boxShadow: "0 0 0 1px var(--accent), 0 0 32px var(--accent-glow)",
+              }
+            : {}
+        }
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/8">
-          <Upload className="h-5 w-5 text-foreground/60" strokeWidth={1.5} />
+        {/* Upload icon */}
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-200"
+          style={{
+            background: dragging ? "var(--accent)" : "var(--accent-glow)",
+            transform: dragging ? "scale(1.1)" : "scale(1)",
+          }}
+        >
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={dragging ? "white" : "var(--accent)"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={dragging ? "" : "animate-bounce-subtle"}
+          >
+            <polyline points="16 16 12 12 8 16" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+          </svg>
         </div>
+
         <div className="text-center">
-          <p className="text-sm font-medium text-foreground">
-            Drop an image here
+          <p className="text-base font-semibold text-[var(--text-primary)]">
+            {dragging ? "Drop it here" : "Drop your image here or click to browse"}
           </p>
-          <p className="mt-1 text-xs text-foreground/50">
-            or{" "}
-            <label
-              htmlFor="dropzone-input"
-              className="cursor-pointer text-foreground underline-offset-2 hover:underline"
-            >
-              browse your files
-            </label>
-          </p>
-          <p className="mt-2 text-xs text-foreground/40">
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
             JPEG, PNG, WebP — up to 10 MB
           </p>
         </div>
+
+        {/* Radial glow on drag */}
+        {dragging && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-2xl"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%)",
+            }}
+          />
+        )}
+
         <input
           id="dropzone-input"
           type="file"
@@ -119,7 +156,7 @@ export function DropZone({ onFile, disabled = false }: DropZoneProps) {
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="flex items-center gap-2 rounded-xl border border-[var(--destructive)]/20 bg-[var(--destructive)]/10 px-4 py-3 text-sm text-[var(--destructive)]"
         >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}

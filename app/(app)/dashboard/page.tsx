@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DropZone } from "@/components/upload/DropZone";
 import { ConversionProgress } from "@/components/upload/ConversionProgress";
 import { ProjectCard } from "@/components/shared/ProjectCard";
+import { Navbar } from "@/components/shared/Navbar";
 import type {
   Project,
   CreateProjectRequest,
@@ -24,7 +23,6 @@ async function fetchProjects(): Promise<Project[]> {
 async function createAndConvert(
   file: File,
 ): Promise<{ jobId: string; projectId: string }> {
-  // 1. Create project + get upload URL
   const body: CreateProjectRequest = {
     name: file.name.replace(/\.[^.]+$/, ""),
     fileName: file.name,
@@ -39,7 +37,6 @@ async function createAndConvert(
   if (!createRes.ok) throw new Error("Failed to create project");
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
 
-  // 2. Upload file to storage
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
@@ -47,7 +44,6 @@ async function createAndConvert(
   });
   if (!uploadRes.ok) throw new Error("Failed to upload image");
 
-  // 3. Kick off conversion
   const convertRes = await fetch(`/api/projects/${project.id}/convert`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -60,9 +56,7 @@ async function createAndConvert(
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const [isSigningOut, startSignOut] = useTransition();
   const [activeJob, setActiveJob] = useState<{
     jobId: string;
     projectId: string;
@@ -96,94 +90,116 @@ export default function DashboardPage() {
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
   }, [queryClient]);
 
-  function handleSignOut() {
-    startSignOut(async () => {
-      await fetch("/api/auth/signout", { method: "POST" });
-      router.push("/login");
-    });
-  }
-
   return (
-    <main className="mx-auto w-full max-w-5xl px-8 py-16">
-      <header className="mb-12 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
-          <p className="mt-2 text-sm text-foreground/50">
-            Upload an image to convert it to an editable SVG
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/icons"
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition-opacity hover:opacity-70"
-          >
-            Icon Library
-          </Link>
-          <Link
-            href="/icons/my"
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition-opacity hover:opacity-70"
-          >
-            My Icons
-          </Link>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isSigningOut ? "Signing out…" : "Sign out"}
-          </button>
-        </div>
-      </header>
+    <>
+      <div className="page-bg" aria-hidden="true" />
+      <Navbar />
 
-      <div className="mb-12">
-        {activeJob ? (
-          <ConversionProgress
-            jobId={activeJob.jobId}
-            onDone={onConversionDone}
-            onError={onConversionError}
-          />
-        ) : (
-          <DropZone onFile={onFile} disabled={mutation.isPending} />
+      <main className="mx-auto w-full max-w-5xl px-6 pb-16 pt-8">
+        {/* Welcome header */}
+        <header className="mb-12 animate-fade-up">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+            Welcome back
+          </h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
+            Upload an image below to convert it to a perfect SVG
+          </p>
+        </header>
+
+        {/* Upload / Progress */}
+        <div
+          className="mb-12 animate-fade-up"
+          style={{ animationDelay: "80ms" }}
+        >
+          {activeJob ? (
+            <ConversionProgress
+              jobId={activeJob.jobId}
+              onDone={onConversionDone}
+              onError={onConversionError}
+            />
+          ) : (
+            <DropZone onFile={onFile} disabled={mutation.isPending} />
+          )}
+
+          {mutation.isError && (
+            <p className="mt-3 text-sm text-[var(--destructive)]">
+              {(mutation.error as Error).message}
+            </p>
+          )}
+        </div>
+
+        {/* Loading state — shimmer skeleton cards */}
+        {isLoading && (
+          <section>
+            <div className="mb-6 skeleton h-3 w-24 rounded-full" />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="glass-card overflow-hidden"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  {/* Thumbnail */}
+                  <div className="skeleton aspect-video w-full rounded-none" style={{ borderRadius: 0 }} />
+                  {/* Info */}
+                  <div className="flex items-start justify-between gap-3 p-5">
+                    <div className="flex flex-1 flex-col gap-2">
+                      <div className="skeleton h-3.5 w-3/4" />
+                      <div className="skeleton h-2.5 w-1/2" />
+                    </div>
+                    <div className="skeleton h-5 w-16 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {mutation.isError && (
-          <p className="mt-3 text-sm text-destructive">
-            {(mutation.error as Error).message}
+        {/* Error state */}
+        {error && (
+          <p className="text-sm text-[var(--destructive)]">
+            Failed to load projects
           </p>
         )}
-      </div>
 
-      {isLoading && (
-        <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-        </div>
-      )}
-
-      {error && (
-        <p className="text-sm text-destructive">Failed to load projects</p>
-      )}
-
-      {projects && projects.length === 0 && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-sm text-foreground/40">
-            No projects yet. Upload an image above to get started.
-          </p>
-        </div>
-      )}
-
-      {projects && projects.length > 0 && (
-        <section>
-          <h2 className="mb-6 text-xs font-medium uppercase tracking-widest text-foreground/40">
-            All Projects
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
-              <ProjectCard key={p.id} project={p} />
-            ))}
+        {/* Empty state */}
+        {projects && projects.length === 0 && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div
+              className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ background: "var(--accent-glow)" }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="18" x2="12" y2="12" />
+                <line x1="9" y1="15" x2="15" y2="15" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-[var(--text-primary)]">No projects yet</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Upload an image above to get started
+            </p>
           </div>
-        </section>
-      )}
-    </main>
+        )}
+
+        {/* Projects grid */}
+        {projects && projects.length > 0 && (
+          <section
+            className="animate-fade-up"
+            style={{ animationDelay: "160ms" }}
+          >
+            <h2 className="mb-6 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              All Projects
+            </h2>
+            <div className="stagger-children grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((p) => (
+                <ProjectCard key={p.id} project={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </>
   );
 }
