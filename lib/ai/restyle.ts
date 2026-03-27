@@ -1,8 +1,9 @@
 import { createHash } from 'crypto'
 import { XMLParser } from 'fast-xml-parser'
-import { getAnthropicClient, MODELS } from './client'
+import { callWithTool, MODELS } from './providerAdapter'
 import { AIRestyleSchema, RestyleSVGToolInputSchema, type Theme } from './schemas'
 import { RESTYLE_SYSTEM_PROMPT } from './prompts'
+import type { AIProvider } from '@/lib/types'
 
 const SVG_MAX_CHARS = 32000 // ~8000 tokens at ~4 chars/token
 
@@ -40,7 +41,11 @@ function truncateSVG(svgString: string): string {
   return truncated
 }
 
-export async function restyleSVG(svgString: string, theme: Theme): Promise<string> {
+export async function restyleSVG(
+  svgString: string,
+  theme: Theme,
+  provider: AIProvider = 'claude',
+): Promise<string> {
   const svgHash = hashString(svgString)
   const cacheKey = `ai:restyle:${svgHash}:${theme.id}`
 
@@ -60,43 +65,26 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
   // 2. Truncate SVG if needed
   const truncatedSVG = truncateSVG(svgString)
 
-  // 3. Call Claude Haiku
-  const client = getAnthropicClient()
-
+  // 3. Call AI provider
   try {
-    const response = await client.messages.create({
+    const rawResult = await callWithTool({
+      provider,
       model: MODELS.restyle,
-      max_tokens: 4096,
-      system: RESTYLE_SYSTEM_PROMPT,
-      tools: [
+      systemPrompt: RESTYLE_SYSTEM_PROMPT,
+      userContent: [
         {
-          name: 'apply_theme',
-          description: 'Return the SVG with colors updated to match the provided theme',
-          input_schema: RestyleSVGToolInputSchema,
+          type: 'text',
+          text: `Apply this theme to the SVG:\n\nTheme: ${JSON.stringify(theme, null, 2)}\n\nSVG:\n${truncatedSVG}`,
         },
       ],
-      tool_choice: { type: 'tool', name: 'apply_theme' },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Apply this theme to the SVG:\n\nTheme: ${JSON.stringify(theme, null, 2)}\n\nSVG:\n${truncatedSVG}`,
-            },
-          ],
-        },
-      ],
+      tool: {
+        name: 'apply_theme',
+        description: 'Return the SVG with colors updated to match the provided theme',
+        inputSchema: RestyleSVGToolInputSchema,
+      },
     })
 
-    // 4. Extract tool_use block
-    const toolBlock = response.content.find((b) => b.type === 'tool_use')
-    if (!toolBlock || toolBlock.type !== 'tool_use') {
-      console.warn('[restyleSVG] No tool_use block in response')
-      return svgString
-    }
-
-    const parsed = AIRestyleSchema.safeParse(toolBlock.input)
+    const parsed = AIRestyleSchema.safeParse(rawResult)
     if (!parsed.success) {
       console.warn('[restyleSVG] Zod parse failure:', parsed.error.flatten())
       return svgString
@@ -104,13 +92,13 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
 
     const modifiedSvg = parsed.data.svg
 
-    // 5. Validate output is parseable SVG
+    // 4. Validate output is parseable SVG
     if (!isValidSVG(modifiedSvg)) {
       console.error('[restyleSVG] Output is not valid SVG, returning original')
       return svgString
     }
 
-    // 6. Cache with 3d TTL
+    // 5. Cache with 3d TTL
     if (redis) {
       try {
         await redis.set(cacheKey, modifiedSvg, { ex: 3 * 24 * 60 * 60 })
@@ -123,7 +111,7 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
   } catch (err: unknown) {
     const status = (err as { status?: number }).status
     if (status === 429) {
-      console.error('[restyleSVG] Rate limited by Anthropic API')
+      console.error('[restyleSVG] Rate limited by AI provider')
       throw err
     }
     console.error('[restyleSVG] API error, returning original SVG:', err)

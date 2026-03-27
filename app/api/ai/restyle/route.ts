@@ -11,6 +11,7 @@ const ROUTE = "POST /api/ai/restyle";
 const restyleSchema = z.object({
   svgContent: z.string().min(1),
   theme: ThemeSchema,
+  provider: z.enum(['claude', 'gemini']).default('claude'),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -34,9 +35,9 @@ export async function POST(req: Request): Promise<Response> {
     if (!parsed.success) {
       throw AppError.validation("Invalid request body", { issues: parsed.error.issues });
     }
-    const { svgContent, theme } = parsed.data;
+    const { svgContent, theme, provider } = parsed.data;
 
-    const modifiedSvg = await restyleSVG(svgContent, theme);
+    const modifiedSvg = await restyleSVG(svgContent, theme, provider);
 
     console.log(
       JSON.stringify({
@@ -46,6 +47,7 @@ export async function POST(req: Request): Promise<Response> {
         userId,
         durationMs: Date.now() - start,
         themeId: theme.id,
+        provider,
       }),
     );
 

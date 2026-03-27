@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { getAnthropicClient, MODELS } from './client'
+import { callWithTool, MODELS } from './providerAdapter'
 import {
   AISuggestionSchema,
   AISuggestionToolInputSchema,
@@ -7,6 +7,7 @@ import {
   type AISuggestion,
 } from './schemas'
 import { ANALYSIS_SYSTEM_PROMPT } from './prompts'
+import type { AIProvider } from '@/lib/types'
 
 async function getRedisClient() {
   const url = process.env.UPSTASH_REDIS_REST_URL
@@ -23,6 +24,7 @@ function hashImage(imageBase64: string): string {
 export async function analyzeImage(
   imageBase64: string,
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+  provider: AIProvider = 'claude',
 ): Promise<AISuggestion> {
   const imageHash = hashImage(imageBase64)
   const cacheKey = `ai:analysis:${imageHash}`
@@ -41,51 +43,26 @@ export async function analyzeImage(
     }
   }
 
-  // 2. Call Claude
-  const client = getAnthropicClient()
-  let inputTokens = 0
-  let outputTokens = 0
-
+  // 2. Call AI provider
   try {
-    const response = await client.messages.create({
+    const rawResult = await callWithTool({
+      provider,
       model: MODELS.analysis,
-      max_tokens: 2048,
-      system: ANALYSIS_SYSTEM_PROMPT,
-      tools: [
-        {
-          name: 'suggest_themes',
-          description:
-            'Return dominant colors, style description, 4 theme suggestions, and complexity for the image',
-          input_schema: AISuggestionToolInputSchema,
-        },
+      systemPrompt: ANALYSIS_SYSTEM_PROMPT,
+      userContent: [
+        { type: 'image', mimeType, data: imageBase64 },
+        { type: 'text', text: 'Analyze this image and suggest themes for SVG vectorization.' },
       ],
-      tool_choice: { type: 'tool', name: 'suggest_themes' },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mimeType, data: imageBase64 },
-            },
-            { type: 'text', text: 'Analyze this image and suggest themes for SVG vectorization.' },
-          ],
-        },
-      ],
+      tool: {
+        name: 'suggest_themes',
+        description:
+          'Return dominant colors, style description, 4 theme suggestions, and complexity for the image',
+        inputSchema: AISuggestionToolInputSchema,
+      },
     })
 
-    inputTokens = response.usage.input_tokens
-    outputTokens = response.usage.output_tokens
-
-    // 3. Extract tool_use block
-    const toolBlock = response.content.find((b) => b.type === 'tool_use')
-    if (!toolBlock || toolBlock.type !== 'tool_use') {
-      console.warn('[analyzeImage] No tool_use block in response')
-      return FALLBACK_SUGGESTION
-    }
-
-    // 4. Zod validate
-    const parsed = AISuggestionSchema.safeParse(toolBlock.input)
+    // 3. Zod validate
+    const parsed = AISuggestionSchema.safeParse(rawResult)
     if (!parsed.success) {
       console.warn('[analyzeImage] Zod parse failure:', parsed.error.flatten())
       return FALLBACK_SUGGESTION
@@ -93,7 +70,7 @@ export async function analyzeImage(
 
     const result = parsed.data
 
-    // 5. Cache with 7d TTL
+    // 4. Cache with 7d TTL
     if (redis) {
       try {
         await redis.set(cacheKey, result, { ex: 7 * 24 * 60 * 60 })
@@ -102,20 +79,19 @@ export async function analyzeImage(
       }
     }
 
-    // 6. Log usage (fire-and-forget)
+    // 5. Log usage (fire-and-forget) — provider-agnostic
     logUsage({
       imageHash,
-      inputTokens,
-      outputTokens,
-      model: MODELS.analysis,
+      model: provider === 'gemini' ? 'gemini-2.5-pro' : MODELS.analysis,
       feature: 'analyze',
+      provider,
     }).catch((err) => console.warn('[analyzeImage] Usage log failed:', err))
 
     return result
   } catch (err: unknown) {
     const status = (err as { status?: number }).status
     if (status === 429) {
-      console.error('[analyzeImage] Rate limited by Anthropic API')
+      console.error('[analyzeImage] Rate limited by AI provider')
       throw err
     }
     console.error('[analyzeImage] API error, returning fallback:', err)
@@ -125,10 +101,9 @@ export async function analyzeImage(
 
 async function logUsage(params: {
   imageHash: string
-  inputTokens: number
-  outputTokens: number
   model: string
   feature: string
+  provider: AIProvider
 }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -137,10 +112,11 @@ async function logUsage(params: {
   const supabase = createClient(url, key)
   await supabase.from('ai_usage').insert({
     image_hash: params.imageHash,
-    input_tokens: params.inputTokens,
-    output_tokens: params.outputTokens,
+    input_tokens: 0, // token counts not available in provider-agnostic adapter
+    output_tokens: 0,
     model: params.model,
     feature: params.feature,
+    provider: params.provider,
     created_at: new Date().toISOString(),
   })
 }

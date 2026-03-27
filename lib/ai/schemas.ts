@@ -140,3 +140,88 @@ export const AIGenerateIconSchema = z.object({
 })
 
 export type AIGenerateIcon = z.infer<typeof AIGenerateIconSchema>
+
+// ---------------------------------------------------------------------------
+// Icon Style Transfer (v2)
+// ---------------------------------------------------------------------------
+
+export const IconStyleDNASchema = z.object({
+  id: z.string(),
+  libraryName: z.string(),
+  sourceUrl: z.string().url(),
+  gridSize: z.union([z.literal(16), z.literal(20), z.literal(24), z.literal(32)]),
+  safeAreaPadding: z.number().min(0).max(4),
+  strokeWidth: z.number().min(0.5).max(4),
+  strokeLinecap: z.enum(['round', 'square', 'butt']),
+  strokeLinejoin: z.enum(['round', 'miter', 'bevel']),
+  cornerRadius: z.enum(['sharp', 'slight', 'rounded', 'pill']),
+  fillStyle: z.enum(['outline', 'filled', 'duotone', 'bold', 'thin']),
+  colorMode: z.enum(['currentColor', 'hardcoded', 'multi']),
+  personality: z.array(z.string()).min(1).max(5),
+  complexityTarget: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  sampleCount: z.number().int().min(1),
+  extractedAt: z.string(),
+})
+
+export const ExtractDNAToolInputSchema = {
+  type: 'object' as const,
+  properties: {
+    libraryName: { type: 'string', description: 'Name of the icon library' },
+    gridSize: { type: 'number', enum: [16, 20, 24, 32], description: 'viewBox dimension' },
+    safeAreaPadding: { type: 'number', description: 'px inset from edge' },
+    strokeWidth: { type: 'number', description: 'stroke-width value e.g. 1.5' },
+    strokeLinecap: { type: 'string', enum: ['round', 'square', 'butt'] },
+    strokeLinejoin: { type: 'string', enum: ['round', 'miter', 'bevel'] },
+    cornerRadius: { type: 'string', enum: ['sharp', 'slight', 'rounded', 'pill'] },
+    fillStyle: { type: 'string', enum: ['outline', 'filled', 'duotone', 'bold', 'thin'] },
+    colorMode: { type: 'string', enum: ['currentColor', 'hardcoded', 'multi'] },
+    personality: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5 },
+    complexityTarget: { type: 'number', enum: [2, 3, 4, 5] },
+  },
+  required: [
+    'libraryName', 'gridSize', 'safeAreaPadding', 'strokeWidth',
+    'strokeLinecap', 'strokeLinejoin', 'cornerRadius', 'fillStyle',
+    'colorMode', 'personality', 'complexityTarget',
+  ],
+}
+
+export const StyleTransferToolInputSchema = {
+  type: 'object' as const,
+  properties: {
+    svg: { type: 'string', minLength: 1, description: 'Complete redrawn SVG string' },
+    description: { type: 'string', description: 'What concept the icon depicts' },
+    pathCount: { type: 'number', description: 'Number of path elements used' },
+  },
+  required: ['svg', 'description', 'pathCount'],
+}
+
+export const AIStyleTransferSchema = z.object({
+  svg: z.string().min(1),
+  description: z.string().optional().default(''),
+  pathCount: z.number().int().min(1).max(64).optional(),
+})
+
+export type IconStyleDNA = z.infer<typeof IconStyleDNASchema>
+export type AIStyleTransfer = z.infer<typeof AIStyleTransferSchema>
+
+// ---------------------------------------------------------------------------
+// Generate From DNA (v2 — reference image + DNA)
+// ---------------------------------------------------------------------------
+
+export const GenerateFromDNAToolInputSchema = {
+  type: 'object' as const,
+  properties: {
+    svg: { type: 'string', minLength: 1, description: 'Complete generated SVG string' },
+    description: { type: 'string', description: 'What the icon depicts' },
+    pathCount: { type: 'number', description: 'Number of path elements' },
+  },
+  required: ['svg', 'description', 'pathCount'],
+}
+
+export const AIGenerateFromDNASchema = z.object({
+  svg: z.string().min(1),
+  description: z.string().optional().default(''),
+  pathCount: z.number().int().min(1).max(64).optional(),
+})
+
+export type AIGenerateFromDNA = z.infer<typeof AIGenerateFromDNASchema>

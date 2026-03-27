@@ -193,6 +193,54 @@ export interface SaveIconRequest {
   isPublic?: boolean;
 }
 
+// ─── Icon Style Transfer (v2) ────────────────────────────────────────────────
+
+export interface IconStyleDNA {
+  id: string
+  libraryName: string
+  sourceUrl: string
+  gridSize: 16 | 20 | 24 | 32
+  safeAreaPadding: number
+  strokeWidth: number
+  strokeLinecap: 'round' | 'square' | 'butt'
+  strokeLinejoin: 'round' | 'miter' | 'bevel'
+  cornerRadius: 'sharp' | 'slight' | 'rounded' | 'pill'
+  fillStyle: 'outline' | 'filled' | 'duotone' | 'bold' | 'thin'
+  colorMode: 'currentColor' | 'hardcoded' | 'multi'
+  personality: string[]
+  complexityTarget: 2 | 3 | 4 | 5
+  sampleCount: number
+  extractedAt: string
+}
+
+export interface ExtractDNARequest { url: string }
+export interface ExtractDNAResponse { dna: IconStyleDNA; cached: boolean }
+export interface StyleTransferRequest { svgContent: string; dnaId: string }
+export interface StyleTransferResponse {
+  svgContent: string
+  description: string
+  pathCount: number
+  appliedDna: IconStyleDNA
+}
+
+export interface GenerateFromDNARequest {
+  imageBase64: string
+  imageMimeType: 'image/jpeg' | 'image/png' | 'image/webp'
+  prompt: string
+  dnaId: string
+}
+
+export interface GenerateFromDNAResponse {
+  svgContent: string
+  description: string
+  pathCount: number
+  appliedDna: IconStyleDNA
+}
+
+// ─── AI Provider ─────────────────────────────────────────────────────────────
+
+export type AIProvider = 'claude' | 'gemini'
+
 // ─── Redis Cache Value Types ─────────────────────────────────────────────────
 
 export interface ConversionCacheValue {

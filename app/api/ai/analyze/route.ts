@@ -12,6 +12,7 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"] as c
 const analyzeSchema = z.object({
   imageBase64: z.string().min(1),
   mimeType: z.enum(ALLOWED_MIME),
+  provider: z.enum(['claude', 'gemini']).default('claude'),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -35,9 +36,9 @@ export async function POST(req: Request): Promise<Response> {
     if (!parsed.success) {
       throw AppError.validation("Invalid request body", { issues: parsed.error.issues });
     }
-    const { imageBase64, mimeType } = parsed.data;
+    const { imageBase64, mimeType, provider } = parsed.data;
 
-    const suggestion = await analyzeImage(imageBase64, mimeType);
+    const suggestion = await analyzeImage(imageBase64, mimeType, provider);
 
     console.log(
       JSON.stringify({
@@ -46,6 +47,7 @@ export async function POST(req: Request): Promise<Response> {
         route: ROUTE,
         userId,
         durationMs: Date.now() - start,
+        provider,
       }),
     );
 

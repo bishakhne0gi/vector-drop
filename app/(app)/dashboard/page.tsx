@@ -7,6 +7,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DropZone } from "@/components/upload/DropZone";
 import { ConversionProgress } from "@/components/upload/ConversionProgress";
 import { ProjectCard } from "@/components/shared/ProjectCard";
+import { ProviderToggle } from "@/components/shared/ProviderToggle";
+import { useAIProvider } from "@/lib/hooks/useAIProvider";
 import type {
   Project,
   CreateProjectRequest,
@@ -63,6 +65,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSigningOut, startSignOut] = useTransition();
+  const [provider, setProvider] = useAIProvider();
   const [activeJob, setActiveJob] = useState<{
     jobId: string;
     projectId: string;
@@ -112,7 +115,8 @@ export default function DashboardPage() {
             Upload an image to convert it to an editable SVG
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <ProviderToggle value={provider} onChange={setProvider} />
           <Link
             href="/icons"
             className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition-opacity hover:opacity-70"

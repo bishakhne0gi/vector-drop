@@ -19,6 +19,7 @@ const generateIconSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "primaryColor must be a hex color like #3B82F6"),
   projectId: z.string().uuid().optional(),
+  provider: z.enum(['claude', 'gemini']).default('claude'),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -45,7 +46,7 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    const { prompt, style, primaryColor, projectId } = parsed.data;
+    const { prompt, style, primaryColor, projectId, provider } = parsed.data;
 
     if (!prompt && !projectId) {
       throw AppError.validation("Provide a prompt, a projectId, or both");
@@ -112,6 +113,7 @@ export async function POST(req: Request): Promise<Response> {
       primaryColor,
       imageBase64,
       imageHash,
+      provider,
     });
 
     // Auto-save to icon library (fire-and-forget — don't fail the request if save fails)
@@ -146,6 +148,7 @@ export async function POST(req: Request): Promise<Response> {
         style,
         hasProjectId: Boolean(projectId),
         pathCount: result.pathCount,
+        provider,
       }),
     );
 

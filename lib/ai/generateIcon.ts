@@ -1,13 +1,13 @@
 import { createHash } from 'crypto'
 import { XMLParser } from 'fast-xml-parser'
-import { getAnthropicClient, MODELS } from './client'
+import { callWithTool, MODELS } from './providerAdapter'
 import {
   AIGenerateIconSchema,
   GenerateIconToolInputSchema,
   type AIGenerateIcon,
 } from './schemas'
 import { GENERATE_ICON_SYSTEM_PROMPT } from './prompts'
-import type { IconStyle } from '@/lib/types'
+import type { IconStyle, AIProvider } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +19,7 @@ export interface GenerateIconParams {
   imageBase64?: string
   /** Source image path stored in Supabase — used only in cache key */
   imageHash?: string
+  provider?: AIProvider
 }
 
 export interface GenerateIconResult {
@@ -28,7 +29,6 @@ export interface GenerateIconResult {
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
-
 
 function normalizeSVG(svgString: string): string {
   let svg = svgString.trim()
@@ -41,7 +41,7 @@ function normalizeSVG(svgString: string): string {
     svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">${svg}</svg>`
   }
 
-  // Ensure viewBox is present (Claude sometimes omits it)
+  // Ensure viewBox is present (AI sometimes omits it)
   if (!svg.includes('viewBox')) {
     svg = svg.replace(/<svg([^>]*)>/, '<svg$1 viewBox="0 0 24 24">')
   }
@@ -127,12 +127,11 @@ Guidelines:
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export async function generateIcon(
-  params: GenerateIconParams,
-): Promise<GenerateIconResult> {
+export async function generateIcon(params: GenerateIconParams): Promise<GenerateIconResult> {
   const isVision = Boolean(params.imageBase64)
+  const provider: AIProvider = params.provider ?? 'claude'
 
-  const cacheKey = buildCacheKey(params, false)
+  const cacheKey = buildCacheKey(params)
 
   // 1. Cache check
   const redis = await getRedisClient()
@@ -154,71 +153,46 @@ export async function generateIcon(
     }
   }
 
-  // 2. Build the user prompt
+  // 2. Build the user content
   const userPrompt = isVision ? buildVisionPrompt(params) : buildTextPrompt(params)
 
-  // 3. Call Claude with tool_use
-  const client = getAnthropicClient()
-  let inputTokens = 0
-  let outputTokens = 0
+  const userContent = isVision
+    ? [
+        { type: 'image' as const, mimeType: 'image/jpeg' as const, data: params.imageBase64! },
+        { type: 'text' as const, text: userPrompt },
+      ]
+    : [{ type: 'text' as const, text: userPrompt }]
 
-  const userContent: Parameters<typeof client.messages.create>[0]['messages'][0]['content'] =
-    isVision
-      ? [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/jpeg',
-              data: params.imageBase64!,
-            },
-          },
-          { type: 'text', text: userPrompt },
-        ]
-      : userPrompt
-
-  const response = await client.messages.create({
+  // 3. Call AI provider with tool_use
+  const rawResult = await callWithTool({
+    provider,
     model: MODELS.generate,
-    max_tokens: 4096,
-    system: GENERATE_ICON_SYSTEM_PROMPT,
-    tools: [
-      {
-        name: 'generate_icon',
-        description: 'Return a clean SVG icon with only <path> elements',
-        input_schema: GenerateIconToolInputSchema,
-      },
-    ],
-    tool_choice: { type: 'tool', name: 'generate_icon' },
-    messages: [{ role: 'user', content: userContent }],
+    systemPrompt: GENERATE_ICON_SYSTEM_PROMPT,
+    userContent,
+    tool: {
+      name: 'generate_icon',
+      description: 'Return a clean SVG icon with only <path> elements',
+      inputSchema: GenerateIconToolInputSchema,
+    },
   })
 
-  inputTokens = response.usage.input_tokens
-  outputTokens = response.usage.output_tokens
-
-  // 4. Extract tool_use block
-  const toolBlock = response.content.find((b) => b.type === 'tool_use')
-  if (!toolBlock || toolBlock.type !== 'tool_use') {
-    console.warn('[generateIcon] No tool_use block in response')
-    throw new Error('Claude did not call the generate_icon tool')
-  }
-
-  // 5. Zod validate tool input
-  const parsed = AIGenerateIconSchema.safeParse(toolBlock.input)
+  // 4. Zod validate tool input
+  const parsed = AIGenerateIconSchema.safeParse(rawResult)
   if (!parsed.success) {
     console.warn('[generateIcon] Zod parse failure:', parsed.error.flatten())
-    throw new Error('Claude returned malformed icon data')
+    throw new Error('AI returned malformed icon data')
   }
 
   let { svg, description, pathCount } = parsed.data as AIGenerateIcon
-  // Derive pathCount from SVG if Claude omitted it
+  // Derive pathCount from SVG if AI omitted it
   if (!pathCount) {
     pathCount = (svg.match(/<path/g) ?? []).length
   }
 
-  // 6. Normalize — strip fences, wrap missing root, fix viewBox
+  // 5. Normalize — strip fences, wrap missing root, fix viewBox
   svg = normalizeSVG(svg)
 
-  // 7. Structural SVG validation
+  // 6. Structural SVG validation
   const check = isValidIconSVG(svg)
   if (!check.valid) {
     console.warn(`[generateIcon] SVG validation failed: ${check.reason}`)
@@ -227,7 +201,7 @@ export async function generateIcon(
 
   const result: GenerateIconResult = { svgContent: svg, description, pathCount }
 
-  // 8. Cache with 24h TTL
+  // 7. Cache with 24h TTL
   if (redis) {
     try {
       await redis.set(cacheKey, result, { ex: 24 * 60 * 60 })
@@ -236,16 +210,15 @@ export async function generateIcon(
     }
   }
 
-  // 9. Log usage
+  // 8. Log usage
   console.log(
     JSON.stringify({
       timestamp: new Date().toISOString(),
       level: 'info',
       route: 'lib/ai/generateIcon',
       userId: null,
-      inputTokens,
-      outputTokens,
-      model: MODELS.generate,
+      model: provider === 'gemini' ? 'gemini-2.5-pro' : MODELS.generate,
+      provider,
       feature: 'generate-icon',
       style: params.style,
       cacheKey,
