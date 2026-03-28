@@ -25,8 +25,12 @@ async function createAndConvert(
   file: File,
 ): Promise<{ jobId: string; projectId: string }> {
   const body: CreateProjectRequest = {
-    name: file.name.replace(/\.[^.]+$/, ""),
-    fileName: file.name,
+    name: file.name
+      .replace(/\.[^.]+$/, "")
+      .replace(/[-_\s]+(.)/g, (_, c: string) => c.toUpperCase()),
+    fileName: file.name
+      .replace(/[-_\s]+(.)/g, (_, c: string) => c.toUpperCase())
+      .replace(/[^a-zA-Z0-9.]/g, ""),
     mimeType: file.type as CreateProjectRequest["mimeType"],
     fileSizeBytes: file.size,
   };
