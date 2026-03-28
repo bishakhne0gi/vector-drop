@@ -9,6 +9,9 @@ export interface SVGPath {
   strokeLinecap: "butt" | "round" | "square";
   strokeLinejoin: "miter" | "round" | "bevel";
   opacity: number;
+  visible: boolean;
+  locked: boolean;
+  name: string;
 }
 
 export interface SVGMeta {
@@ -27,6 +30,9 @@ interface EditorState {
   history: HistoryEntry[];
   historyIndex: number;
   svgMeta: SVGMeta | null;
+  zoom: number;
+  panX: number;
+  panY: number;
 
   // Actions
   setPaths: (paths: SVGPath[]) => void;
@@ -36,6 +42,23 @@ interface EditorState {
   updatePath: (id: string, patch: Partial<SVGPath>) => void;
   undo: () => void;
   redo: () => void;
+  setZoom: (z: number) => void;
+  setPan: (x: number, y: number) => void;
+  deletePaths: (ids: string[]) => void;
+  duplicatePath: (id: string) => void;
+  reorderPath: (id: string, direction: "up" | "down") => void;
+  renamePath: (id: string, name: string) => void;
+  toggleVisibility: (id: string) => void;
+  toggleLock: (id: string) => void;
+}
+
+function pushHistory(
+  state: Pick<EditorState, "history" | "historyIndex">,
+  paths: SVGPath[],
+): Pick<EditorState, "history" | "historyIndex" | "paths"> {
+  const entry: HistoryEntry = { paths };
+  const newHistory = state.history.slice(0, state.historyIndex + 1).concat(entry);
+  return { paths, history: newHistory, historyIndex: newHistory.length - 1 };
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -44,14 +67,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   history: [],
   historyIndex: -1,
   svgMeta: null,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
 
   setSvgMeta: (meta) => set({ svgMeta: meta }),
 
   setPaths: (paths) => {
-    const entry: HistoryEntry = { paths };
-    const { history, historyIndex } = get();
-    const newHistory = history.slice(0, historyIndex + 1).concat(entry);
-    set({ paths, history: newHistory, historyIndex: newHistory.length - 1 });
+    const s = get();
+    set(pushHistory(s, paths));
   },
 
   selectPath: (id, additive = false) => {
@@ -71,9 +95,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   updatePath: (id, patch) => {
     set((s) => {
       const paths = s.paths.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      const entry: HistoryEntry = { paths };
-      const newHistory = s.history.slice(0, s.historyIndex + 1).concat(entry);
-      return { paths, history: newHistory, historyIndex: newHistory.length - 1 };
+      return pushHistory(s, paths);
     });
   },
 
@@ -89,5 +111,67 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (historyIndex >= history.length - 1) return;
     const next = historyIndex + 1;
     set({ paths: history[next].paths, historyIndex: next, selectedIds: new Set() });
+  },
+
+  setZoom: (z) => set({ zoom: Math.min(Math.max(z, 0.05), 40) }),
+
+  setPan: (x, y) => set({ panX: x, panY: y }),
+
+  deletePaths: (ids) => {
+    set((s) => {
+      const paths = s.paths.filter((p) => !ids.includes(p.id));
+      const selectedIds = new Set([...s.selectedIds].filter((id) => !ids.includes(id)));
+      return { ...pushHistory(s, paths), selectedIds };
+    });
+  },
+
+  duplicatePath: (id) => {
+    set((s) => {
+      const source = s.paths.find((p) => p.id === id);
+      if (!source) return {};
+      const newId = `${source.id}-copy`;
+      const copy: SVGPath = { ...source, id: newId, name: `${source.name} copy` };
+      const idx = s.paths.findIndex((p) => p.id === id);
+      const paths = [...s.paths.slice(0, idx + 1), copy, ...s.paths.slice(idx + 1)];
+      return pushHistory(s, paths);
+    });
+  },
+
+  reorderPath: (id, direction) => {
+    set((s) => {
+      const idx = s.paths.findIndex((p) => p.id === id);
+      if (idx === -1) return {};
+      const paths = [...s.paths];
+      if (direction === "up" && idx < paths.length - 1) {
+        [paths[idx], paths[idx + 1]] = [paths[idx + 1], paths[idx]];
+      } else if (direction === "down" && idx > 0) {
+        [paths[idx], paths[idx - 1]] = [paths[idx - 1], paths[idx]];
+      }
+      return pushHistory(s, paths);
+    });
+  },
+
+  renamePath: (id, name) => {
+    set((s) => {
+      const paths = s.paths.map((p) => (p.id === id ? { ...p, name } : p));
+      return pushHistory(s, paths);
+    });
+  },
+
+  toggleVisibility: (id) => {
+    set((s) => {
+      const paths = s.paths.map((p) => (p.id === id ? { ...p, visible: !p.visible } : p));
+      return pushHistory(s, paths);
+    });
+  },
+
+  toggleLock: (id) => {
+    set((s) => {
+      const paths = s.paths.map((p) => (p.id === id ? { ...p, locked: !p.locked } : p));
+      const selectedIds = new Set(s.selectedIds);
+      const target = paths.find((p) => p.id === id);
+      if (target?.locked) selectedIds.delete(id);
+      return { ...pushHistory(s, paths), selectedIds };
+    });
   },
 }));

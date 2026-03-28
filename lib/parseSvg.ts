@@ -47,6 +47,9 @@ export function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
       strokeLinecap: (["butt", "round", "square"].includes(lc) ? lc : "round") as SVGPath["strokeLinecap"],
       strokeLinejoin: (["miter", "round", "bevel"].includes(lj) ? lj : "round") as SVGPath["strokeLinejoin"],
       opacity: parseFloat(el.getAttribute("opacity") ?? "1") || 1,
+      visible: true,
+      locked: false,
+      name: id,
     };
   });
 

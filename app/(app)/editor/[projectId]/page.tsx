@@ -14,6 +14,43 @@ async function fetchProject(id: string): Promise<Project> {
   return res.json() as Promise<Project>;
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8">
+      <div
+        style={{
+          width: "280px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+        }}
+      >
+        {[80, 60, 70].map((widthPct, i) => (
+          <div
+            key={i}
+            style={{
+              height: "14px",
+              width: `${widthPct}%`,
+              borderRadius: "7px",
+              background: "var(--bg-glass-strong)",
+              backgroundImage:
+                "linear-gradient(90deg, transparent 0%, var(--bg-glass) 50%, transparent 100%)",
+              backgroundSize: "200% 100%",
+              animation: `shimmer 1.4s ease-in-out ${i * 0.15}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function EditorPage({
   params,
 }: {
@@ -27,11 +64,7 @@ export default function EditorPage({
   });
 
   if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error || !project) {

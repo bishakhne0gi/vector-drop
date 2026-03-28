@@ -12,7 +12,10 @@ export function PathElement({ path }: PathElementProps) {
 
   const isSelected = selectedIds.has(path.id);
 
+  if (!path.visible) return null;
+
   function handleClick(e: React.MouseEvent<SVGPathElement>) {
+    if (path.locked) return;
     e.stopPropagation();
     selectPath(path.id, e.metaKey || e.shiftKey);
   }
@@ -29,15 +32,16 @@ export function PathElement({ path }: PathElementProps) {
         strokeLinejoin={path.strokeLinejoin}
         opacity={path.opacity}
         onClick={handleClick}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: path.locked ? "default" : "pointer" }}
       />
       {isSelected && (
         <path
           d={path.d}
           fill="none"
-          stroke="hsl(221, 83%, 53%)"
+          stroke="var(--accent)"
           strokeWidth={2}
-          opacity={0.5}
+          strokeDasharray="4 2"
+          opacity={0.8}
           style={{ pointerEvents: "none" }}
           aria-hidden="true"
         />

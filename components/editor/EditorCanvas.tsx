@@ -8,12 +8,6 @@ interface EditorCanvasProps {
   svgUrl: string;
 }
 
-interface Transform {
-  x: number;
-  y: number;
-  scale: number;
-}
-
 function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, "image/svg+xml");
@@ -23,14 +17,12 @@ function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
   const widthAttr = svgEl?.getAttribute("width");
   const heightAttr = svgEl?.getAttribute("height");
 
-  // Parse width/height — strip units like "px", "pt" etc.
   const parseUnit = (val: string | null | undefined, fallback: number): number => {
     if (!val) return fallback;
     const n = parseFloat(val);
     return isNaN(n) ? fallback : n;
   };
 
-  // Fall back to viewBox dimensions
   const vbParts = viewBox.split(/[\s,]+/).map(Number);
   const vbW = vbParts[2] ?? 800;
   const vbH = vbParts[3] ?? 600;
@@ -56,6 +48,9 @@ function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
       strokeLinecap: (["butt", "round", "square"].includes(lc) ? lc : "round") as SVGPath["strokeLinecap"],
       strokeLinejoin: (["miter", "round", "bevel"].includes(lj) ? lj : "round") as SVGPath["strokeLinejoin"],
       opacity: parseFloat(el.getAttribute("opacity") ?? "1") || 1,
+      visible: true,
+      locked: false,
+      name: id,
     };
   });
 
@@ -78,16 +73,20 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [meta, setMeta] = useState<SVGMeta | null>(null);
 
-  // Pan/zoom transform
-  const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, scale: 1 });
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   const paths = useEditorStore((s) => s.paths);
+  const selectedIds = useEditorStore((s) => s.selectedIds);
   const setPaths = useEditorStore((s) => s.setPaths);
   const setSvgMeta = useEditorStore((s) => s.setSvgMeta);
   const storeMeta = useEditorStore((s) => s.svgMeta);
   const clearSelection = useEditorStore((s) => s.clearSelection);
+  const zoom = useEditorStore((s) => s.zoom);
+  const panX = useEditorStore((s) => s.panX);
+  const panY = useEditorStore((s) => s.panY);
+  const setZoom = useEditorStore((s) => s.setZoom);
+  const setPan = useEditorStore((s) => s.setPan);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,21 +118,34 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     };
   }, [svgUrl, setPaths, setSvgMeta]);
 
-  // Scroll-wheel zoom
+  // Listen for fit-to-view event from Toolbar
+  useEffect(() => {
+    function handleFit() {
+      const container = containerRef.current;
+      const activeMeta = storeMeta ?? meta;
+      if (!container || !activeMeta) return;
+      const { clientWidth: cw, clientHeight: ch } = container;
+      const MIN_DISPLAY = 480;
+      const displayW = Math.max(activeMeta.width, MIN_DISPLAY);
+      const displayH = Math.max(activeMeta.height, MIN_DISPLAY);
+      const scale = Math.min(cw / displayW, ch / displayH) * 0.85;
+      setZoom(scale);
+      setPan(0, 0);
+    }
+    window.addEventListener("editor:fit", handleFit);
+    return () => window.removeEventListener("editor:fit", handleFit);
+  }, [storeMeta, meta, setZoom, setPan]);
+
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.1 : 0.9;
-    setTransform((t) => ({
-      ...t,
-      scale: Math.min(Math.max(t.scale * factor, 0.05), 40),
-    }));
+    setZoom(zoom * factor);
   }
 
-  // Pan: mousedown on background
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
     isPanning.current = true;
-    panStart.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
+    panStart.current = { x: e.clientX, y: e.clientY, tx: panX, ty: panY };
     e.currentTarget.style.cursor = "grabbing";
   }
 
@@ -141,7 +153,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     if (!isPanning.current) return;
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
-    setTransform((t) => ({ ...t, x: panStart.current.tx + dx, y: panStart.current.ty + dy }));
+    setPan(panStart.current.tx + dx, panStart.current.ty + dy);
   }
 
   function handleMouseUp(e: React.MouseEvent<HTMLDivElement>) {
@@ -166,10 +178,8 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     );
   }
 
-  // Use store meta if updated by GenerateIconPanel; fall back to local meta from fetch
   const activeMeta = storeMeta ?? meta;
 
-  // Auto-fit: display small icons (e.g. 24×24) at a sensible minimum size
   const MIN_DISPLAY = 480;
   const displayWidth = activeMeta ? Math.max(activeMeta.width, MIN_DISPLAY) : MIN_DISPLAY;
   const displayHeight = activeMeta ? Math.max(activeMeta.height, MIN_DISPLAY) : MIN_DISPLAY;
@@ -182,66 +192,115 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     );
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full overflow-hidden bg-[hsl(0,0%,94%)] dark:bg-[hsl(240,10%,6%)]"
-      onClick={() => clearSelection()}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      style={{ cursor: "grab" }}
-      aria-label="SVG editor canvas"
-      role="application"
-    >
-      {/* Checkerboard pattern for transparency indication */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            "repeating-conic-gradient(hsl(0,0%,88%) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px",
-        }}
-        aria-hidden="true"
-      />
+  const selectedCount = selectedIds.size;
+  const pathCount = paths.length;
+  const zoomPct = Math.round(zoom * 100);
 
+  return (
+    <div className="relative flex h-full w-full flex-col overflow-hidden">
       <div
+        ref={containerRef}
+        className="relative flex-1 overflow-hidden"
+        onClick={() => clearSelection()}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          cursor: "grab",
+          backgroundImage: "radial-gradient(circle, var(--border-default) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+          backgroundColor: "var(--bg-canvas, hsl(0,0%,94%))",
         }}
+        aria-label="SVG editor canvas"
+        role="application"
       >
         <div
           style={{
-            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-            transformOrigin: "center center",
-            transition: isPanning.current ? "none" : "transform 0.05s ease-out",
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <svg
-            viewBox={activeMeta.viewBox}
-            width={displayWidth}
-            height={displayHeight}
-            xmlns="http://www.w3.org/2000/svg"
+          <div
             style={{
-              display: "block",
-              maxWidth: "none",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
-              background: "#fff",
-              borderRadius: "4px",
+              transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+              transformOrigin: "center center",
+              transition: isPanning.current ? "none" : "transform 0.05s ease-out",
             }}
           >
-            {paths.map((p) => (
-              <PathElement key={p.id} path={p} />
-            ))}
-          </svg>
+            <svg
+              viewBox={activeMeta.viewBox}
+              width={displayWidth}
+              height={displayHeight}
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                display: "block",
+                maxWidth: "none",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
+                background: "#fff",
+                borderRadius: "4px",
+              }}
+            >
+              {paths.map((p) => (
+                <PathElement key={p.id} path={p} />
+              ))}
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom status bar */}
+      <div
+        className="glass flex h-7 shrink-0 items-center justify-between px-3"
+        style={{
+          borderTop: "1px solid var(--border-subtle, var(--border-glass))",
+          borderRadius: 0,
+          fontSize: "10px",
+          color: "var(--text-muted)",
+        }}
+        aria-label="Canvas status"
+      >
+        {/* Left: dimensions */}
+        <span>
+          W: {activeMeta.width}&nbsp;&nbsp;H: {activeMeta.height}
+        </span>
+
+        {/* Center: path counts */}
+        <span>
+          {pathCount} path{pathCount !== 1 ? "s" : ""}
+          {selectedCount > 0 && (
+            <span style={{ color: "var(--accent)" }}>
+              &nbsp;&nbsp;{selectedCount} selected
+            </span>
+          )}
+        </span>
+
+        {/* Right: zoom + fit */}
+        <div className="flex items-center gap-1">
+          <span>{zoomPct}%</span>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("editor:fit"))}
+            className="flex h-5 w-5 items-center justify-center rounded transition-colors hover:bg-[var(--bg-glass)]"
+            aria-label="Fit to view"
+            title="Fit to view"
+            style={{ cursor: "pointer" }}
+          >
+            <FitIcon />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+function FitIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1 6V2h4M10 2h4v4M15 10v4h-4M6 14H2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
