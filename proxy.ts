@@ -88,8 +88,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated users hitting /login are bounced straight into the app.
-  if (user && pathname === '/login') {
+  // Authenticated users hitting /login or / are bounced into the app.
+  if (user && (pathname === '/login' || pathname === '/')) {
     const dashboardUrl = request.nextUrl.clone()
     dashboardUrl.pathname = '/dashboard'
     return NextResponse.redirect(dashboardUrl)

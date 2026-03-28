@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { FloatingThemeToggle } from "./FloatingThemeToggle";
@@ -12,13 +11,13 @@ interface NavbarProps {
 }
 
 export function Navbar({ userName }: NavbarProps) {
-  const router = useRouter();
   const [isSigningOut, startSignOut] = useTransition();
 
   function handleSignOut() {
     startSignOut(async () => {
       await fetch("/api/auth/signout", { method: "POST" });
-      router.push("/login");
+      // Full page navigation ensures the proxy sees the cleared session cookie
+      window.location.href = "/login";
     });
   }
 
