@@ -211,8 +211,9 @@ export default function LoginPage() {
   return (
     <div
       className="relative flex min-h-svh overflow-hidden"
-      style={{ background: "var(--bg-primary)" }}
+      style={{ background: "var(--bg-secondary)" }}
     >
+      <div className="page-bg" aria-hidden="true" />
       <FloatingThemeToggle />
 
       {/* Left — branding panel (desktop only) */}
