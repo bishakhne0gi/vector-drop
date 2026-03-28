@@ -57,8 +57,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // flushSync ensures React re-renders synchronously inside the transition
     // so the wipe covers the entire page, not just CSS-variable-driven elements
     if ("startViewTransition" in document) {
-      // @ts-expect-error — View Transitions API not yet in TS lib
-      document.startViewTransition(() => {
+      (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(() => {
         flushSync(() => {
           applyTheme(next);
           setTheme(next);
