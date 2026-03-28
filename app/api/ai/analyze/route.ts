@@ -37,7 +37,7 @@ export async function POST(req: Request): Promise<Response> {
     }
     const { imageBase64, mimeType } = parsed.data;
 
-    const suggestion = await analyzeImage(imageBase64, mimeType);
+    const suggestion = await analyzeImage(imageBase64, mimeType, user.id);
 
     console.log(
       JSON.stringify({

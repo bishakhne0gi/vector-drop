@@ -7,7 +7,9 @@ import {
   type AIGenerateIcon,
 } from './schemas'
 import { GENERATE_ICON_SYSTEM_PROMPT } from './prompts'
+import { AppError } from '@/lib/types'
 import type { IconStyle } from '@/lib/types'
+import { redis } from '@/lib/cache/redis'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,14 +71,6 @@ function isValidIconSVG(svgString: string): { valid: boolean; reason?: string } 
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────
 
-async function getRedisClient() {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  const { Redis } = await import('@upstash/redis')
-  return new Redis({ url, token })
-}
-
 function hashString(s: string): string {
   return createHash('sha256').update(s).digest('hex').slice(0, 16)
 }
@@ -132,26 +126,23 @@ export async function generateIcon(
 ): Promise<GenerateIconResult> {
   const isVision = Boolean(params.imageBase64)
 
-  const cacheKey = buildCacheKey(params, false)
+  const cacheKey = buildCacheKey(params)
 
-  // 1. Cache check
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      const cached = await redis.get(cacheKey)
-      const asResult = cached as GenerateIconResult
-      if (
-        asResult &&
-        typeof asResult.svgContent === 'string' &&
-        typeof asResult.description === 'string' &&
-        typeof asResult.pathCount === 'number'
-      ) {
-        const check = isValidIconSVG(asResult.svgContent)
-        if (check.valid) return asResult
-      }
-    } catch (err) {
-      console.warn('[generateIcon] Redis cache read failed:', err)
+  // 1. Cache check (uses shared singleton from lib/cache/redis)
+  try {
+    const cached = await redis.get(cacheKey)
+    const asResult = cached as GenerateIconResult
+    if (
+      asResult &&
+      typeof asResult.svgContent === 'string' &&
+      typeof asResult.description === 'string' &&
+      typeof asResult.pathCount === 'number'
+    ) {
+      const check = isValidIconSVG(asResult.svgContent)
+      if (check.valid) return asResult
     }
+  } catch (err) {
+    console.warn('[generateIcon] Redis cache read failed:', err)
   }
 
   // 2. Build the user prompt
@@ -199,14 +190,14 @@ export async function generateIcon(
   const toolBlock = response.content.find((b) => b.type === 'tool_use')
   if (!toolBlock || toolBlock.type !== 'tool_use') {
     console.warn('[generateIcon] No tool_use block in response')
-    throw new Error('Claude did not call the generate_icon tool')
+    throw AppError.pipeline('Claude did not call the generate_icon tool')
   }
 
   // 5. Zod validate tool input
   const parsed = AIGenerateIconSchema.safeParse(toolBlock.input)
   if (!parsed.success) {
     console.warn('[generateIcon] Zod parse failure:', parsed.error.flatten())
-    throw new Error('Claude returned malformed icon data')
+    throw AppError.pipeline('Claude returned malformed icon data')
   }
 
   let { svg, description, pathCount } = parsed.data as AIGenerateIcon
@@ -222,18 +213,16 @@ export async function generateIcon(
   const check = isValidIconSVG(svg)
   if (!check.valid) {
     console.warn(`[generateIcon] SVG validation failed: ${check.reason}`)
-    throw new Error(`Generated SVG is invalid: ${check.reason}`)
+    throw AppError.pipeline(`Generated SVG is invalid: ${check.reason}`)
   }
 
   const result: GenerateIconResult = { svgContent: svg, description, pathCount }
 
   // 8. Cache with 24h TTL
-  if (redis) {
-    try {
-      await redis.set(cacheKey, result, { ex: 24 * 60 * 60 })
-    } catch (err) {
-      console.warn('[generateIcon] Redis cache write failed:', err)
-    }
+  try {
+    await redis.set(cacheKey, result, { ex: 24 * 60 * 60 })
+  } catch (err) {
+    console.warn('[generateIcon] Redis cache write failed:', err)
   }
 
   // 9. Log usage

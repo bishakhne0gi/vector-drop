@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { sanitizeSvg } from "@/lib/svg/sanitize";
+import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError } from "@/lib/types";
 
 export async function GET(
@@ -22,12 +24,12 @@ export async function GET(
 
     if (error || !project) throw AppError.notFound("Project");
 
-    // Generate signed URL if svg_path exists but no svg_url
-    if (project.svg_path && !project.svg_url) {
+    // Always generate a fresh signed URL — stored svg_url may be expired
+    if (project.svg_path) {
       const svc = createServiceClient();
       const { data: signed } = await svc.storage
         .from("images")
-        .createSignedUrl(project.svg_path, 3600);
+        .createSignedUrl(project.svg_path, 3600); // 1 hour, fresh every request
       if (signed?.signedUrl) project.svg_url = signed.signedUrl;
     }
 
@@ -39,8 +41,11 @@ export async function GET(
 
 const ROUTE = "PATCH /api/projects/[id]";
 
+// 10 MB cap — generous for a real SVG, but prevents memory-exhaustion attacks.
+const MAX_SVG_BYTES = 10 * 1024 * 1024;
+
 const patchProjectSchema = z.object({
-  svg_content: z.string().min(1).optional(),
+  svg_content: z.string().min(1).max(MAX_SVG_BYTES, "svg_content exceeds 10 MB limit").optional(),
   name: z.string().min(1).max(200).optional(),
 }).refine((d) => d.svg_content !== undefined || d.name !== undefined, {
   message: "At least one of svg_content or name must be provided",
@@ -58,6 +63,8 @@ export async function PATCH(
 
     const { supabase, user } = await requireAuth();
     userId = user.id;
+
+    await enforceRateLimit(writeRatelimit, user.id);
 
     let raw: unknown;
     try {
@@ -85,7 +92,7 @@ export async function PATCH(
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) update.name = name;
 
-    // If SVG content provided, upload to storage and update path
+    // If SVG content provided, sanitize then upload to storage and update path
     if (svg_content) {
       if (project.status !== "ready") {
         throw AppError.conflict(
@@ -93,8 +100,9 @@ export async function PATCH(
         );
       }
 
+      const sanitized = sanitizeSvg(svg_content);
       const svgPath = project.svg_path ?? `projects/${projectId}/output.svg`;
-      const blob = new Blob([svg_content], { type: "image/svg+xml" });
+      const blob = new Blob([sanitized], { type: "image/svg+xml" });
 
       const { error: uploadErr } = await supabase.storage
         .from("images")

@@ -7,14 +7,7 @@ import {
   type AISuggestion,
 } from './schemas'
 import { ANALYSIS_SYSTEM_PROMPT } from './prompts'
-
-async function getRedisClient() {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  const { Redis } = await import('@upstash/redis')
-  return new Redis({ url, token })
-}
+import { redis, TTL } from '@/lib/cache/redis'
 
 function hashImage(imageBase64: string): string {
   return createHash('sha256').update(imageBase64).digest('hex')
@@ -23,22 +16,20 @@ function hashImage(imageBase64: string): string {
 export async function analyzeImage(
   imageBase64: string,
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+  userId?: string,
 ): Promise<AISuggestion> {
   const imageHash = hashImage(imageBase64)
   const cacheKey = `ai:analysis:${imageHash}`
 
-  // 1. Cache check
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      const cached = await redis.get(cacheKey)
-      if (cached) {
-        const parsed = AISuggestionSchema.safeParse(cached)
-        if (parsed.success) return parsed.data
-      }
-    } catch (err) {
-      console.warn('[analyzeImage] Redis cache read failed:', err)
+  // 1. Cache check (uses shared singleton from lib/cache/redis)
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      const parsed = AISuggestionSchema.safeParse(cached)
+      if (parsed.success) return parsed.data
     }
+  } catch (err) {
+    console.warn('[analyzeImage] Redis cache read failed:', err)
   }
 
   // 2. Call Claude
@@ -93,13 +84,11 @@ export async function analyzeImage(
 
     const result = parsed.data
 
-    // 5. Cache with 7d TTL
-    if (redis) {
-      try {
-        await redis.set(cacheKey, result, { ex: 7 * 24 * 60 * 60 })
-      } catch (err) {
-        console.warn('[analyzeImage] Redis cache write failed:', err)
-      }
+    // 5. Cache with 7d TTL (uses TTL constant from lib/cache/redis)
+    try {
+      await redis.set(cacheKey, result, { ex: TTL.AI_ANALYSIS })
+    } catch (err) {
+      console.warn('[analyzeImage] Redis cache write failed:', err)
     }
 
     // 6. Log usage (fire-and-forget)
@@ -109,6 +98,7 @@ export async function analyzeImage(
       outputTokens,
       model: MODELS.analysis,
       feature: 'analyze',
+      userId,
     }).catch((err) => console.warn('[analyzeImage] Usage log failed:', err))
 
     return result
@@ -116,7 +106,10 @@ export async function analyzeImage(
     const status = (err as { status?: number }).status
     if (status === 429) {
       console.error('[analyzeImage] Rate limited by Anthropic API')
-      throw err
+      // Re-throw as a typed AppError so handleError maps it correctly (HTTP 429)
+      // and the raw SDK error shape is never exposed to the client.
+      const { AppError: AE } = await import('@/lib/types')
+      throw AE.rateLimited(60)
     }
     console.error('[analyzeImage] API error, returning fallback:', err)
     return FALLBACK_SUGGESTION
@@ -129,18 +122,21 @@ async function logUsage(params: {
   outputTokens: number
   model: string
   feature: string
+  userId?: string
 }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return
   const { createClient } = await import('@supabase/supabase-js')
-  const supabase = createClient(url, key)
+  // Service-role client: ai_usage has no RLS insert policy for regular users.
+  const supabase = createClient(url, key, { auth: { persistSession: false } })
   await supabase.from('ai_usage').insert({
     image_hash: params.imageHash,
     input_tokens: params.inputTokens,
     output_tokens: params.outputTokens,
     model: params.model,
     feature: params.feature,
+    user_id: params.userId ?? null,
     created_at: new Date().toISOString(),
   })
 }

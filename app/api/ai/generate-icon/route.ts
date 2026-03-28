@@ -114,27 +114,26 @@ export async function POST(req: Request): Promise<Response> {
       imageHash,
     });
 
-    // Auto-save to icon library (fire-and-forget — don't fail the request if save fails)
-    const svc = createServiceClient();
-    svc
-      .from("icons")
-      .insert({
-        user_id: userId,
-        prompt: prompt ?? "",
-        description: result.description,
-        style,
-        primary_color: primaryColor,
-        svg_content: result.svgContent,
-        path_count: result.pathCount,
-        is_public: true,
-      })
-      .then(({ error }: { error: { message: string } | null }) => {
-        if (error)
-          console.warn("[generate-icon] Failed to save to library:", error.message);
-      })
-      .catch((err: unknown) => {
+    // Auto-save to icon library (fire-and-forget — don't fail the request if save fails).
+    // Icons are private by default; users opt-in to publishing via PATCH /api/icons/[id].
+    void (async () => {
+      try {
+        const svc = createServiceClient();
+        const { error } = await svc.from("icons").insert({
+          user_id: userId,
+          prompt: prompt ?? "",
+          description: result.description,
+          style,
+          primary_color: primaryColor,
+          svg_content: result.svgContent,
+          path_count: result.pathCount,
+          is_public: false,
+        });
+        if (error) console.warn("[generate-icon] Failed to save to library:", error.message);
+      } catch (err: unknown) {
         console.warn("[generate-icon] Failed to save to library:", err);
-      });
+      }
+    })();
 
     console.log(
       JSON.stringify({

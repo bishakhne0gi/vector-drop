@@ -11,6 +11,20 @@ export const redis = new Redis({
 
 // ─── Rate Limiters ───────────────────────────────────────────────────────────
 
+/** 60 general API reads / 60s sliding window per user */
+export const readRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(60, "60 s"),
+  prefix: "ratelimit:read",
+});
+
+/** 30 write operations / 60s sliding window per user */
+export const writeRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "60 s"),
+  prefix: "ratelimit:write",
+});
+
 /** 5 conversions / 60s sliding window per user */
 export const convertRatelimit = new Ratelimit({
   redis,
@@ -28,7 +42,7 @@ export const aiRatelimit = new Ratelimit({
 /** 10 icon generations / 3600s sliding window per user */
 export const aiGenerateRatelimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(100, "3600 s"),
+  limiter: Ratelimit.slidingWindow(10, "3600 s"),
   prefix: "ratelimit:ai:generate",
 });
 

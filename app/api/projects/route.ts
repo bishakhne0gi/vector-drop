@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { readRatelimit, writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError, CreateProjectResponse } from "@/lib/types";
 
 export async function GET(): Promise<Response> {
@@ -9,6 +10,8 @@ export async function GET(): Promise<Response> {
   try {
     const { supabase, user } = await requireAuth();
     userId = user.id;
+
+    const { remaining: readRemaining } = await enforceRateLimit(readRatelimit, user.id);
 
     const { data: projects, error } = await supabase
       .from("projects")
@@ -21,28 +24,30 @@ export async function GET(): Promise<Response> {
 
     const list = projects ?? [];
 
-    // Generate signed URLs for all projects that have an svg_path
+    // Always regenerate fresh signed URLs — stored svg_url may be expired
     const svgPaths = list
-      .filter((p) => p.svg_path && !p.svg_url)
+      .filter((p) => p.svg_path)
       .map((p) => p.svg_path as string);
 
     if (svgPaths.length > 0) {
       const svc = createServiceClient();
       const { data: signed } = await svc.storage
         .from("images")
-        .createSignedUrls(svgPaths, 60 * 60); // 1-hour URLs
+        .createSignedUrls(svgPaths, 3600); // 1-hour TTL, fresh every request
 
       if (signed) {
         const urlMap = new Map(signed.map((s) => [s.path, s.signedUrl]));
         for (const project of list) {
-          if (project.svg_path && !project.svg_url) {
+          if (project.svg_path) {
             project.svg_url = urlMap.get(project.svg_path) ?? null;
           }
         }
       }
     }
 
-    return Response.json(list);
+    return Response.json(list, {
+      headers: { "X-RateLimit-Remaining": String(readRemaining) },
+    });
   } catch (err) {
     return handleError(err, "GET /api/projects", userId, Date.now() - start);
   }
@@ -68,7 +73,10 @@ export async function POST(req: Request): Promise<Response> {
     const { supabase, user } = await requireAuth();
     userId = user.id;
 
-    // 2. Parse + validate body
+    // 2. Rate limit
+    await enforceRateLimit(writeRatelimit, user.id);
+
+    // 3. Parse + validate body
     let raw: unknown;
     try {
       raw = await req.json();

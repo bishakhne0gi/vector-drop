@@ -36,13 +36,12 @@ export async function GET(
       throw AppError.notFound("Icon");
     }
 
-    // Increment download_count fire-and-forget via service client (bypasses RLS)
-    const svc = createServiceClient();
-    svc
-      .from("icons")
-      .update({ download_count: (icon as Icon).download_count + 1 })
-      .eq("id", id)
-      .then(({ error: updateErr }: { error: { message: string } | null }) => {
+    // Increment download_count atomically via a raw SQL increment so concurrent
+    // requests do not race and lose counts. Service client bypasses RLS for the write.
+    void (async () => {
+      try {
+        const svc = createServiceClient();
+        const { error: updateErr } = await svc.rpc("increment_download_count", { icon_id: id });
         if (updateErr) {
           console.warn(
             JSON.stringify({
@@ -54,8 +53,7 @@ export async function GET(
             }),
           );
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         console.warn(
           JSON.stringify({
             timestamp: new Date().toISOString(),
@@ -68,7 +66,8 @@ export async function GET(
             },
           }),
         );
-      });
+      }
+    })();
 
     console.log(
       JSON.stringify({

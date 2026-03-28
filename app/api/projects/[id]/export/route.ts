@@ -1,5 +1,6 @@
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { AppError } from "@/lib/types";
 
 const ROUTE = "GET /api/projects/[id]/export";
@@ -55,7 +56,10 @@ export async function GET(
       .slice(0, 80);
 
     if (format === "svg") {
-      const svgText = await svgBlob.text();
+      // Sanitize before returning — the SVG was originally produced by the
+      // conversion pipeline (not AI), but it still goes through user-controlled
+      // input (image pixels → potrace paths). Sanitizing is cheap and correct.
+      const svgText = sanitizeSvg(await svgBlob.text());
 
       console.log(
         JSON.stringify({
@@ -70,12 +74,18 @@ export async function GET(
       );
 
       const isDownload = url.searchParams.get("download") === "1";
+      // RFC 6266: filename must not contain raw double-quotes.
+      // safeName already strips non-alphanumeric, so this is belt-and-suspenders.
+      const safeFilename = safeName.replace(/"/g, "");
       return new Response(svgText, {
         headers: {
           "Content-Type": "image/svg+xml",
+          "X-Content-Type-Options": "nosniff",
+          // Restrict what this SVG can do when opened directly in a browser tab.
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
           "Content-Disposition": isDownload
-            ? `attachment; filename="${safeName}.svg"`
-            : `inline; filename="${safeName}.svg"`,
+            ? `attachment; filename="${safeFilename}.svg"`
+            : `inline; filename="${safeFilename}.svg"`,
           "Cache-Control": "private, max-age=300",
         },
       });
@@ -105,10 +115,12 @@ export async function GET(
       }),
     );
 
+    const safeFilename = safeName.replace(/"/g, "");
     return new Response(pngBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "image/png",
-        "Content-Disposition": `attachment; filename="${safeName}.png"`,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": `attachment; filename="${safeFilename}.png"`,
         "Cache-Control": "private, max-age=300",
       },
     });

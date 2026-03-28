@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireAuth, createRouteClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError, Icon, IconListResponse, SaveIconRequest } from "@/lib/types";
 
 const ROUTE_GET = "GET /api/icons";
@@ -65,7 +66,19 @@ export async function GET(req: Request): Promise<Response> {
     }
 
     if (search) {
-      query = query.or(`prompt.ilike.%${search}%,description.ilike.%${search}%`);
+      // Escape PostgREST filter metacharacters (* % _) so the search term is
+      // treated as a literal substring, not a pattern. The `or()` string syntax
+      // uses commas and parentheses as delimiters — prevent injection by
+      // running two separate ilike filters instead of building a raw or() string.
+      const escapedSearch = search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        // Strip PostgREST or() syntax metacharacters that could break parsing.
+        .replace(/[(),]/g, '');
+      query = query.or(
+        `prompt.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`,
+      );
     }
 
     if (style) {
@@ -116,6 +129,8 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const { supabase, user } = await requireAuth();
     userId = user.id;
+
+    await enforceRateLimit(writeRatelimit, user.id);
 
     let raw: unknown;
     try {

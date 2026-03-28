@@ -3,16 +3,9 @@ import { XMLParser } from 'fast-xml-parser'
 import { getAnthropicClient, MODELS } from './client'
 import { AIRestyleSchema, RestyleSVGToolInputSchema, type Theme } from './schemas'
 import { RESTYLE_SYSTEM_PROMPT } from './prompts'
+import { redis, TTL } from '@/lib/cache/redis'
 
 const SVG_MAX_CHARS = 32000 // ~8000 tokens at ~4 chars/token
-
-async function getRedisClient() {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  const { Redis } = await import('@upstash/redis')
-  return new Redis({ url, token })
-}
 
 function hashString(s: string): string {
   return createHash('sha256').update(s).digest('hex').slice(0, 16)
@@ -44,17 +37,14 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
   const svgHash = hashString(svgString)
   const cacheKey = `ai:restyle:${svgHash}:${theme.id}`
 
-  // 1. Cache check
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      const cached = await redis.get<string>(cacheKey)
-      if (cached && typeof cached === 'string' && isValidSVG(cached)) {
-        return cached
-      }
-    } catch (err) {
-      console.warn('[restyleSVG] Redis cache read failed:', err)
+  // 1. Cache check (uses shared singleton from lib/cache/redis)
+  try {
+    const cached = await redis.get<string>(cacheKey)
+    if (cached && typeof cached === 'string' && isValidSVG(cached)) {
+      return cached
     }
+  } catch (err) {
+    console.warn('[restyleSVG] Redis cache read failed:', err)
   }
 
   // 2. Truncate SVG if needed
@@ -110,13 +100,11 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
       return svgString
     }
 
-    // 6. Cache with 3d TTL
-    if (redis) {
-      try {
-        await redis.set(cacheKey, modifiedSvg, { ex: 3 * 24 * 60 * 60 })
-      } catch (err) {
-        console.warn('[restyleSVG] Redis cache write failed:', err)
-      }
+    // 6. Cache with 3d TTL (uses TTL constant from lib/cache/redis)
+    try {
+      await redis.set(cacheKey, modifiedSvg, { ex: TTL.AI_RESTYLE })
+    } catch (err) {
+      console.warn('[restyleSVG] Redis cache write failed:', err)
     }
 
     return modifiedSvg
@@ -124,7 +112,8 @@ export async function restyleSVG(svgString: string, theme: Theme): Promise<strin
     const status = (err as { status?: number }).status
     if (status === 429) {
       console.error('[restyleSVG] Rate limited by Anthropic API')
-      throw err
+      const { AppError: AE } = await import('@/lib/types')
+      throw AE.rateLimited(60)
     }
     console.error('[restyleSVG] API error, returning original SVG:', err)
     return svgString

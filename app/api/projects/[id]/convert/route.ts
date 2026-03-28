@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import {
@@ -96,8 +97,7 @@ async function uploadSvg(
 
 // ─── Job status helper ───────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function setJobStep(supabase: any, jobId: string, step: ConversionStep, status: JobStatus) {
+async function setJobStep(supabase: SupabaseClient, jobId: string, step: ConversionStep, status: JobStatus) {
   const patch: Record<string, unknown> = { step, status };
   if (status === "running") patch.started_at = new Date().toISOString();
   if (status === "done" || status === "failed")
@@ -226,11 +226,9 @@ export async function POST(
     const svgPath = await uploadSvg(projectId, svgContent);
     await setJobStep(svc, job.id, "assemble", "done");
 
-    // Step 6: generate a long-lived signed URL for the SVG (10 years)
-    const { data: signedData } = await svc.storage
-      .from("images")
-      .createSignedUrl(svgPath, 60 * 60 * 24 * 365 * 10);
-    const svgUrl = signedData?.signedUrl ?? null;
+    // Step 6 (removed): do NOT store long-lived signed URLs in the DB.
+    // Signed URLs are generated on demand at read time (GET /api/projects/[id])
+    // with a short TTL so they cannot be shared or used after project deletion.
 
     // Step 7: write cache + update project
     await cacheSet<ConversionCacheValue>(
@@ -240,7 +238,7 @@ export async function POST(
     );
     await svc
       .from("projects")
-      .update({ status: "ready", svg_path: svgPath, svg_url: svgUrl, source_image_hash: imageHash })
+      .update({ status: "ready", svg_path: svgPath, source_image_hash: imageHash })
       .eq("id", projectId);
 
     console.log(
