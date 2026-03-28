@@ -63,6 +63,10 @@ function CardContent({ project }: ProjectCardProps) {
           <img
             src={project.svg_url}
             alt={project.name}
+            width={400}
+            height={300}
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-contain p-6 transition-transform duration-500 group-hover:scale-105"
             style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}
           />
