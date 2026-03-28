@@ -11,21 +11,23 @@ export async function GET(
 
   try {
     const { id: projectId } = await params;
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    // Verify ownership via RLS
-    const { data: project, error: fetchErr } = await supabase
+    const svc = createServiceClient();
+
+    // Verify ownership
+    const { data: project, error: fetchErr } = await svc
       .from("projects")
       .select("svg_path, status")
       .eq("id", projectId)
+      .eq("user_id", userId)
       .single();
 
     if (fetchErr || !project) throw AppError.notFound("Project");
     if (!project.svg_path) throw AppError.notFound("SVG preview");
 
     // Generate a short-lived signed URL (5 minutes — just for display)
-    const svc = createServiceClient();
     const { data, error } = await svc.storage
       .from("images")
       .createSignedUrl(project.svg_path, 300);

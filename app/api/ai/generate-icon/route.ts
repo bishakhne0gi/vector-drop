@@ -1,7 +1,3 @@
-// Required environment variable: ANTHROPIC_API_KEY=sk-ant-...
-// Add to .env.local alongside NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-// UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
-
 import { z } from "zod";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
@@ -26,10 +22,10 @@ export async function POST(req: Request): Promise<Response> {
   let userId: string | null = null;
 
   try {
-    const { user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    const { remaining } = await enforceRateLimit(aiGenerateRatelimit, user.id);
+    const { remaining } = await enforceRateLimit(aiGenerateRatelimit, userId);
 
     let raw: unknown;
     try {
@@ -51,7 +47,6 @@ export async function POST(req: Request): Promise<Response> {
       throw AppError.validation("Provide a prompt, a projectId, or both");
     }
 
-    // If projectId provided: fetch + download source image for vision
     let imageBase64: string | undefined;
     let imageHash: string | undefined;
 
@@ -66,13 +61,13 @@ export async function POST(req: Request): Promise<Response> {
 
       if (projectErr || !project) throw AppError.notFound("Project");
 
-      // Service client bypasses RLS — enforce ownership manually
       const typedProject = project as {
         source_image_path: string | null;
         source_image_hash: string | null;
         user_id: string;
       };
 
+      // Enforce ownership
       if (typedProject.user_id !== userId) throw AppError.forbidden();
 
       if (!typedProject.source_image_path) {
@@ -94,8 +89,6 @@ export async function POST(req: Request): Promise<Response> {
 
       const rawBuffer = Buffer.from(await fileData.arrayBuffer());
 
-      // Resize to max 1024px and convert to JPEG before base64 —
-      // Claude vision rejects images > 5 MB and phone photos easily exceed that.
       const sharp = (await import("sharp")).default;
       const resized = await sharp(rawBuffer)
         .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
@@ -114,8 +107,7 @@ export async function POST(req: Request): Promise<Response> {
       imageHash,
     });
 
-    // Auto-save to icon library (fire-and-forget — don't fail the request if save fails).
-    // Icons are private by default; users opt-in to publishing via PATCH /api/icons/[id].
+    // Auto-save to icon library (fire-and-forget)
     void (async () => {
       try {
         const svc = createServiceClient();

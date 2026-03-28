@@ -19,9 +19,10 @@ const STATUS_CONFIG: Record<
 
 interface ProjectCardProps {
   project: Project;
+  isGuest?: boolean;
 }
 
-function CardContent({ project }: ProjectCardProps) {
+function CardContent({ project, isGuest }: ProjectCardProps) {
   const badge = STATUS_CONFIG[project.status];
   const isReady = project.status === "ready";
 
@@ -96,9 +97,14 @@ function CardContent({ project }: ProjectCardProps) {
           </p>
         </div>
 
-        <Badge variant={badge.variant} pulse={badge.pulse}>
-          {badge.label}
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={badge.variant} pulse={badge.pulse}>
+            {badge.label}
+          </Badge>
+          {isGuest && project.status === "ready" && (
+            <span className="text-[10px] text-[var(--text-muted)]">Sign in to export</span>
+          )}
+        </div>
       </div>
 
       {project.error_message && (
@@ -110,14 +116,14 @@ function CardContent({ project }: ProjectCardProps) {
   );
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
-  if (project.status === "ready") {
+export function ProjectCard({ project, isGuest }: ProjectCardProps) {
+  if (project.status === "ready" && !isGuest) {
     return (
       <Link href={`/editor/${project.id}`} aria-label={`Open ${project.name}`}>
-        <CardContent project={project} />
+        <CardContent project={project} isGuest={isGuest} />
       </Link>
     );
   }
 
-  return <CardContent project={project} />;
+  return <CardContent project={project} isGuest={isGuest} />;
 }

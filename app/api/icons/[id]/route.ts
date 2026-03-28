@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAuth, createRouteClient, createServiceClient } from "@/lib/api/supabase";
+import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { AppError, Icon } from "@/lib/types";
 
@@ -22,25 +22,23 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Use anon client — RLS "Public icons viewable by everyone" handles visibility.
-    // If the icon is private and the request is unauthenticated, Postgres will return no rows.
-    const supabase = await createRouteClient();
+    const svc = createServiceClient();
 
-    const { data: icon, error } = await supabase
+    // Fetch public icon only
+    const { data: icon, error } = await svc
       .from("icons")
       .select("*")
       .eq("id", id)
+      .eq("is_public", true)
       .single();
 
     if (error || !icon) {
       throw AppError.notFound("Icon");
     }
 
-    // Increment download_count atomically via a raw SQL increment so concurrent
-    // requests do not race and lose counts. Service client bypasses RLS for the write.
+    // Increment download_count atomically
     void (async () => {
       try {
-        const svc = createServiceClient();
         const { error: updateErr } = await svc.rpc("increment_download_count", { icon_id: id });
         if (updateErr) {
           console.warn(
@@ -95,8 +93,8 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
     let raw: unknown;
     try {
@@ -122,16 +120,16 @@ export async function PATCH(
     if (isPublic !== undefined) updates.is_public = isPublic;
     if (tags !== undefined) updates.tags = tags;
 
-    // RLS "Users can update own icons" enforces ownership — no manual uid check needed.
-    const { data: icon, error } = await supabase
+    const svc = createServiceClient();
+    const { data: icon, error } = await svc
       .from("icons")
       .update(updates)
       .eq("id", id)
+      .eq("user_id", userId)
       .select()
       .single();
 
     if (error || !icon) {
-      // If RLS blocked the update, Postgres returns no rows (single() → error)
       throw AppError.notFound("Icon");
     }
 
@@ -161,11 +159,15 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    // RLS "Users can delete own icons" enforces ownership.
-    const { error } = await supabase.from("icons").delete().eq("id", id);
+    const svc = createServiceClient();
+    const { error } = await svc
+      .from("icons")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
 
     if (error) {
       throw AppError.internal(`Failed to delete icon: ${error.message}`);

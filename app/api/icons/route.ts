@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAuth, createRouteClient } from "@/lib/api/supabase";
+import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError, Icon, IconListResponse, SaveIconRequest } from "@/lib/types";
@@ -42,39 +42,27 @@ export async function GET(req: Request): Promise<Response> {
       throw AppError.validation("style must be one of: flat, outline, duotone");
     }
 
-    let supabase: Awaited<ReturnType<typeof createRouteClient>>;
-
     if (mine) {
       const auth = await requireAuth();
-      userId = auth.user.id;
-      supabase = auth.supabase;
-    } else {
-      supabase = await createRouteClient();
+      userId = auth.userId;
     }
 
-    let query = supabase
+    const svc = createServiceClient();
+    let query = svc
       .from("icons")
       .select("*", { count: "exact" });
 
     if (mine) {
-      // RLS + explicit filter for the user's own icons (any visibility)
       query = query.eq("user_id", userId as string);
     } else {
-      // Public icons only — RLS "Public icons viewable by everyone" enforces is_public=true,
-      // but we add the explicit filter so the query planner uses the partial index.
       query = query.eq("is_public", true);
     }
 
     if (search) {
-      // Escape PostgREST filter metacharacters (* % _) so the search term is
-      // treated as a literal substring, not a pattern. The `or()` string syntax
-      // uses commas and parentheses as delimiters — prevent injection by
-      // running two separate ilike filters instead of building a raw or() string.
       const escapedSearch = search
         .replace(/\\/g, '\\\\')
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')
-        // Strip PostgREST or() syntax metacharacters that could break parsing.
         .replace(/[(),]/g, '');
       query = query.or(
         `prompt.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`,
@@ -127,10 +115,10 @@ export async function POST(req: Request): Promise<Response> {
   let userId: string | null = null;
 
   try {
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    await enforceRateLimit(writeRatelimit, user.id);
+    await enforceRateLimit(writeRatelimit, userId);
 
     let raw: unknown;
     try {
@@ -149,10 +137,11 @@ export async function POST(req: Request): Promise<Response> {
     const { prompt, description, style, primaryColor, svgContent, pathCount, isPublic } =
       parsed.data;
 
-    const { data: icon, error: insertError } = await supabase
+    const svc = createServiceClient();
+    const { data: icon, error: insertError } = await svc
       .from("icons")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         prompt,
         description,
         style,

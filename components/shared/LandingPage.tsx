@@ -582,7 +582,7 @@ export function LandingPage() {
 
           <motion.div variants={staggerItem} className="flex flex-col items-center gap-3 sm:flex-row">
             <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}>
-              <Link href="/login" className="btn-accent inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium">
+              <Link href="/dashboard" className="btn-accent inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium">
                 Start for free
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M5 12h14M13 6l6 6-6 6" />
@@ -701,7 +701,7 @@ export function LandingPage() {
             </div>
             <div className="flex items-center gap-6">
               <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Sign in</Link>
-              <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Get started</Link>
+              <Link href="/dashboard" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Get started</Link>
             </div>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>© 2026 VectorDrop. All rights reserved.</p>
           </div>

@@ -13,20 +13,21 @@ export async function GET(
   let userId: string | null = null;
   try {
     const { id: projectId } = await params;
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    const { data: project, error } = await supabase
+    const svc = createServiceClient();
+    const { data: project, error } = await svc
       .from("projects")
       .select("*")
       .eq("id", projectId)
+      .eq("user_id", userId)
       .single();
 
     if (error || !project) throw AppError.notFound("Project");
 
     // Always generate a fresh signed URL — stored svg_url may be expired
     if (project.svg_path) {
-      const svc = createServiceClient();
       const { data: signed } = await svc.storage
         .from("images")
         .createSignedUrl(project.svg_path, 3600); // 1 hour, fresh every request
@@ -61,10 +62,10 @@ export async function PATCH(
   try {
     const { id: projectId } = await params;
 
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    await enforceRateLimit(writeRatelimit, user.id);
+    await enforceRateLimit(writeRatelimit, userId);
 
     let raw: unknown;
     try {
@@ -79,11 +80,14 @@ export async function PATCH(
     }
     const { svg_content, name } = parsed.data;
 
-    // Verify project exists and belongs to user (RLS enforces ownership)
-    const { data: project, error: fetchErr } = await supabase
+    const svc = createServiceClient();
+
+    // Verify project exists and belongs to user
+    const { data: project, error: fetchErr } = await svc
       .from("projects")
       .select("id, status, svg_path")
       .eq("id", projectId)
+      .eq("user_id", userId)
       .single();
 
     if (fetchErr || !project) throw AppError.notFound("Project");
@@ -104,7 +108,7 @@ export async function PATCH(
       const svgPath = project.svg_path ?? `projects/${projectId}/output.svg`;
       const blob = new Blob([sanitized], { type: "image/svg+xml" });
 
-      const { error: uploadErr } = await supabase.storage
+      const { error: uploadErr } = await svc.storage
         .from("images")
         .upload(svgPath, blob, { upsert: true, contentType: "image/svg+xml" });
 
@@ -118,10 +122,11 @@ export async function PATCH(
       update.svg_path = svgPath;
     }
 
-    const { data: updated, error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await svc
       .from("projects")
       .update(update)
       .eq("id", projectId)
+      .eq("user_id", userId)
       .select()
       .single();
 

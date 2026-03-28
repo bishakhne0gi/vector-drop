@@ -19,10 +19,10 @@ export async function POST(req: Request): Promise<Response> {
   let userId: string | null = null;
 
   try {
-    const { user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    const { remaining } = await enforceRateLimit(aiRatelimit, user.id);
+    const { remaining } = await enforceRateLimit(aiRatelimit, userId);
 
     let raw: unknown;
     try {
@@ -37,7 +37,7 @@ export async function POST(req: Request): Promise<Response> {
     }
     const { imageBase64, mimeType } = parsed.data;
 
-    const suggestion = await analyzeImage(imageBase64, mimeType, user.id);
+    const suggestion = await analyzeImage(imageBase64, mimeType, userId);
 
     console.log(
       JSON.stringify({

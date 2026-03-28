@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@clerk/nextjs": "^7.0.7",
     "@neplex/vectorizer": "^0.0.5",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-progress": "^1.1.8",
@@ -30,6 +31,8 @@
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "next": "16.2.1",
+    "posthog-js": "^1.364.1",
+    "posthog-node": "^5.28.8",
     "potrace": "^2.1.8",
     "react": "19.2.4",
     "react-dom": "19.2.4",

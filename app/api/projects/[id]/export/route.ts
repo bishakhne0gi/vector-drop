@@ -21,14 +21,17 @@ export async function GET(
       throw AppError.validation('format must be "svg" or "png"');
     }
 
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const auth = await requireAuth();
+    userId = auth.userId;
 
-    // Fetch project — RLS enforces ownership
-    const { data: project, error: fetchErr } = await supabase
+    const svc = createServiceClient();
+
+    // Fetch project — verify ownership
+    const { data: project, error: fetchErr } = await svc
       .from("projects")
       .select("id, status, svg_path, name")
       .eq("id", projectId)
+      .eq("user_id", userId)
       .single();
 
     if (fetchErr || !project) throw AppError.notFound("Project");
@@ -40,8 +43,7 @@ export async function GET(
     }
 
     // Download SVG from storage using service client (private bucket)
-    const serviceSupabase = createServiceClient();
-    const { data: svgBlob, error: dlErr } = await serviceSupabase.storage
+    const { data: svgBlob, error: dlErr } = await svc.storage
       .from("images")
       .download(project.svg_path);
 
@@ -56,9 +58,6 @@ export async function GET(
       .slice(0, 80);
 
     if (format === "svg") {
-      // Sanitize before returning — the SVG was originally produced by the
-      // conversion pipeline (not AI), but it still goes through user-controlled
-      // input (image pixels → potrace paths). Sanitizing is cheap and correct.
       const svgText = sanitizeSvg(await svgBlob.text());
 
       console.log(
@@ -74,14 +73,11 @@ export async function GET(
       );
 
       const isDownload = url.searchParams.get("download") === "1";
-      // RFC 6266: filename must not contain raw double-quotes.
-      // safeName already strips non-alphanumeric, so this is belt-and-suspenders.
       const safeFilename = safeName.replace(/"/g, "");
       return new Response(svgText, {
         headers: {
           "Content-Type": "image/svg+xml",
           "X-Content-Type-Options": "nosniff",
-          // Restrict what this SVG can do when opened directly in a browser tab.
           "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
           "Content-Disposition": isDownload
             ? `attachment; filename="${safeFilename}.svg"`

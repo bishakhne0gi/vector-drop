@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireAuth, createServiceClient } from "@/lib/api/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import {
   cacheGet,
@@ -32,7 +33,6 @@ const convertSchema = z.object({
 // ─── Pipeline helpers ────────────────────────────────────────────────────────
 
 async function downloadImage(storagePath: string): Promise<Buffer> {
-  // Service client needed — storage bucket is private
   const serviceSupabase = createServiceClient();
   const { data, error } = await serviceSupabase.storage
     .from("images")
@@ -133,14 +133,15 @@ export async function POST(
   try {
     const { id: projectId } = await params;
 
-    // 1. Auth
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    // Auth — guests allowed to convert their own (unclaimed) projects
+    const { userId: clerkUserId } = await auth();
+    userId = clerkUserId;
 
-    // 2. Rate limit
-    const { remaining } = await enforceRateLimit(convertRatelimit, user.id);
+    // Rate limit by user ID or IP
+    const rateLimitKey = userId ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon");
+    const { remaining } = await enforceRateLimit(convertRatelimit, rateLimitKey);
 
-    // 3. Parse body (empty body → defaults)
+    // Parse body (empty body → defaults)
     let raw: unknown = {};
     try {
       raw = await req.json();
@@ -153,21 +154,21 @@ export async function POST(
     }
     const { colorCount } = parsed.data;
 
-    // 4. Load project (RLS enforces ownership)
-    const { data: project, error: projectErr } = await supabase
-      .from("projects")
-      .select()
-      .eq("id", projectId)
-      .single();
+    const svc = createServiceClient();
+
+    // Load project — if authenticated check user_id, if guest check user_id is null
+    const projectQuery = svc.from("projects").select().eq("id", projectId);
+    const finalQuery = userId
+      ? projectQuery.eq("user_id", userId)
+      : projectQuery.is("user_id", null);
+
+    const { data: project, error: projectErr } = await finalQuery.single();
 
     if (projectErr || !project) throw AppError.notFound("Project");
     if (project.status === "converting")
       throw AppError.conflict("Conversion already in progress for this project");
     if (!project.source_image_path)
       throw AppError.validation("Project has no source image — upload first");
-
-    // Use service client for all job + project writes (conversion_jobs has no RLS insert policy)
-    const svc = createServiceClient();
 
     // 5. Create job record
     const { data: job, error: jobErr } = await svc
@@ -225,10 +226,6 @@ export async function POST(
     await setJobStep(svc, job.id, "assemble", "running");
     const svgPath = await uploadSvg(projectId, svgContent);
     await setJobStep(svc, job.id, "assemble", "done");
-
-    // Step 6 (removed): do NOT store long-lived signed URLs in the DB.
-    // Signed URLs are generated on demand at read time (GET /api/projects/[id])
-    // with a short TTL so they cannot be shared or used after project deletion.
 
     // Step 7: write cache + update project
     await cacheSet<ConversionCacheValue>(

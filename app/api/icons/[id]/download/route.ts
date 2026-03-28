@@ -1,4 +1,4 @@
-import { createRouteClient } from "@/lib/api/supabase";
+import { createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { aiRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
@@ -47,12 +47,13 @@ export async function GET(
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon";
     const { remaining } = await enforceRateLimit(aiRatelimit, `dl:${ip}`);
 
-    // Fetch icon — RLS "Public icons viewable by everyone" handles visibility.
-    const supabase = await createRouteClient();
+    // Fetch public icon only
+    const supabase = createServiceClient();
     const { data: icon, error } = await supabase
       .from("icons")
       .select("svg_content")
       .eq("id", id)
+      .eq("is_public", true)
       .single();
 
     if (error || !icon) {

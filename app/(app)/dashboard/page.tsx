@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
+import { usePostHog } from "posthog-js/react";
 import { DropZone } from "@/components/upload/DropZone";
 import { ConversionProgress } from "@/components/upload/ConversionProgress";
 import { ProjectCard } from "@/components/shared/ProjectCard";
@@ -15,10 +17,40 @@ import type {
   JobStatusResponse,
 } from "@/lib/types";
 
-async function fetchProjects(): Promise<Project[]> {
-  const res = await fetch("/api/projects");
-  if (!res.ok) throw new Error("Failed to load projects");
-  return res.json() as Promise<Project[]>;
+const GUEST_IDS_KEY = "vd_guest_project_ids";
+
+function getGuestIds(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(GUEST_IDS_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function addGuestId(id: string) {
+  const ids = getGuestIds();
+  if (!ids.includes(id)) {
+    localStorage.setItem(GUEST_IDS_KEY, JSON.stringify([...ids, id]));
+  }
+}
+
+function clearGuestIds() {
+  localStorage.removeItem(GUEST_IDS_KEY);
+}
+
+async function fetchProjects(userId: string | null | undefined): Promise<Project[]> {
+  if (userId === undefined) return []; // Still loading Clerk
+  if (userId) {
+    const res = await fetch("/api/projects");
+    if (!res.ok) throw new Error("Failed to load projects");
+    return res.json() as Promise<Project[]>;
+  } else {
+    const ids = getGuestIds();
+    if (ids.length === 0) return [];
+    const res = await fetch(`/api/projects?ids=${ids.join(",")}`);
+    if (!res.ok) throw new Error("Failed to load projects");
+    return res.json() as Promise<Project[]>;
+  }
 }
 
 async function createAndConvert(
@@ -49,6 +81,11 @@ async function createAndConvert(
   }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
 
+  // Track guest project IDs in localStorage
+  if (!project.user_id) {
+    addGuestId(project.id);
+  }
+
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
@@ -68,6 +105,8 @@ async function createAndConvert(
 }
 
 export default function DashboardPage() {
+  const { user, isLoaded } = useUser();
+  const ph = usePostHog();
   const queryClient = useQueryClient();
   const [activeJob, setActiveJob] = useState<{
     jobId: string;
@@ -75,19 +114,47 @@ export default function DashboardPage() {
   } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
 
+  // Claim guest projects after login
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const guestIds = getGuestIds();
+    if (guestIds.length === 0) return;
+
+    void fetch("/api/projects/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectIds: guestIds }),
+    }).then((res) => {
+      if (res.ok) {
+        clearGuestIds();
+        void queryClient.invalidateQueries({ queryKey: ["projects"] });
+        ph.capture("guest_projects_claimed", { count: guestIds.length });
+      }
+    });
+  }, [user, isLoaded, queryClient, ph]);
+
+  const userId = isLoaded ? (user?.id ?? null) : undefined;
+
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ["projects"],
-    queryFn: fetchProjects,
+    queryKey: ["projects", userId],
+    queryFn: () => fetchProjects(userId),
+    enabled: isLoaded,
   });
 
   const mutation = useMutation({
     mutationFn: createAndConvert,
-    onMutate: () => setHintPhase("uploading"),
+    onMutate: () => {
+      setHintPhase("uploading");
+      ph.capture("conversion_started");
+    },
     onSuccess: (data) => {
       setActiveJob(data);
       setHintPhase("converting");
     },
-    onError: () => setHintPhase(null),
+    onError: (err) => {
+      setHintPhase(null);
+      ph.capture("conversion_failed", { error: (err as Error).message });
+    },
   });
 
   const onFile = useCallback(
@@ -101,15 +168,17 @@ export default function DashboardPage() {
       setTimeout(() => setHintPhase(null), 2500);
       setActiveJob(null);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      ph.capture("conversion_completed");
     },
-    [queryClient],
+    [queryClient, ph],
   );
 
   const onConversionError = useCallback(() => {
     setHintPhase(null);
     setActiveJob(null);
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
-  }, [queryClient]);
+    ph.capture("conversion_error");
+  }, [queryClient, ph]);
 
   return (
     <>
@@ -120,10 +189,12 @@ export default function DashboardPage() {
         {/* Welcome header */}
         <header className="mb-12 animate-fade-up">
           <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            Welcome back
+            {user ? "Welcome back" : "Convert your image"}
           </h1>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            Upload an image below to convert it to a perfect SVG
+            {user
+              ? "Upload an image below to convert it to a perfect SVG"
+              : "Upload an image to convert — sign in to save and export your vectors"}
           </p>
         </header>
 
@@ -160,9 +231,7 @@ export default function DashboardPage() {
                   className="glass-card overflow-hidden"
                   style={{ animationDelay: `${i * 80}ms` }}
                 >
-                  {/* Thumbnail */}
                   <div className="skeleton aspect-video w-full rounded-none" style={{ borderRadius: 0 }} />
-                  {/* Info */}
                   <div className="flex items-start justify-between gap-3 p-5">
                     <div className="flex flex-1 flex-col gap-2">
                       <div className="skeleton h-3.5 w-3/4" />
@@ -211,11 +280,11 @@ export default function DashboardPage() {
             style={{ animationDelay: "160ms" }}
           >
             <h2 className="mb-6 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              All Projects
+              {user ? "All Projects" : "Your Conversions"}
             </h2>
             <div className="stagger-children grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} />
+                <ProjectCard key={p.id} project={p} isGuest={!user} />
               ))}
             </div>
           </section>

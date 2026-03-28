@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { FloatingThemeToggle } from "./FloatingThemeToggle";
 import { Logo } from "./Logo";
 
@@ -11,14 +11,11 @@ interface NavbarProps {
 }
 
 export function Navbar({ userName }: NavbarProps) {
-  const [isSigningOut, startSignOut] = useTransition();
+  const { signOut } = useClerk();
+  const { user, isLoaded } = useUser();
 
   function handleSignOut() {
-    startSignOut(async () => {
-      await fetch("/api/auth/signout", { method: "POST" });
-      // Full page navigation ensures the proxy sees the cleared session cookie
-      window.location.href = "/login";
-    });
+    void signOut({ redirectUrl: "/login" });
   }
 
   return (
@@ -41,17 +38,31 @@ export function Navbar({ userName }: NavbarProps) {
             </Link>
 
             <div className="flex items-center gap-2">
-              <motion.button
-                type="button"
-                onClick={handleSignOut}
-                disabled={isSigningOut}
-                className="btn-ghost rounded-xl px-3 py-1.5 text-xs disabled:opacity-40"
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.97, y: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 25 }}
-              >
-                {isSigningOut ? "Signing out…" : "Sign out"}
-              </motion.button>
+              {isLoaded && (
+                user ? (
+                  <motion.button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="btn-ghost rounded-xl px-3 py-1.5 text-xs"
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    whileTap={{ scale: 0.97, y: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  >
+                    Sign out
+                  </motion.button>
+                ) : (
+                  <Link href="/login">
+                    <motion.span
+                      className="btn-accent rounded-xl px-3 py-1.5 text-xs cursor-pointer"
+                      whileHover={{ scale: 1.02, y: -1 }}
+                      whileTap={{ scale: 0.97, y: 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    >
+                      Sign in
+                    </motion.span>
+                  </Link>
+                )
+              )}
 
               {/* Theme toggle inline on mobile only */}
               <div className="md:hidden">

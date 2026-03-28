@@ -1,4 +1,5 @@
-import { requireAuth } from "@/lib/api/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { AppError, JobStatusResponse, ConversionStep, JobStatus } from "@/lib/types";
 
@@ -28,12 +29,13 @@ export async function GET(
   try {
     const { id: jobId } = await params;
 
-    // Auth
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const { userId: clerkUserId } = await auth();
+    userId = clerkUserId;
 
-    // Load job — join to project to enforce ownership via RLS
-    const { data: job, error } = await supabase
+    const svc = createServiceClient();
+
+    // Load job — join to project to verify ownership
+    const { data: job, error } = await svc
       .from("conversion_jobs")
       .select("*, projects!inner(user_id)")
       .eq("id", jobId)
@@ -43,9 +45,13 @@ export async function GET(
       throw AppError.notFound("Job");
     }
 
-    // Belt-and-suspenders ownership check (RLS is primary)
-    if ((job.projects as { user_id: string }).user_id !== user.id) {
-      throw AppError.forbidden();
+    // Enforce ownership: authenticated users must own the project,
+    // guests can only access jobs for unclaimed (null user_id) projects
+    const projectUserId = (job.projects as { user_id: string | null }).user_id;
+    if (userId) {
+      if (projectUserId !== userId) throw AppError.forbidden();
+    } else {
+      if (projectUserId !== null) throw AppError.forbidden();
     }
 
     const step = job.step as ConversionStep;

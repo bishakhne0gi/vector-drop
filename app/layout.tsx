@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/shared/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { PostHogProvider } from "@/components/shared/PostHogProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -127,9 +129,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
+        <ClerkProvider>
+          <PostHogProvider>
+            <ThemeProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </ThemeProvider>
+          </PostHogProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

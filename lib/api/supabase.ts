@@ -1,39 +1,10 @@
-import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { AppError } from "@/lib/types";
 
 /**
- * Server-side Supabase client for route handlers.
- * Uses the anon key + session cookies so RLS is enforced automatically.
- */
-export async function createRouteClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options);
-            }
-          } catch {
-            // Route handlers cannot set cookies after streaming starts — safe to ignore
-          }
-        },
-      },
-    },
-  );
-}
-
-/**
- * Service-role client for privileged server-side operations (migrations, pipeline).
+ * Service-role client for all server-side database and storage operations.
+ * Authorization is enforced explicitly in each route (userId filters + ownership checks).
  * NEVER expose to client code.
  */
 export function createServiceClient() {
@@ -45,18 +16,11 @@ export function createServiceClient() {
 }
 
 /**
- * Asserts a user session exists, throws AppError(401) otherwise.
+ * Asserts a Clerk session exists, throws AppError(401) otherwise.
+ * Returns the authenticated Clerk userId.
  */
-export async function requireAuth() {
-  const supabase = await createRouteClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw AppError.unauthorized();
-  }
-
-  return { supabase, user };
+export async function requireAuth(): Promise<{ userId: string }> {
+  const { userId } = await auth()
+  if (!userId) throw AppError.unauthorized()
+  return { userId }
 }

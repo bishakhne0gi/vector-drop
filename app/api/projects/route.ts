@@ -1,56 +1,104 @@
 import { z } from "zod";
+import { auth } from "@clerk/nextjs/server";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { readRatelimit, writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError, CreateProjectResponse } from "@/lib/types";
 
-export async function GET(): Promise<Response> {
+const MAX_GUEST_IDS = 20;
+
+export async function GET(req: Request): Promise<Response> {
   const start = Date.now();
   let userId: string | null = null;
   try {
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const url = new URL(req.url);
+    const { userId: clerkUserId } = await auth();
+    userId = clerkUserId;
 
-    const { remaining: readRemaining } = await enforceRateLimit(readRatelimit, user.id);
+    const svc = createServiceClient();
 
-    const { data: projects, error } = await supabase
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: false });
+    if (userId) {
+      // Authenticated: return the user's own projects
+      const { remaining: readRemaining } = await enforceRateLimit(readRatelimit, userId);
 
-    if (error) {
-      throw AppError.internal(`Failed to fetch projects: ${error.message}`);
-    }
+      const { data: projects, error } = await svc
+        .from("projects")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-    const list = projects ?? [];
-
-    // Always regenerate fresh signed URLs — stored svg_url may be expired
-    const svgPaths = list
-      .filter((p) => p.svg_path)
-      .map((p) => p.svg_path as string);
-
-    if (svgPaths.length > 0) {
-      const svc = createServiceClient();
-      const { data: signed } = await svc.storage
-        .from("images")
-        .createSignedUrls(svgPaths, 3600); // 1-hour TTL, fresh every request
-
-      if (signed) {
-        const urlMap = new Map(signed.map((s) => [s.path, s.signedUrl]));
-        for (const project of list) {
-          if (project.svg_path) {
-            project.svg_url = urlMap.get(project.svg_path) ?? null;
-          }
-        }
+      if (error) {
+        throw AppError.internal(`Failed to fetch projects: ${error.message}`);
       }
-    }
 
-    return Response.json(list, {
-      headers: { "X-RateLimit-Remaining": String(readRemaining) },
-    });
+      const list = projects ?? [];
+      await attachSignedUrls(svc, list);
+
+      return Response.json(list, {
+        headers: { "X-RateLimit-Remaining": String(readRemaining) },
+      });
+    } else {
+      // Guest: return projects by IDs stored in localStorage (sent as ?ids=)
+      const rawIds = url.searchParams.get("ids") ?? "";
+      const ids = rawIds
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, MAX_GUEST_IDS);
+
+      if (ids.length === 0) {
+        return Response.json([]);
+      }
+
+      const { data: projects, error } = await svc
+        .from("projects")
+        .select("*")
+        .in("id", ids)
+        .is("user_id", null) // Only guest-owned (unclaimed) projects
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw AppError.internal(`Failed to fetch projects: ${error.message}`);
+      }
+
+      const list = projects ?? [];
+      await attachSignedUrls(svc, list);
+
+      return Response.json(list);
+    }
   } catch (err) {
     return handleError(err, "GET /api/projects", userId, Date.now() - start);
   }
+}
+
+async function attachSignedUrls(svc: ReturnType<typeof createServiceClient>, list: Array<Record<string, unknown>>) {
+  const projectsWithSvg = list.filter((p) => p.svg_path);
+  if (projectsWithSvg.length === 0) return;
+
+  const svgPaths = projectsWithSvg.map((p) => p.svg_path as string);
+
+  // Generate signed URLs one-by-one — bulk createSignedUrls silently returns
+  // empty signedUrl strings for some paths; individual calls expose the real error.
+  await Promise.all(
+    projectsWithSvg.map(async (project) => {
+      const { data, error } = await svc.storage
+        .from("images")
+        .createSignedUrl(project.svg_path as string, 3600);
+      if (error) {
+        // File missing (e.g. stale cache hit pointing to a deleted project's SVG).
+        // Clear svg_path so the UI shows the placeholder instead of a broken image.
+        console.warn("[attachSignedUrls] File not found, clearing svg_path:", project.svg_path);
+        project.svg_path = null;
+        project.status = "error";
+        // Best-effort: mark the project row so it re-converts next time
+        void svc.from("projects")
+          .update({ svg_path: null, status: "error", error_message: "SVG file missing — please reconvert" })
+          .eq("id", project.id as string);
+      } else if (data?.signedUrl) {
+        project.svg_url = data.signedUrl;
+      }
+    }),
+  );
 }
 
 const ROUTE = "POST /api/projects";
@@ -71,14 +119,14 @@ export async function POST(req: Request): Promise<Response> {
   let userId: string | null = null;
 
   try {
-    // 1. Auth
-    const { supabase, user } = await requireAuth();
-    userId = user.id;
+    const { userId: clerkUserId } = await auth();
+    userId = clerkUserId;
 
-    // 2. Rate limit
-    await enforceRateLimit(writeRatelimit, user.id);
+    // Rate limit by user ID or IP for guests
+    const rateLimitKey = userId ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon");
+    await enforceRateLimit(writeRatelimit, rateLimitKey);
 
-    // 3. Parse + validate body
+    // Parse + validate body
     let raw: unknown;
     try {
       raw = await req.json();
@@ -102,13 +150,14 @@ export async function POST(req: Request): Promise<Response> {
     }
     const { name, fileName, mimeType, fileSizeBytes } = parsed.data;
 
-    // 3. Create project record (status = 'pending')
-    const storagePath = `projects/${user.id}/${crypto.randomUUID()}/${fileName}`;
+    // Create project record — user_id is null for guests
+    const storagePath = `projects/${userId ?? "guest"}/${crypto.randomUUID()}/${fileName}`;
 
-    const { data: project, error: insertError } = await supabase
+    const svc = createServiceClient();
+    const { data: project, error: insertError } = await svc
       .from("projects")
       .insert({
-        user_id: user.id,
+        user_id: userId ?? null,
         name,
         source_image_path: storagePath,
         status: "pending",
@@ -122,15 +171,12 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-    // 4. Generate signed upload URL via service client (bypasses storage RLS)
-    const serviceClient = createServiceClient();
-    const { data: signedData, error: signedError } = await serviceClient.storage
+    const { data: signedData, error: signedError } = await svc.storage
       .from("images")
       .createSignedUploadUrl(storagePath);
 
     if (signedError || !signedData) {
-      // Roll back project record
-      await serviceClient.from("projects").delete().eq("id", project.id);
+      await svc.from("projects").delete().eq("id", project.id);
       throw AppError.storage(
         `Failed to generate upload URL: ${signedError?.message ?? "unknown"}`,
         { storagePath },
@@ -147,6 +193,7 @@ export async function POST(req: Request): Promise<Response> {
         projectId: project.id,
         fileSizeBytes,
         mimeType,
+        isGuest: !userId,
       }),
     );
 
