@@ -54,14 +54,16 @@ export async function GET(): Promise<Response> {
 }
 
 const ROUTE = "POST /api/projects";
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const createProjectSchema = z.object({
   name: z.string().min(1).max(200),
   fileName: z.string().min(1).max(500),
   mimeType: z.enum(ALLOWED_MIME),
-  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE),
+  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE, {
+    message: "File is too large. Please upload an image smaller than 10 MB and try again.",
+  }),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -86,6 +88,14 @@ export async function POST(req: Request): Promise<Response> {
 
     const parsed = createProjectSchema.safeParse(raw);
     if (!parsed.success) {
+      const fileSizeIssue = parsed.error.issues.find((i) =>
+        i.path.includes("fileSizeBytes") && i.code === "too_big",
+      );
+      if (fileSizeIssue) {
+        throw AppError.validation(
+          "File is too large. Please upload an image smaller than 10 MB and try again.",
+        );
+      }
       throw AppError.validation("Invalid request body", {
         issues: parsed.error.issues,
       });

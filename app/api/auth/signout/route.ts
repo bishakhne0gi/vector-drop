@@ -19,10 +19,5 @@ export async function POST(): Promise<NextResponse> {
     )
   }
 
-  const response = NextResponse.redirect(
-    new URL('/login', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
-    { status: 303 },
-  )
-
-  return response
+  return NextResponse.json({ ok: true })
 }

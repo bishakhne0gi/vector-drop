@@ -39,7 +39,14 @@ async function createAndConvert(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!createRes.ok) throw new Error("Failed to create project");
+  if (!createRes.ok) {
+    let message = "Failed to create project";
+    try {
+      const json = await createRes.json() as { error?: { message?: string } };
+      if (json.error?.message) message = json.error.message;
+    } catch { /* ignore */ }
+    throw new Error(message);
+  }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
 
   const uploadRes = await fetch(uploadUrl, {
