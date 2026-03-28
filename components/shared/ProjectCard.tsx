@@ -28,22 +28,47 @@ function CardContent({ project }: ProjectCardProps) {
   return (
     <article
       className={cn(
-        "animate-stagger-in glass-card group flex flex-col gap-0 overflow-hidden transition-all duration-200",
+        "animate-stagger-in group flex flex-col overflow-hidden transition-all duration-300",
         isReady && "hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--accent-glow)]",
       )}
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-default)",
+        borderRadius: "16px",
+        boxShadow: "var(--shadow-card)",
+        ...(isReady ? {} : {}),
+      }}
     >
       {/* Thumbnail */}
-      <div className="aspect-video w-full overflow-hidden bg-[var(--bg-glass)]">
+      <div
+        className="card-thumbnail-grid relative w-full overflow-hidden"
+        style={{
+          aspectRatio: "4/3",
+          backgroundColor: "var(--bg-primary)",
+        }}
+      >
+        {/* Radial glow centre — teal tint, fades at edges */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 70% at 50% 50%, var(--accent-glow) 0%, transparent 70%)",
+            opacity: 0.6,
+          }}
+        />
+
         {project.svg_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={project.svg_url}
             alt={project.name}
-            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+            className="absolute inset-0 h-full w-full object-contain p-6 transition-transform duration-500 group-hover:scale-105"
+            style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))" }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <polyline points="21 15 16 10 5 21" />
@@ -53,7 +78,7 @@ function CardContent({ project }: ProjectCardProps) {
       </div>
 
       {/* Info */}
-      <div className="flex items-start justify-between gap-2 p-5">
+      <div className="flex items-start justify-between gap-2 p-5" style={{ borderTop: "1px solid var(--border-subtle)" }}>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
             {project.name}
@@ -73,7 +98,7 @@ function CardContent({ project }: ProjectCardProps) {
       </div>
 
       {project.error_message && (
-        <p className="px-5 pb-4 text-xs text-[var(--destructive)] line-clamp-2">
+        <p className="px-4 pb-3 text-xs text-[var(--destructive)] line-clamp-2">
           {project.error_message}
         </p>
       )}

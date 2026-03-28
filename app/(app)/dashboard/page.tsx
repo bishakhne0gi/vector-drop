@@ -6,6 +6,7 @@ import { DropZone } from "@/components/upload/DropZone";
 import { ConversionProgress } from "@/components/upload/ConversionProgress";
 import { ProjectCard } from "@/components/shared/ProjectCard";
 import { Navbar } from "@/components/shared/Navbar";
+import { FloatingStatusHint } from "@/components/shared/FloatingStatusHint";
 import type {
   Project,
   CreateProjectRequest,
@@ -61,6 +62,7 @@ export default function DashboardPage() {
     jobId: string;
     projectId: string;
   } | null>(null);
+  const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
 
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ["projects"],
@@ -69,7 +71,12 @@ export default function DashboardPage() {
 
   const mutation = useMutation({
     mutationFn: createAndConvert,
-    onSuccess: (data) => setActiveJob(data),
+    onMutate: () => setHintPhase("uploading"),
+    onSuccess: (data) => {
+      setActiveJob(data);
+      setHintPhase("converting");
+    },
+    onError: () => setHintPhase(null),
   });
 
   const onFile = useCallback(
@@ -79,6 +86,8 @@ export default function DashboardPage() {
 
   const onConversionDone = useCallback(
     (_job: JobStatusResponse) => {
+      setHintPhase("done");
+      setTimeout(() => setHintPhase(null), 2500);
       setActiveJob(null);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
@@ -86,6 +95,7 @@ export default function DashboardPage() {
   );
 
   const onConversionError = useCallback(() => {
+    setHintPhase(null);
     setActiveJob(null);
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
   }, [queryClient]);
@@ -200,6 +210,8 @@ export default function DashboardPage() {
           </section>
         )}
       </main>
+
+      <FloatingStatusHint phase={hintPhase} />
     </>
   );
 }
