@@ -13,16 +13,15 @@ function applySecurityHeaders(response: NextResponse, nonce: string): void {
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval'`,
+    `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' blob: data: https:`,
     `connect-src 'self'${supabaseHost ? ` https://${supabaseHost}` : ''}`,
-    "font-src 'self'",
+    "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
   ].join('; ')
 
   response.headers.set('Content-Security-Policy', csp)
