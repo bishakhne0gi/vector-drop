@@ -15,8 +15,72 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VectorDrop — Image to SVG Converter",
-  description: "Convert raster images to editable SVG vectors with AI-powered tracing",
+  metadataBase: new URL("https://vectordrop.co.in"),
+  title: {
+    default: "VectorDrop — Free Image to SVG Converter Online",
+    template: "%s | VectorDrop",
+  },
+  description:
+    "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. Better than Adobe Illustrator Image Trace, Vectorizer.AI, and SVGtrace — free, fast, and browser-based.",
+  keywords: [
+    "image to svg",
+    "png to svg",
+    "jpg to svg",
+    "raster to vector",
+    "vector converter",
+    "svg converter",
+    "vectorize image",
+    "free svg converter",
+    "adobe illustrator alternative",
+    "vectorizer ai alternative",
+    "svg trace",
+    "image trace",
+    "figma vectorize alternative",
+    "bitmap to vector",
+    "online svg converter",
+  ],
+  authors: [{ name: "VectorDrop", url: "https://vectordrop.co.in" }],
+  creator: "VectorDrop",
+  publisher: "VectorDrop",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://vectordrop.co.in",
+    siteName: "VectorDrop",
+    title: "VectorDrop — Free Image to SVG Converter Online",
+    description:
+      "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. No Illustrator needed.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "VectorDrop — Image to SVG Converter",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VectorDrop — Free Image to SVG Converter Online",
+    description:
+      "Convert PNG & JPG images to clean SVG vectors instantly. Better than Vectorizer.AI & Illustrator Image Trace — free.",
+    site: "@vectordrop",
+    creator: "@vectordrop",
+    images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: "https://vectordrop.co.in",
+  },
+  icons: {
+    icon: "/icon",
+    shortcut: "/icon",
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({

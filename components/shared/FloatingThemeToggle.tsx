@@ -3,12 +3,12 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "./ThemeProvider";
 
-export function FloatingThemeToggle() {
+export function FloatingThemeToggle({ inline = false }: { inline?: boolean }) {
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
   return (
-    <div className="fixed right-5 top-5 z-50">
+    <div className={inline ? "" : "fixed right-5 top-5 z-50"}>
       <motion.button
         type="button"
         onClick={toggle}

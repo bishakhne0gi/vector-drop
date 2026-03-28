@@ -23,7 +23,10 @@ export function Navbar({ userName }: NavbarProps) {
 
   return (
     <>
-      <FloatingThemeToggle />
+      {/* Theme toggle only floating on md+ screens — on mobile it lives in the navbar row */}
+      <div className="hidden md:block">
+        <FloatingThemeToggle />
+      </div>
 
       <motion.header
         className="w-full"
@@ -37,17 +40,24 @@ export function Navbar({ userName }: NavbarProps) {
               <Logo />
             </Link>
 
-            <motion.button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="btn-ghost rounded-xl px-3 py-1.5 text-xs disabled:opacity-40"
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.97, y: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 25 }}
-            >
-              {isSigningOut ? "Signing out…" : "Sign out"}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="btn-ghost rounded-xl px-3 py-1.5 text-xs disabled:opacity-40"
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.97, y: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              >
+                {isSigningOut ? "Signing out…" : "Sign out"}
+              </motion.button>
+
+              {/* Theme toggle inline on mobile only */}
+              <div className="md:hidden">
+                <FloatingThemeToggle inline />
+              </div>
+            </div>
           </div>
         </div>
       </motion.header>

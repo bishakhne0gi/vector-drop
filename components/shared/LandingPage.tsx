@@ -364,9 +364,9 @@ function HeroMockup() {
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-0">
-          {/* Stat */}
-          <div className="flex flex-col justify-between border-r p-5" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="grid grid-cols-1 gap-0 sm:grid-cols-3">
+          {/* Stat — hidden on mobile */}
+          <div className="hidden flex-col justify-between border-r p-5 sm:flex" style={{ borderColor: "var(--border-subtle)" }}>
             <div>
               <p className="mb-1 text-xs" style={{ color: "var(--text-muted)" }}>SVGs Converted</p>
               <div className="flex items-end gap-2">
@@ -431,8 +431,8 @@ function HeroMockup() {
             </div>
           </div>
 
-          {/* Recent */}
-          <div className="flex flex-col border-l p-5" style={{ borderColor: "var(--border-subtle)" }}>
+          {/* Recent — hidden on mobile */}
+          <div className="hidden flex-col border-l p-5 sm:flex" style={{ borderColor: "var(--border-subtle)" }}>
             <p className="mb-3 text-xs" style={{ color: "var(--text-muted)" }}>Recent</p>
             {[
               { name: "logo.png", status: "Done" },
@@ -462,7 +462,7 @@ function HeroMockup() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-4 divide-x border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--bg-subtle)" }}>
+        <div className="grid grid-cols-2 divide-x border-t sm:grid-cols-4" style={{ borderColor: "var(--border-subtle)", background: "var(--bg-subtle)" }}>
           {[
             { label: "Formats", value: "PNG · JPG · WebP" },
             { label: "Max size", value: "10 MB" },
@@ -692,16 +692,45 @@ export function LandingPage() {
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <footer className="mt-4 border-t px-6 py-10" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-5 md:flex-row">
-          <div className="flex items-center gap-2.5">
-            <LogoMark size={22} />
-            <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>VectorDrop</span>
+        <div className="mx-auto max-w-4xl flex flex-col gap-8">
+          {/* Top row */}
+          <div className="flex flex-col items-center justify-between gap-5 md:flex-row">
+            <div className="flex items-center gap-2.5">
+              <LogoMark size={22} />
+              <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>VectorDrop</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Sign in</Link>
+              <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Get started</Link>
+            </div>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>© 2026 VectorDrop. All rights reserved.</p>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Sign in</Link>
-            <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Get started</Link>
+
+          {/* Competitors / alternatives row */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Better than:</span>
+            {[
+              "Adobe Illustrator Image Trace",
+              "Vectorizer.AI",
+              "SVGtrace",
+              "Figma Vectorize",
+              "Vector Magic",
+              "Autotracer",
+              "Inkscape",
+            ].map((name) => (
+              <span
+                key={name}
+                className="rounded-full px-2.5 py-0.5 text-xs"
+                style={{
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-muted)",
+                  background: "var(--bg-glass)",
+                }}
+              >
+                {name}
+              </span>
+            ))}
           </div>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>© 2025 VectorDrop. All rights reserved.</p>
         </div>
       </footer>
 

@@ -440,20 +440,12 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
           disabled={!svgMeta}
         />
 
-        <Tooltip label="⌘S">
+        <Tooltip label="Coming soon">
           <button
-            onClick={() => void handleSave()}
-            disabled={saveState === "saving" || !svgMeta}
-            className="flex h-8 items-center gap-2 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-4 text-xs font-medium text-[var(--text-primary)] transition-all hover:bg-[var(--bg-glass-strong)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            disabled
+            className="flex h-8 items-center gap-2 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-4 text-xs font-medium text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-40"
             aria-label="Save project"
           >
-            {saveState === "saving" && (
-              <span
-                className="h-3 w-3 rounded-full border-2 border-current/30 border-t-current"
-                style={{ animation: "spin 0.7s linear infinite" }}
-                aria-hidden="true"
-              />
-            )}
             Save
           </button>
         </Tooltip>
