@@ -59,6 +59,7 @@ export const metadata: Metadata = {
     title: "VectorDrop — Free Image to SVG Converter Online",
     description:
       "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. No Illustrator needed.",
+    images: ["https://vectordrop.co.in/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
@@ -67,6 +68,7 @@ export const metadata: Metadata = {
       "Convert PNG & JPG images to clean SVG vectors instantly. Better than Vectorizer.AI & Illustrator Image Trace — free.",
     site: "@vectordrop",
     creator: "@vectordrop",
+    images: ["https://vectordrop.co.in/opengraph-image"],
   },
   alternates: {
     canonical: "https://vectordrop.co.in",
