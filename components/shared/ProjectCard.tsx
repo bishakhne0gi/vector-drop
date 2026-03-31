@@ -101,9 +101,10 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
           <Badge variant={badge.variant} pulse={badge.pulse}>
             {badge.label}
           </Badge>
-          {isGuest && project.status === "ready" && (
+          {/* GUEST USER DISABLED — "Sign in to export" badge commented out */}
+          {/* {isGuest && project.status === "ready" && (
             <span className="text-[10px] text-[var(--text-muted)]">Sign in to export</span>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -117,7 +118,8 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
 }
 
 export function ProjectCard({ project, isGuest }: ProjectCardProps) {
-  if (project.status === "ready" && !isGuest) {
+  // GUEST USER DISABLED — all ready projects now link to editor directly
+  if (project.status === "ready") {
     return (
       <Link href={`/editor/${project.id}`} aria-label={`Open ${project.name}`}>
         <CardContent project={project} isGuest={isGuest} />

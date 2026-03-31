@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { usePostHog } from "posthog-js/react";
@@ -18,26 +18,27 @@ import type {
   JobStatusResponse,
 } from "@/lib/types";
 
-const GUEST_IDS_KEY = "vd_guest_project_ids";
-
-function getGuestIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(GUEST_IDS_KEY) ?? "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-
-function addGuestId(id: string) {
-  const ids = getGuestIds();
-  if (!ids.includes(id)) {
-    localStorage.setItem(GUEST_IDS_KEY, JSON.stringify([...ids, id]));
-  }
-}
-
-function clearGuestIds() {
-  localStorage.removeItem(GUEST_IDS_KEY);
-}
+// GUEST USER DISABLED — flow is now Landing → Login → Dashboard → Editor
+// const GUEST_IDS_KEY = "vd_guest_project_ids";
+//
+// function getGuestIds(): string[] {
+//   try {
+//     return JSON.parse(localStorage.getItem(GUEST_IDS_KEY) ?? "[]") as string[];
+//   } catch {
+//     return [];
+//   }
+// }
+//
+// function addGuestId(id: string) {
+//   const ids = getGuestIds();
+//   if (!ids.includes(id)) {
+//     localStorage.setItem(GUEST_IDS_KEY, JSON.stringify([...ids, id]));
+//   }
+// }
+//
+// function clearGuestIds() {
+//   localStorage.removeItem(GUEST_IDS_KEY);
+// }
 
 async function fetchProjects(userId: string | null | undefined): Promise<Project[]> {
   if (userId === undefined) return []; // Still loading Clerk
@@ -45,13 +46,16 @@ async function fetchProjects(userId: string | null | undefined): Promise<Project
     const res = await fetch("/api/projects");
     if (!res.ok) throw new Error("Failed to load projects");
     return res.json() as Promise<Project[]>;
-  } else {
-    const ids = getGuestIds();
-    if (ids.length === 0) return [];
-    const res = await fetch(`/api/projects?ids=${ids.join(",")}`);
-    if (!res.ok) throw new Error("Failed to load projects");
-    return res.json() as Promise<Project[]>;
   }
+  // GUEST USER DISABLED — guest fetch branch commented out
+  // else {
+  //   const ids = getGuestIds();
+  //   if (ids.length === 0) return [];
+  //   const res = await fetch(`/api/projects?ids=${ids.join(",")}`);
+  //   if (!res.ok) throw new Error("Failed to load projects");
+  //   return res.json() as Promise<Project[]>;
+  // }
+  return [];
 }
 
 async function createAndConvert(
@@ -82,10 +86,10 @@ async function createAndConvert(
   }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
 
-  // Track guest project IDs in localStorage
-  if (!project.user_id) {
-    addGuestId(project.id);
-  }
+  // GUEST USER DISABLED — guest project tracking commented out
+  // if (!project.user_id) {
+  //   addGuestId(project.id);
+  // }
 
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
@@ -115,24 +119,24 @@ export default function DashboardPage() {
   } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
 
-  // Claim guest projects after login
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-    const guestIds = getGuestIds();
-    if (guestIds.length === 0) return;
-
-    void fetch("/api/projects/claim", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectIds: guestIds }),
-    }).then((res) => {
-      if (res.ok) {
-        clearGuestIds();
-        void queryClient.invalidateQueries({ queryKey: ["projects"] });
-        ph.capture("guest_projects_claimed", { count: guestIds.length });
-      }
-    });
-  }, [user, isLoaded, queryClient, ph]);
+  // GUEST USER DISABLED — guest project claim on login commented out
+  // useEffect(() => {
+  //   if (!isLoaded || !user) return;
+  //   const guestIds = getGuestIds();
+  //   if (guestIds.length === 0) return;
+  //
+  //   void fetch("/api/projects/claim", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({ projectIds: guestIds }),
+  //   }).then((res) => {
+  //     if (res.ok) {
+  //       clearGuestIds();
+  //       void queryClient.invalidateQueries({ queryKey: ["projects"] });
+  //       ph.capture("guest_projects_claimed", { count: guestIds.length });
+  //     }
+  //   });
+  // }, [user, isLoaded, queryClient, ph]);
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
 
@@ -190,12 +194,10 @@ export default function DashboardPage() {
         {/* Welcome header */}
         <header className="mb-12 animate-fade-up">
           <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            {user ? "Welcome back" : "Convert your image"}
+            Welcome back
           </h1>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            {user
-              ? "Upload an image below to convert it to a perfect SVG"
-              : "Upload an image to convert — sign in to save and export your vectors"}
+            Upload an image below to convert it to a perfect SVG
           </p>
         </header>
 
@@ -281,11 +283,11 @@ export default function DashboardPage() {
             style={{ animationDelay: "160ms" }}
           >
             <h2 className="mb-6 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              {user ? "All Projects" : "Your Conversions"}
+              All Projects
             </h2>
             <div className="stagger-children grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} isGuest={!user} />
+                <ProjectCard key={p.id} project={p} />
               ))}
             </div>
           </section>

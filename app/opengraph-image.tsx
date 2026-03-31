@@ -64,8 +64,8 @@ export default function Image() {
             <path
               d="M6 20 C6 20 10 7 14 14 C18 21 22 8 22 8"
               stroke="white"
-              stroke-width="2.5"
-              stroke-linecap="round"
+              strokeWidth="2.5"
+              strokeLinecap="round"
               fill="none"
             />
             <circle cx="6" cy="20" r="1.5" fill="white" />
@@ -77,6 +77,7 @@ export default function Image() {
         {/* Title */}
         <div
           style={{
+            display: "flex",
             fontSize: 64,
             fontWeight: 700,
             color: "#ffffff",
