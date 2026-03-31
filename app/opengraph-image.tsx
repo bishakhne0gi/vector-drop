@@ -24,6 +24,7 @@ export default function Image() {
         {/* Background grid */}
         <div
           style={{
+            display: "flex",
             position: "absolute",
             inset: 0,
             backgroundImage:
@@ -35,6 +36,7 @@ export default function Image() {
         {/* Glow */}
         <div
           style={{
+            display: "flex",
             position: "absolute",
             top: "50%",
             left: "50%",
