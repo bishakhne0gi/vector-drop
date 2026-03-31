@@ -33,6 +33,10 @@
   --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
   --shadow-nav: 0 1px 0 rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.06);
 
+  /* Section backgrounds */
+  --bg-invert: #0a0f0e;
+  --bg-panel: #f4f6f5;
+
   /* Tailwind compat */
   --background: #f4fdfb;
   --foreground: #0a0f0e;
@@ -67,6 +71,10 @@
   --shadow-card: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.25);
   --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.3);
   --shadow-nav: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3);
+
+  /* Section backgrounds */
+  --bg-invert: #050908;
+  --bg-panel: #111918;
 
   --background: #080d0c;
   --foreground: #f0fdf9;
@@ -416,8 +424,29 @@ label[for] {
   }
 }
 
-/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+/* ─── Marquee ────────────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-33.333%); }
+}
+
+@keyframes marquee-slow {
+  from { transform: translateX(0); }
+  to { transform: translateX(-16.666%); }
+}
+
+.marquee-track {
+  animation: marquee 28s linear infinite;
+  will-change: transform;
+  width: max-content;
+}
+
+.marquee-track-slow {
+  animation: marquee-slow 40s linear infinite;
+  will-change: transform;
+  width: max-content;
+}
+
+/* ─── Scrollbar — hidden ─────────────────────────────────────────────────── */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+::-webkit-scrollbar { display: none; }

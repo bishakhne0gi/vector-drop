@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { FeedbackButton } from "@/components/shared/FeedbackButton";
 import { useQuery } from "@tanstack/react-query";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { Toolbar } from "@/components/editor/Toolbar";
@@ -157,6 +158,7 @@ export default function EditorPage({
   return (
     <div className="flex h-full flex-col">
       <Toolbar projectId={projectId} projectName={project.name} />
+      <FeedbackButton page="editor" />
 
       {/* Desktop layout — side panels visible */}
       <div className="hidden md:flex flex-1 overflow-hidden">

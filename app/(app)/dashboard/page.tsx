@@ -9,6 +9,7 @@ import { ConversionProgress } from "@/components/upload/ConversionProgress";
 import { ProjectCard } from "@/components/shared/ProjectCard";
 import { Navbar } from "@/components/shared/Navbar";
 import { FloatingStatusHint } from "@/components/shared/FloatingStatusHint";
+import { FeedbackButton } from "@/components/shared/FeedbackButton";
 import type {
   Project,
   CreateProjectRequest,
@@ -292,6 +293,7 @@ export default function DashboardPage() {
       </main>
 
       <FloatingStatusHint phase={hintPhase} />
+      <FeedbackButton page="dashboard" />
     </>
   );
 }
