@@ -206,6 +206,33 @@ body {
   background: radial-gradient(circle, rgba(8,145,178,0.10) 0%, rgba(13,148,136,0.05) 50%, transparent 70%);
 }
 
+/* ─── LEGO Hero Background ───────────────────────────────────────────────── */
+.lego-base {
+  background-color: #1a1c22;
+}
+
+.lego-studs {
+  background-image:
+    radial-gradient(circle at 15px 15px, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.35) 3px, transparent 3px),
+    radial-gradient(circle at 15px 15px, rgba(100,100,110,0.25) 3px, transparent 8px),
+    radial-gradient(circle at 15px 15px, transparent 8px, rgba(0,0,0,0.6) 8px, rgba(0,0,0,0.6) 10px, transparent 10px);
+  background-size: 30px 30px;
+}
+
+.lego-vignette {
+  background:
+    linear-gradient(to bottom,
+      transparent 55%,
+      rgba(26,28,34,0.6) 75%,
+      #1a1c22 90%,
+      var(--bg-primary) 100%
+    ),
+    radial-gradient(ellipse 100% 100% at 50% 50%,
+      transparent 50%,
+      rgba(0,0,0,0.3) 100%
+    );
+}
+
 /* ─── Gradient text ──────────────────────────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #0d9488 0%, #14b8a6 60%, #0891b2 100%);
