@@ -27,7 +27,7 @@ export function Navbar({ userName }: NavbarProps) {
     >
       <div className="mx-auto max-w-5xl px-5 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/dashboard">
+          <Link href="/">
             <Logo />
           </Link>
 
