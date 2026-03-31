@@ -1303,7 +1303,12 @@ export function LandingPage() {
               <Link href="/login" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Sign in</Link>
               <Link href="/dashboard" className="text-sm transition-opacity hover:opacity-60" style={{ color: "var(--text-muted)" }}>Dashboard</Link>
             </div>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>© 2026 VectorDrop. All rights reserved.</p>
+            <div className="flex flex-col items-center gap-3">
+              <a href="https://www.betterlaunch.co" target="_blank" rel="noopener noreferrer">
+                <img src="https://www.betterlaunch.co/badge.svg" alt="Featured on Better Launch" style={{ width: 160, height: "auto" }} />
+              </a>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>© 2026 VectorDrop. All rights reserved.</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>Better than:</span>
