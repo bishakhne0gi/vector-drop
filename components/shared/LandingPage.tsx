@@ -64,30 +64,90 @@ function CheckDeco({ size = 22, color = "var(--accent)" }: { size?: number; colo
   );
 }
 
-/* ─── Mascot ─────────────────────────────────────────────────────────────── */
-function VectorMascot({ size = 80 }: { size?: number }) {
+/* ─── Mascot: LEGO-brick raptor ──────────────────────────────────────────── */
+function DinoMascot({ size = 120 }: { size?: number }) {
+  const h = Math.round(size * 0.82);
   return (
-    <svg width={size} height={size} viewBox="0 0 80 80" fill="none">
-      <rect x="20" y="30" width="40" height="34" rx="10" fill="#0d9488" />
-      <rect x="33" y="36" width="14" height="6" fill="#0d9488" />
-      <rect x="24" y="12" width="32" height="28" rx="9" fill="#0d9488" />
-      <rect x="26" y="14" width="28" height="24" rx="7" fill="#14b8a6" opacity="0.3" />
-      <circle cx="33" cy="25" r="4.5" fill="white" />
-      <circle cx="47" cy="25" r="4.5" fill="white" />
-      <circle cx="34" cy="26" r="2.5" fill="#065f46" />
-      <circle cx="48" cy="26" r="2.5" fill="#065f46" />
-      <circle cx="35" cy="25" r="1" fill="white" />
-      <circle cx="49" cy="25" r="1" fill="white" />
-      <path d="M33 34 Q40 38 47 34" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <rect x="8" y="34" width="14" height="8" rx="4" fill="#0d9488" />
-      <rect x="58" y="34" width="14" height="8" rx="4" fill="#0d9488" />
-      <path d="M72 36L77 40L72 44L68 40Z" fill="#f59e0b" />
-      <rect x="27" y="58" width="10" height="14" rx="5" fill="#065f46" />
-      <rect x="43" y="58" width="10" height="14" rx="5" fill="#065f46" />
-      <line x1="40" y1="12" x2="40" y2="4" stroke="#0d9488" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="40" cy="3" r="3" fill="#f59e0b" />
-      <rect x="28" y="44" width="24" height="3" rx="1.5" fill="white" opacity="0.2" />
-      <circle cx="40" cy="52" r="3" fill="white" opacity="0.25" />
+    <svg width={size} height={h} viewBox="0 0 220 180" fill="none">
+      {/* shadow */}
+      <ellipse cx="118" cy="175" rx="68" ry="5.5" fill="rgba(0,0,0,0.10)" />
+
+      {/* ── TAIL ── */}
+      <rect x="4"  y="44" width="22" height="14" rx="2.5" fill="#0d9488" />
+      <circle cx="10" cy="43" r="3.5" fill="#0a7a72" />
+      <circle cx="20" cy="43" r="3.5" fill="#0a7a72" />
+
+      <rect x="24" y="52" width="28" height="16" rx="2.5" fill="#0d9488" />
+      <circle cx="31" cy="51" r="3.5" fill="#0a7a72" />
+      <circle cx="41" cy="51" r="3.5" fill="#0a7a72" />
+      <circle cx="51" cy="51" r="3.5" fill="#0a7a72" />
+
+      <rect x="50" y="62" width="22" height="18" rx="2.5" fill="#0d9488" />
+
+      {/* ── BODY ── */}
+      <rect x="65" y="70" width="74" height="48" rx="3" fill="#0d9488" />
+      <circle cx="74"  cy="69" r="4.5" fill="#0a7a72" />
+      <circle cx="88"  cy="69" r="4.5" fill="#0a7a72" />
+      <circle cx="102" cy="69" r="4.5" fill="#0a7a72" />
+      <circle cx="116" cy="69" r="4.5" fill="#0a7a72" />
+      <circle cx="130" cy="69" r="4.5" fill="#0a7a72" />
+      {/* belly */}
+      <rect x="70" y="97" width="64" height="21" rx="2" fill="#f59e0b" />
+
+      {/* ── NECK ── */}
+      <rect x="132" y="56" width="24" height="30" rx="2.5" fill="#0d9488" />
+      <circle cx="139" cy="55" r="4" fill="#0a7a72" />
+      <circle cx="151" cy="55" r="4" fill="#0a7a72" />
+
+      {/* ── HEAD upper ── */}
+      <rect x="136" y="36" width="58" height="24" rx="3" fill="#0d9488" />
+      <circle cx="145" cy="35" r="4"   fill="#0a7a72" />
+      <circle cx="158" cy="35" r="4"   fill="#0a7a72" />
+      <circle cx="171" cy="35" r="4"   fill="#0a7a72" />
+      <circle cx="184" cy="35" r="4"   fill="#0a7a72" />
+      {/* snout */}
+      <rect x="170" y="42" width="26" height="16" rx="2" fill="#f59e0b" />
+      {/* nostril */}
+      <circle cx="186" cy="46" r="2.2" fill="#d97706" />
+      {/* eye */}
+      <circle cx="160" cy="46" r="7.5" fill="#f59e0b" />
+      <circle cx="161" cy="47" r="4.2" fill="#1c1917" />
+      <circle cx="159" cy="45" r="1.5" fill="white" />
+      {/* upper teeth */}
+      <rect x="170" y="57" width="4"   height="7" rx="1.2" fill="white" />
+      <rect x="177" y="58" width="3.5" height="6" rx="1.2" fill="white" />
+      <rect x="184" y="57" width="3.5" height="7" rx="1.2" fill="white" />
+      <rect x="191" y="58" width="3"   height="5" rx="1.2" fill="white" />
+
+      {/* ── LOWER JAW ── */}
+      <rect x="152" y="65" width="48" height="19" rx="3" fill="#0d9488" />
+      <rect x="160" y="67" width="37" height="15" rx="2" fill="#f59e0b" />
+      {/* lower teeth */}
+      <rect x="162" y="61" width="3.5" height="7" rx="1.2" fill="white" />
+      <rect x="169" y="62" width="3.5" height="6" rx="1.2" fill="white" />
+      <rect x="176" y="61" width="3"   height="7" rx="1.2" fill="white" />
+      <rect x="183" y="62" width="3"   height="6" rx="1.2" fill="white" />
+
+      {/* ── FRONT ARM ── */}
+      <rect x="132" y="84" width="18" height="13" rx="2.5" fill="#0d9488" />
+      <path d="M145 97 L149 91 L153 97" fill="#065f46" />
+      <path d="M149 98 L153 92 L157 98" fill="#065f46" />
+
+      {/* ── BACK LEG (slightly behind) ── */}
+      <rect x="76"  y="116" width="22" height="25" rx="2.5" fill="#0a7a72" />
+      <rect x="74"  y="139" width="18" height="18" rx="2.5" fill="#0a7a72" />
+      <rect x="68"  y="154" width="28" height="11" rx="2.5" fill="#0a7a72" />
+      <path d="M68 165 L61 161 L66 154"  fill="#065f46" />
+      <path d="M78 166 L74 157 L84 159"  fill="#065f46" />
+      <path d="M92 165 L88 156 L95 155"  fill="#065f46" />
+
+      {/* ── FRONT LEG ── */}
+      <rect x="117" y="116" width="22" height="25" rx="2.5" fill="#0d9488" />
+      <rect x="115" y="139" width="18" height="18" rx="2.5" fill="#0d9488" />
+      <rect x="109" y="154" width="28" height="11" rx="2.5" fill="#0d9488" />
+      <path d="M109 165 L102 161 L107 154" fill="#065f46" />
+      <path d="M119 166 L115 157 L125 159" fill="#065f46" />
+      <path d="M133 165 L129 156 L136 155" fill="#065f46" />
     </svg>
   );
 }
@@ -402,7 +462,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: EASE, delay: 0.9 }}>
             <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
-              <VectorMascot size={82} />
+              <DinoMascot size={120} />
             </motion.div>
           </motion.div>
         </div>
@@ -616,7 +676,7 @@ export function LandingPage() {
               initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }} transition={{ duration: 0.5, ease: EASE, delay: 0.15 }}>
               <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}>
-                <VectorMascot size={112} />
+                <DinoMascot size={150} />
               </motion.div>
               <motion.div className="rounded-2xl px-4 py-2 text-xs font-bold text-white"
                 style={{ background: "var(--accent)" }}
