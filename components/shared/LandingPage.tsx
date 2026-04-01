@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, CloudArrowUp, DownloadSimple } from "@phosphor-icons/react";
+import { CaretDoubleRightIcon, CloudArrowUp, DownloadSimple, ArrowRight, BezierCurveIcon } from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
 import { useEffect, useRef } from "react";
 
@@ -309,56 +309,119 @@ function LegoBackground() {
 
 export function LandingPage() {
   return (
-    <main className="bg-[#161516] text-white">
-      <section className="relative overflow-hidden px-6 pb-20 pt-24 h-screen">
-        <LegoBackground />
-        <div className="relative mx-auto max-w-6xl">
-          <div className="mx-auto max-w-3xl text-center relative z-20">
-            {/* Dark overlay background for text readability */}
-            {/* <div className="absolute left-1/2 top-1/2 -z-10 h-[80rem] w-[80rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#161516] blur-3xl" /> */}
+    <main className="bg-[#161516] text-white" style={{ fontFamily: "'Helvetica Neue', 'Helvetica', sans-serif" }}>
+      <section className="relative overflow-hidden h-[60vh]">
+        {/* Top-left corner LEGO background */}
+        <div className="absolute top-0 left-0 w-1/3 h-1/3 pointer-events-none opacity-80">
+          <div className="relative w-full h-full overflow-hidden">
+            <LegoBackground />
+          </div>
+        </div>
 
-            <span className="inline-flex rounded-full border border-white/8 bg-white/[0.03] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/58">
-              Simple image to SVG
+        {/* Top-right corner LEGO background */}
+        <div className="absolute top-0 right-0 w-1/3 h-1/3 pointer-events-none opacity-80">
+          <div className="relative w-full h-full overflow-hidden">
+            <LegoBackground />
+          </div>
+        </div>
+
+        {/* Bottom-left corner LEGO background */}
+        <div className="absolute bottom-0 left-0 w-1/3 h-1/3 pointer-events-none opacity-80">
+          <div className="relative w-full h-full overflow-hidden">
+            <LegoBackground />
+          </div>
+        </div>
+
+        {/* Bottom-right corner LEGO background */}
+        <div className="absolute bottom-0 right-0 w-1/3 h-1/3 pointer-events-none opacity-80">
+          <div className="relative w-full h-full overflow-hidden">
+            <LegoBackground />
+          </div>
+        </div>
+
+        {/* Text content - centered */}
+        <div className="relative z-20 h-full flex flex-col justify-center items-center px-6 lg:px-12">
+          <div className="max-w-2xl text-center">
+            <span className="inline-flex text-sm leading-relaxed text-cyan-400/90 mx-auto max-w-md items-center justify-center gap-2">
+            <BezierCurveIcon size={14} />
+              Image to Vector
             </span>
-            <h1 className="mt-8 text-5xl font-semibold leading-tight tracking-[-0.05em] md:text-7xl">
-              Turn any image into a clean, editable SVG.
+            <h1 className="mt-2 text-5xl lg:text-6xl font-medium leading-16 tracking-tight">
+              Turn any image into an editable SVG.
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-white/56 md:text-lg">
+            {/* <p className="mt-4 text-base leading-relaxed text-white/60 mx-auto max-w-md">
               Upload a raster file, review the vector result, and export without the clutter of a heavy design workflow.
-            </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition-all hover:shadow-lg hover:shadow-white/20">
-                Convert for free
-                <ArrowRight size={13} weight="bold" />
+            </p> */}
+
+            {/* Buttons */}
+            <div className="mt-6 flex flex-row gap-4 justify-center">
+              <Link
+                href="/dashboard"
+                className="inline-flex gap-10 tracking-tighter items-center justify-between uppercase bg-cyan-400 px-4 py-2 rounded-sm text-xs text-black"
+                style={{ fontFamily: "auxMono, monospace"}}
+              >
+
+               Try it for free
+               <CaretDoubleRightIcon size={14} />
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-8 py-3 text-sm font-medium text-white transition-all hover:bg-white/10 hover:border-white/30"
+                className="inline-flex gap-10 tracking-tighter items-center justify-between uppercase px-4 py-2 rounded-sm text-xs bg-white text-black"
+                style={{ fontFamily: "auxMono, monospace"}}
               >
-                See how it works
+                How it works
+                <CaretDoubleRightIcon size={14} />
               </a>
-            </div>
-
-            {/* MacBook Demo Placeholder */}
-            <div className="relative z-20 mx-auto mt-20 max-w-4xl">
-              <div className="rounded-2xl bg-gradient-to-b from-white/10 to-white/5 p-1 shadow-2xl">
-                {/* MacBook bezel */}
-                <div className="rounded-xl bg-black p-8">
-                  {/* Screen content area */}
-                  <div className="aspect-video rounded-lg bg-gray-800 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-white/40 text-sm font-medium">Application Demo</div>
-                      <div className="mt-4 h-32 w-32 rounded-lg bg-white/5 border border-white/10" />
-                    </div>
-                  </div>
-                </div>
-                {/* MacBook notch */}
-                <div className="mx-auto w-1/3 rounded-b-3xl bg-black py-2" />
-              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Marquee - Features Strip - Full Width */}
+      <div className="w-full border-y border-white/10 bg-black/50 backdrop-blur py-4">
+        <div className="overflow-hidden">
+          <div className="flex animate-scroll gap-12 px-6 whitespace-nowrap">
+            {["Lightning Fast", "100% Offline", "Clean Output", "Easy Export", "No Setup Needed"].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-xs uppercase tracking-widest text-white/60">•</span>
+                <span className="text-sm font-semibold text-white/80">{feature}</span>
+              </div>
+            ))}
+            {["Lightning Fast", "100% Offline", "Clean Output", "Easy Export", "No Setup Needed"].map((feature, i) => (
+              <div key={`dup-${i}`} className="flex items-center gap-3">
+                <span className="text-xs uppercase tracking-widest text-white/60">•</span>
+                <span className="text-sm font-semibold text-white/80">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
+
+        * {
+          font-family: 'Helvetica Neue', 'Helvetica', sans-serif;
+        }
+
+        @font-face {
+          font-family: 'auxMono';
+          src: url('/AuxMono-Regular.ttf') format('truetype');
+          font-display: swap;
+        }
+
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-scroll {
+          animation: scroll 20s linear infinite;
+        }
+      `}</style>
 
       <section id="how-it-works" className="border-y border-white/8 px-6 py-20">
         <div className="mx-auto max-w-6xl">

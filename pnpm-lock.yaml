@@ -62,6 +62,9 @@ importers:
       next:
         specifier: 16.2.1
         version: 16.2.1(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      phosphor-icons:
+        specifier: ^1.4.2
+        version: 1.4.2
       posthog-js:
         specifier: ^1.364.1
         version: 1.364.1
@@ -2129,6 +2132,9 @@ packages:
     resolution: {integrity: sha512-GEazpTWwTZaEQ9RhL7Nyz0WwqilbqgLahDM3D0hxWwmVDI52nXEybHqiN6/elwpkJBhcuj+WbBu+QfT0uhPGfQ==}
     engines: {node: '>= 8'}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+  phosphor-icons@1.4.2:
+    resolution: {integrity: sha512-vDyuRWLSEb87dxpoOGpP1GCjr/TFzA0Ljt0TtJcwXO7/iPdSZW0e/2m1jsANH1ML5ZyZXcjeWx6pzT0A0tgYDA==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -4548,6 +4554,8 @@ snapshots:
       centra: 2.7.0
     transitivePeerDependencies:
       - debug
+
+  phosphor-icons@1.4.2: {}
 
   picocolors@1.1.1: {}
 
