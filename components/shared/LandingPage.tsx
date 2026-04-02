@@ -3,7 +3,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  CaretDoubleRightIcon,
   CloudArrowUp,
   DownloadSimple,
   BezierCurveIcon,
@@ -13,10 +12,11 @@ import {
   PaintBrushBroad,
   ShoppingCart,
   ShareNetwork,
+  CaretRightIcon,
 } from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
 import { LegoStud } from "./LegoStud";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ─── Color tokens ──────────────────────────────────────────────────────────────
 const C = {
@@ -184,11 +184,11 @@ function RailedSection({
         style={{ background: "rgba(255,255,255,0.055)" }}
       />
       {/* Left corner — LEGO stud marker */}
-      <div className="hidden xl:block absolute left-[80px] top-0 -translate-x-1/2 -translate-y-1/2">
+      <div className="hidden xl:block absolute left-[80px] top-2 -translate-x-1/2 -translate-y-1/2">
         <LegoStud color={accentColor} size={14} />
       </div>
       {/* Right corner — LEGO stud marker */}
-      <div className="hidden xl:block absolute right-[80px] top-0 translate-x-1/2 -translate-y-1/2">
+      <div className="hidden xl:block absolute right-[80px] top-2 translate-x-1/2 -translate-y-1/2">
         <LegoStud color={accentColor} size={14} />
       </div>
       {children}
@@ -196,94 +196,395 @@ function RailedSection({
   );
 }
 
-// ─── Before / After visual ─────────────────────────────────────────────────────
-function BeforeAfterVisual() {
-  const starPath =
-    "M70,18 L84,52 L118,54 L93,78 L100,110 L70,92 L40,110 L47,78 L22,54 L56,52 Z";
-  const anchorPts: [number, number][] = [
-    [70,18],[84,52],[118,54],[93,78],[100,110],
-    [70,92],[40,110],[47,78],[22,54],[56,52],
-  ];
+// ─── Real pre-converted examples (SVGs in /public/vectors/) ──────────────────
+const PLAYGROUND_EXAMPLES = [
+  {
+    id: "flower", label: "Flower", category: "Botanical", paths: 24, size: "1080 × 1080", aspect: "1/1",
+    colors: ["#000000","#101313","#152621","#27292a","#283935","#3e3e3f","#3c4a48","#555457","#4f5957","#616666","#6e6669","#746e7a","#777677","#84777a","#8c8386","#8f818f","#9c8c90","#a391a1","#ab989c","#b9a6aa","#b6a6b6","#c8b7b8","#cbbbc9","#e3d6db"],
+  },
+  {
+    id: "planet", label: "Planet", category: "Cosmic", paths: 24, size: "1080 × 1079", aspect: "1/1",
+    colors: ["#060606","#14110b","#1e1609","#281d0d","#231f16","#352610","#332b1d","#433014","#423522","#543d1a","#514229","#65491e","#645032","#7a5926","#755c35","#8c682c","#8b6f41","#9a793f","#a37f38","#ae8f55","#b49344","#bfa158","#c9ab57","#d5bc70"],
+  },
+  {
+    id: "yellow", label: "Yellow bloom", category: "Botanical", paths: 24, size: "1080 × 1079", aspect: "1/1",
+    colors: ["#2b0902","#3c1202","#481904","#552105","#632506","#74310a","#8c3104","#843e10","#b72b04","#724f39","#924a16","#a15723","#b36422","#d17b28","#759ac4","#fa8805","#fa9706","#8dacd0","#faa617","#f7a63e","#a1bdd8","#fcb42d","#dec19a","#c5cfd5"],
+  },
+  {
+    id: "beigh", label: "Portrait", category: "Portrait", paths: 24, size: "1080 × 1350", aspect: "4/5",
+    colors: ["#120a07","#2a1a15","#301d16","#37231b","#46291e","#553125","#613526","#5f3b2d","#6b3b2a","#673d2d","#704231","#6c4736","#794c3a","#824a35","#875843","#92634a","#8d6d5e","#a47b5d","#c09a79","#d8b79a","#f0d0ad","#f2d7bc","#f9e5cb"],
+  },
+];
+
+// hex "#rrggbb" → "rgb(r,g,b)" matching SVG fill format
+function hexToSvgRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ─── Vector Playground — premium macOS-style UI ───────────────────────────────
+function VectorPlayground() {
+  const [activeIdx,      setActiveIdx]      = useState(0);
+  const [progress,       setProgress]       = useState(0);
+  const [isAnimating,    setIsAnimating]    = useState(false);
+  const [colorOverrides, setColorOverrides] = useState<Record<string, string>>({});
+  const [displaySrc,     setDisplaySrc]     = useState(`/vectors/flower.svg`);
+
+  const animRef  = useRef<number>(0);
+  const startRef = useRef(0);
+  // Per-image caches — survive image switches
+  const svgCache     = useRef<Record<string, string>>({}); // id → original SVG text
+  const blobUrls     = useRef<Record<string, string>>({});  // id → latest blob URL (or static path)
+  const overridesSig = useRef<Record<string, string>>({});  // id → JSON signature of overrides used to generate current blob
+  const DURATION = 2400;
+
+  // Initialise blobUrls with static paths so switching is instant even before a fetch
+  useEffect(() => {
+    PLAYGROUND_EXAMPLES.forEach(e => {
+      if (!blobUrls.current[e.id]) blobUrls.current[e.id] = `/vectors/${e.id}.svg`;
+    });
+  }, []);
+
+  // ── Regenerate display SVG for the active image whenever overrides change ──
+  useEffect(() => {
+    const ex = PLAYGROUND_EXAMPLES[activeIdx];
+    let cancelled = false;
+
+    // Compute a signature of the current overrides for this image
+    const sig = JSON.stringify(ex.colors.map((_, j) => colorOverrides[`${ex.id}-${j}`] ?? ""));
+
+    // If the blob is already up-to-date for this exact set of overrides, just restore displaySrc
+    if (overridesSig.current[ex.id] === sig && blobUrls.current[ex.id]) {
+      setDisplaySrc(blobUrls.current[ex.id]);
+      return;
+    }
+
+    const generate = async () => {
+      // Fetch and cache the raw SVG text once per image
+      if (!svgCache.current[ex.id]) {
+        const res = await fetch(`/vectors/${ex.id}.svg`);
+        if (cancelled) return;
+        svgCache.current[ex.id] = await res.text();
+      }
+      if (cancelled) return;
+
+      const hasOverrides = ex.colors.some((_, j) => `${ex.id}-${j}` in colorOverrides);
+
+      let newUrl: string;
+      if (!hasOverrides) {
+        newUrl = `/vectors/${ex.id}.svg`;
+      } else {
+        // Apply color substitutions to the cached SVG text
+        let modified = svgCache.current[ex.id];
+        for (let j = 0; j < ex.colors.length; j++) {
+          const newHex = colorOverrides[`${ex.id}-${j}`];
+          if (!newHex) continue;
+          modified = modified
+            .split(`fill="${hexToSvgRgb(ex.colors[j])}"`)
+            .join(`fill="${hexToSvgRgb(newHex)}"`);
+        }
+        const blob = new Blob([modified], { type: "image/svg+xml" });
+        newUrl = URL.createObjectURL(blob);
+      }
+
+      if (cancelled) {
+        // Discard the newly created blob — it will never be used
+        if (newUrl.startsWith("blob:")) URL.revokeObjectURL(newUrl);
+        return;
+      }
+
+      // Update cache, then revoke OLD blob AFTER new one is stored
+      const oldUrl = blobUrls.current[ex.id];
+      blobUrls.current[ex.id] = newUrl;
+      overridesSig.current[ex.id] = sig;
+      setDisplaySrc(newUrl);
+      if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
+    };
+
+    generate();
+    return () => { cancelled = true; };
+  }, [activeIdx, colorOverrides]);
+
+  // Revoke all blob URLs on unmount
+  useEffect(() => () => {
+    Object.values(blobUrls.current).forEach(u => u?.startsWith("blob:") && URL.revokeObjectURL(u));
+  }, []);
+
+  useEffect(() => {
+    startRef.current = performance.now();
+    setIsAnimating(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isAnimating) return;
+    const tick = (now: number) => {
+      const p = Math.min((now - startRef.current) / DURATION, 1);
+      const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      setProgress(eased);
+      if (p < 1) { animRef.current = requestAnimationFrame(tick); }
+      else { setProgress(1); setIsAnimating(false); }
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [isAnimating]);
+
+  const triggerTransform = (idx: number) => {
+    cancelAnimationFrame(animRef.current);
+    // ── Immediately restore the last known src for the target image (no async flash) ──
+    const targetId = PLAYGROUND_EXAMPLES[idx].id;
+    setDisplaySrc(blobUrls.current[targetId] ?? `/vectors/${targetId}.svg`);
+    setActiveIdx(idx);
+    setProgress(0);
+    startRef.current = performance.now();
+    setIsAnimating(true);
+  };
+
+  const ex          = PLAYGROUND_EXAMPLES[activeIdx];
+  const clipRight   = `${(1 - progress) * 100}%`;
+  const changedKeys = Object.keys(colorOverrides).filter(k => k.startsWith(ex.id + "-"));
 
   return (
     <div
-      className="relative overflow-hidden border border-white/[0.08]"
-      style={{ background: "#0f0f0f" }}
+      className="relative overflow-hidden"
+      style={{
+        background: "#0d0d0d",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 14,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5)",
+      }}
     >
-      <div className="flex" style={{ height: 300 }}>
-        {/* BEFORE — blurry raster look */}
-        <div
-          className="flex-1 relative flex items-center justify-center border-r border-white/[0.07] overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#1c1b1c 0%,#141414 100%)" }}
-        >
-          {/* Pixel grid */}
-          <div
-            className="absolute inset-0"
-            style={{
-              opacity: 0.04,
-              backgroundImage:
-                "repeating-linear-gradient(0deg,transparent,transparent 7px,rgba(255,255,255,1) 7px,rgba(255,255,255,1) 8px),repeating-linear-gradient(90deg,transparent,transparent 7px,rgba(255,255,255,1) 7px,rgba(255,255,255,1) 8px)",
-            }}
-          />
-          <svg className="relative z-10" width="130" height="130" viewBox="0 0 140 140">
-            <defs>
-              <filter id="rBlur">
-                <feGaussianBlur stdDeviation="3" />
-              </filter>
-            </defs>
-            {Array.from({ length: 30 }, (_, i) => (
-              <rect
-                key={i}
-                x={10 + (i % 6) * 20}
-                y={10 + Math.floor(i / 6) * 22}
-                width={2 + (i % 4)}
-                height={2 + (i % 3)}
-                fill={`rgba(${110 + (i * 11) % 70},${110 + (i * 9) % 70},${110 + (i * 7) % 70},${0.08 + (i % 5) * 0.04})`}
-              />
-            ))}
-            <path d={starPath} fill="#484848" filter="url(#rBlur)" opacity="0.75" />
-          </svg>
-          <span
-            className="absolute bottom-3 left-3 text-[9px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)" }}
-          >
-            Before · PNG
+      {/* ── macOS titlebar ── */}
+      <div className="flex items-center px-4 select-none border-b"
+        style={{ height: 40, background: "#131313", borderColor: "rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-[7px] flex-shrink-0">
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ff5f57" }} />
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ffbd2e" }} />
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#28c840" }} />
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <span className="text-[11px]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}>
+            {ex.id}.png
+          </span>
+          <span style={{ color: "rgba(255,255,255,0.14)", fontSize: 10 }}>→</span>
+          <span className="text-[11px] font-medium"
+            style={{ fontFamily: "auxMono, monospace", color: `rgba(255,255,255,${0.14 + progress * 0.60})` }}>
+            {ex.id}.svg
           </span>
         </div>
-
-        {/* AFTER — clean SVG */}
-        <div
-          className="flex-1 relative flex items-center justify-center overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#07100f 0%,#0d0d0d 100%)" }}
-        >
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse 60% 60% at 50% 50%,rgba(34,211,238,0.09),transparent)" }}
-          />
-          <svg className="relative z-10" width="130" height="130" viewBox="0 0 140 140">
-            <path d={starPath} fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinejoin="round" />
-            {anchorPts.map(([x, y], i) => (
-              <circle key={i} cx={x} cy={y} r="2.5" fill="#22d3ee" opacity="0.6" />
-            ))}
-          </svg>
-          <span
-            className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)" }}
-          >
-            After · SVG
-          </span>
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {isAnimating ? (
+            <>
+              <div style={{ width: 32, height: 1.5, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ width: `${progress * 100}%`, height: "100%", background: "rgba(255,255,255,0.38)", transition: "none" }} />
+              </div>
+              <span className="text-[9px] uppercase tracking-[0.12em]"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.26)" }}>
+                Converting
+              </span>
+            </>
+          ) : (
+            <span className="text-[9px] uppercase tracking-[0.12em]"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)" }}>
+              {ex.paths} paths
+            </span>
+          )}
         </div>
       </div>
-      {/* VS divider */}
-      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none z-10">
-        <div className="w-px h-8 bg-white/[0.08]" />
-        <div
-          className="border border-white/[0.1] px-2 py-[4px] text-[8px] uppercase tracking-[0.15em]"
-          style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)", background: "#0f0f0f" }}
-        >
-          vs
+
+      {/* ── Body ── */}
+      <div className="flex" style={{ minHeight: 440 }}>
+
+        {/* ── Left sidebar — thumbnails with mini color strips ── */}
+        <div className="flex flex-col flex-shrink-0"
+          style={{ width: 136, background: "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="px-3 pt-3 pb-1.5 text-[7.5px] uppercase tracking-[0.22em]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.16)" }}>
+            Examples
+          </div>
+          {PLAYGROUND_EXAMPLES.map((e, i) => (
+            <button key={e.id} onClick={() => triggerTransform(i)}
+              className="mx-2 mb-2 p-1.5 rounded text-left transition-all"
+              style={{
+                background: activeIdx === i ? "rgba(255,255,255,0.06)" : "transparent",
+                border:     `1px solid ${activeIdx === i ? "rgba(255,255,255,0.11)" : "transparent"}`,
+                outline:    "none",
+              }}>
+              {/* Thumbnail */}
+              <div className="w-full overflow-hidden rounded-sm"
+                style={{ height: 56, background: "#1a1a1a" }}>
+                <img src={`/${e.id}.png`} alt={e.label}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
+                    filter: activeIdx === i ? "none" : "brightness(0.55) saturate(0.6)" }} />
+              </div>
+              {/* Label */}
+              <div className="text-[9.5px] font-medium mt-1.5 px-0.5 leading-tight"
+                style={{ color: activeIdx === i ? "rgba(255,255,255,0.70)" : "rgba(255,255,255,0.26)" }}>
+                {e.label}
+              </div>
+              {/* Mini color palette strip — 6 representative swatches */}
+              <div className="flex gap-[2px] mt-1.5 px-0.5">
+                {e.colors.filter((_, ci) => ci % 4 === 0).map((hex, ci) => (
+                  <div key={ci} className="flex-1 rounded-sm"
+                    style={{ height: 3, background: colorOverrides[`${e.id}-${ci * 4}`] || hex }} />
+                ))}
+              </div>
+            </button>
+          ))}
         </div>
-        <div className="w-px h-8 bg-white/[0.08]" />
+
+        {/* ── Main canvas ── */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 relative flex items-center justify-center"
+            style={{ background: "#0f0f0f", padding: "24px 20px" }}>
+            {/* Dot grid */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }} />
+            {/* Image wipe container */}
+            <div className="relative overflow-hidden"
+              style={{
+                height: "100%", maxHeight: 370,
+                aspectRatio: ex.aspect,
+                boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}>
+              {/* Original PNG */}
+              <img src={`/${ex.id}.png`} alt={ex.label} draggable={false}
+                className="absolute inset-0 w-full h-full"
+                style={{ objectFit: "cover", display: "block", userSelect: "none" }} />
+              {/* Vector SVG — wipes from left; src is either static or color-replaced blob */}
+              <img
+                src={displaySrc}
+                alt={`${ex.label} — vector`}
+                draggable={false}
+                key={ex.id}   /* remount only on example change (resets wipe), not on color change */
+                className="absolute inset-0 w-full h-full"
+                style={{ objectFit: "cover", display: "block", userSelect: "none",
+                  clipPath: `inset(0 ${clipRight} 0 0)` }}
+              />
+              {/* Scan line */}
+              {isAnimating && progress > 0.01 && progress < 0.99 && (
+                <div className="absolute top-0 bottom-0 pointer-events-none"
+                  style={{
+                    left: `calc(${progress * 100}% - 0.5px)`, width: 1,
+                    background: "rgba(255,255,255,0.70)",
+                    boxShadow: "0 0 10px rgba(255,255,255,0.25), 0 0 3px rgba(255,255,255,0.9)",
+                  }} />
+              )}
+              {/* Format labels */}
+              <div className="absolute bottom-2 left-3 pointer-events-none"
+                style={{ opacity: Math.max(0, 1 - progress * 2) }}>
+                <span className="text-[8px] uppercase tracking-[0.18em]"
+                  style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.45)",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>PNG</span>
+              </div>
+              <div className="absolute bottom-2 left-3 pointer-events-none"
+                style={{ opacity: Math.max(0, (progress - 0.5) * 2) }}>
+                <span className="text-[8px] uppercase tracking-[0.18em]"
+                  style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.50)",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>SVG</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom status bar */}
+          <div className="flex items-center gap-5 px-5 border-t flex-shrink-0"
+            style={{ height: 38, background: "#0d0d0d", borderColor: "rgba(255,255,255,0.05)" }}>
+            {[ex.size, `${ex.paths} paths`, ex.category].map((s) => (
+              <span key={s} className="text-[8px] uppercase tracking-[0.15em]"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)" }}>
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Right palette panel ── */}
+        <div className="flex flex-col flex-shrink-0 border-l"
+          style={{ width: 92, background: "#0a0a0a", borderColor: "rgba(255,255,255,0.05)" }}>
+          {/* Header */}
+          <div className="px-2.5 pt-3 pb-2 flex items-center justify-between">
+            <span className="text-[7.5px] uppercase tracking-[0.22em]"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.16)" }}>
+              Palette
+            </span>
+            {changedKeys.length > 0 && (
+              <button
+                onClick={() => setColorOverrides(prev => {
+                  const next = { ...prev };
+                  changedKeys.forEach(k => delete next[k]);
+                  return next;
+                })}
+                className="text-[7px] uppercase tracking-[0.12em] transition-opacity hover:opacity-80"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)" }}>
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* 24 color swatches — 4 columns × 6 rows */}
+          <div className="px-2"
+            style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+            {ex.colors.map((hex, j) => {
+              const key  = `${ex.id}-${j}`;
+              const show = colorOverrides[key] || hex;
+              const changed = key in colorOverrides;
+              return (
+                <div key={j} style={{ position: "relative", aspectRatio: "1" }}>
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: show, borderRadius: 2,
+                    border: changed
+                      ? "1px solid rgba(255,255,255,0.50)"
+                      : "1px solid rgba(0,0,0,0.28)",
+                  }}>
+                    {changed && (
+                      <div style={{
+                        position: "absolute", top: 1, right: 1,
+                        width: 3, height: 3, borderRadius: "50%",
+                        background: "rgba(255,255,255,0.9)",
+                        pointerEvents: "none",
+                      }} />
+                    )}
+                  </div>
+                  <input type="color" defaultValue={hex}
+                    title={show}
+                    style={{
+                      position: "absolute", inset: 0,
+                      width: "100%", height: "100%",
+                      opacity: 0, cursor: "pointer", border: "none", padding: 0,
+                    }}
+                    onChange={e => setColorOverrides(prev => ({ ...prev, [key]: e.target.value }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Changed count */}
+          {changedKeys.length > 0 && (
+            <div className="px-2.5 mt-2">
+              <span className="text-[7px] uppercase tracking-[0.12em]"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.24)" }}>
+                {changedKeys.length} modified
+              </span>
+            </div>
+          )}
+
+          {/* Spacer + label */}
+          <div className="flex-1" />
+          <div className="px-2.5 pb-3">
+            <span className="text-[7px] leading-[1.5] block"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.14)" }}>
+              Click any swatch to edit its color
+            </span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -462,10 +763,10 @@ function Navbar() {
         </div>
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 px-5 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-black transition-all hover:opacity-85"
-          style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+          className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
+          style={{ fontFamily: "auxMono, monospace" }}
         >
-          Try for free <span className="ml-1 opacity-50">›</span>
+          Try for free <CaretRightIcon size={12} />
         </Link>
       </div>
     </nav>
@@ -567,21 +868,23 @@ export function LandingPage() {
           <div className="a3 mt-9 flex flex-wrap justify-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-3 px-7 py-[12px] text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all hover:opacity-88"
-              style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+              className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
+              style={{ fontFamily: "auxMono, monospace"}}
             >
-              Convert image →
+              Convert image
+              <CaretRightIcon size={12} />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-3 px-7 py-[12px] text-[11px] uppercase tracking-[0.18em] transition-all"
+              className="inline-flex items-center justify-center gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] transition-all hover:opacity-88"
               style={{
                 fontFamily: "auxMono, monospace",
                 border: "1px solid rgba(255,255,255,0.18)",
                 color: "rgba(255,255,255,0.58)",
               }}
             >
-              See how it works ›
+              How it works
+              <CaretRightIcon size={12} />
             </a>
           </div>
         </div>
@@ -589,7 +892,7 @@ export function LandingPage() {
         {/* Before / After panel — centered, floating below text */}
         <div className="relative z-20 mx-auto max-w-[860px] px-6 pb-0">
           <div className="a4">
-            <BeforeAfterVisual />
+            <VectorPlayground />
           </div>
         </div>
 
@@ -888,7 +1191,7 @@ export function LandingPage() {
               <div className="mt-11">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-4 px-9 py-4 text-[12px] font-semibold uppercase tracking-[0.2em] text-black transition-all hover:opacity-88"
+                  className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
                   style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
                 >
                   Convert now — it's free →
