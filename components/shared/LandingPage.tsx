@@ -289,14 +289,20 @@ function BeforeAfterVisual() {
   );
 }
 
-// ─── LEGO background — auto-animating continuous version ──────────────────────
+// ─── LEGO cursor configs — 5 independent roaming highlights ───────────────────
+const LEGO_CURSORS = [
+  { phase: 0.0, freqX: 1.30, freqY: 0.70, speed: 1.00, color: "#f97316" }, // orange
+  { phase: 1.8, freqX: 0.90, freqY: 1.50, speed: 0.75, color: "#22d3ee" }, // cyan
+  { phase: 3.2, freqX: 1.70, freqY: 0.55, speed: 1.15, color: "#a3e635" }, // green
+  { phase: 4.7, freqX: 0.65, freqY: 1.20, speed: 0.88, color: "#a855f7" }, // purple
+  { phase: 2.1, freqX: 1.10, freqY: 1.85, speed: 1.05, color: "#ec4899" }, // pink
+];
+
+// ─── LEGO background — multi-color auto-animating ─────────────────────────────
 function LegoBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mousePos = useRef({ x: 0, y: 0 });
-  const autoTime = useRef(0);
-  const rafId = useRef<number>(0);
-  const studSpacing = 32;
-  const hoverRadius = 80;
+  const autoTime  = useRef(0);
+  const rafId     = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -304,40 +310,66 @@ function LegoBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const SS = 32; // stud spacing
+
     const resize = () => {
       canvas.width  = canvas.offsetWidth  || window.innerWidth;
       canvas.height = canvas.offsetHeight || window.innerHeight;
     };
     resize();
 
-    const drawStud = (x: number, y: number, isHovered: boolean) => {
-      ctx.fillStyle = "rgba(0,0,0,0.75)";
+    // Parse hex → rgb
+    const h2r = (hex: string) => ({
+      r: parseInt(hex.slice(1, 3), 16),
+      g: parseInt(hex.slice(3, 5), 16),
+      b: parseInt(hex.slice(5, 7), 16),
+    });
+
+    // Scale a hex color brighter/darker by factor f
+    const blend = (hex: string, f: number) => {
+      const { r, g, b } = h2r(hex);
+      const c = (v: number) => Math.min(255, Math.max(0, Math.round(v * f)));
+      return `rgb(${c(r)},${c(g)},${c(b)})`;
+    };
+
+    // Draw a single stud cylinder at (x, y).
+    // col = null → normal dark stud; col = hex string → fully-colored stud
+    const drawStud = (x: number, y: number, col: string | null) => {
+      // Drop shadow
+      ctx.fillStyle = "rgba(0,0,0,0.72)";
       ctx.beginPath(); ctx.arc(x, y + 2.4, 7.6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#121212";
+      // Outer dark border ring
+      ctx.fillStyle = col ? blend(col, 0.42) : "#121212";
       ctx.beginPath(); ctx.arc(x, y, 7.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#1d1d1d";
+      ctx.fillStyle = col ? blend(col, 0.58) : "#1d1d1d";
       ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#242424";
+      ctx.fillStyle = col ? blend(col, 0.74) : "#242424";
       ctx.beginPath(); ctx.arc(x, y, 6.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isHovered ? "#d4633e" : "#232323";
+      // Main stud surface (the color)
+      ctx.fillStyle = col ? col : "#232323";
       ctx.beginPath(); ctx.arc(x, y, 6.4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isHovered ? "#e07856" : "#4b4b4b";
+      // Upper lighter rim (specular highlight)
+      ctx.fillStyle = col ? blend(col, 1.30) : "#4b4b4b";
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isHovered ? "#d46a48" : "#101010";
+      // Mid recession — darker
+      ctx.fillStyle = col ? blend(col, 0.50) : "#101010";
       ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isHovered ? "#c55a38" : "#2e2e2e";
+      ctx.fillStyle = col ? blend(col, 0.64) : "#2e2e2e";
       ctx.beginPath(); ctx.arc(x, y, 4.8, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isHovered ? "#b54a28" : "#1f1f1f";
+      ctx.fillStyle = col ? blend(col, 0.44) : "#1f1f1f";
       ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#181818";
+      ctx.fillStyle = col ? blend(col, 0.34) : "#181818";
       ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+      // Center raised nub with shadow
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 3;
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2.5;
-      ctx.fillStyle = "#262626";
+      ctx.shadowColor = "rgba(0,0,0,0.3)";
+      ctx.shadowBlur = 3; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2.5;
+      ctx.fillStyle = col ? blend(col, 0.46) : "#262626";
       ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
-      ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 0.8;
+      // Arc specular highlight
+      ctx.strokeStyle = col ? "rgba(255,255,255,0.40)" : "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.arc(x, y - 0.1, 2.1, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
     };
 
@@ -345,45 +377,47 @@ function LegoBackground() {
       ctx.fillStyle = "#161516";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Auto-animate cursor along a Lissajous path covering the canvas
       autoTime.current += 0.007;
       const t = autoTime.current;
-      const autoX = canvas.width  * (0.5 + 0.42 * Math.sin(t * 1.3));
-      const autoY = canvas.height * (0.5 + 0.42 * Math.sin(t * 0.7 + 1.0));
-      mousePos.current = { x: autoX, y: autoY };
 
-      const blockX = Math.floor(mousePos.current.x / studSpacing);
-      const blockY = Math.floor(mousePos.current.y / studSpacing);
-      const blockCenterX = blockX * studSpacing + 16;
-      const blockCenterY = blockY * studSpacing + 16;
-      const distanceToBlock = Math.hypot(blockCenterX - mousePos.current.x, blockCenterY - mousePos.current.y);
-      const isBlockHovered = distanceToBlock < hoverRadius;
-
-      if (isBlockHovered) {
-        for (let bx = blockX; bx <= blockX + 1; bx++) {
-          for (let by = blockY; by <= blockY + 1; by++) {
-            ctx.fillStyle = "#d4633e";
-            ctx.fillRect(bx * studSpacing, by * studSpacing, studSpacing, studSpacing);
+      // Compute active cells for all cursors: grid-key → color
+      const activeCells = new Map<string, string>();
+      for (const cur of LEGO_CURSORS) {
+        const cx = canvas.width  * (0.5 + 0.42 * Math.sin(t * cur.freqX * cur.speed + cur.phase));
+        const cy = canvas.height * (0.5 + 0.42 * Math.sin(t * cur.freqY * cur.speed + cur.phase + 1.0));
+        const bx = Math.floor(cx / SS);
+        const by = Math.floor(cy / SS);
+        // 2×2 block per cursor
+        for (let dx = 0; dx <= 1; dx++) {
+          for (let dy = 0; dy <= 1; dy++) {
+            const key = `${bx + dx},${by + dy}`;
+            if (!activeCells.has(key)) activeCells.set(key, cur.color);
           }
         }
       }
 
-      for (let x = 16; x < canvas.width; x += studSpacing) {
-        for (let y = 16; y < canvas.height; y += studSpacing) {
-          const gridX = Math.round((x - 16) / studSpacing);
-          const gridY = Math.round((y - 16) / studSpacing);
-          const isHovered = isBlockHovered &&
-            gridX >= blockX && gridX <= blockX + 1 &&
-            gridY >= blockY && gridY <= blockY + 1;
-          drawStud(x, y, isHovered);
+      // Paint colored plates for highlighted cells
+      for (const [key, color] of activeCells) {
+        const [gx, gy] = key.split(",").map(Number);
+        ctx.fillStyle = color;
+        ctx.fillRect(gx * SS, gy * SS, SS, SS);
+      }
+
+      // Draw every stud
+      for (let x = 16; x < canvas.width; x += SS) {
+        for (let y = 16; y < canvas.height; y += SS) {
+          const gx = Math.round((x - 16) / SS);
+          const gy = Math.round((y - 16) / SS);
+          drawStud(x, y, activeCells.get(`${gx},${gy}`) ?? null);
         }
       }
 
+      // Grid lines
       ctx.strokeStyle = "#030303"; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.5;
-      for (let x = 0; x < canvas.width; x += studSpacing) {
+      for (let x = 0; x < canvas.width; x += SS) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
-      for (let y = 0; y < canvas.height; y += studSpacing) {
+      for (let y = 0; y < canvas.height; y += SS) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
       ctx.globalAlpha = 1;
@@ -391,12 +425,10 @@ function LegoBackground() {
 
     const animate = () => { drawLego(); rafId.current = requestAnimationFrame(animate); };
     animate();
-
-    const handleResize = () => { resize(); };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", resize);
     return () => {
       cancelAnimationFrame(rafId.current);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
@@ -496,13 +528,14 @@ export function LandingPage() {
               background: "linear-gradient(to bottom, transparent 0%, #161516 100%)",
             }}
           />
-          <div
+           <div
             className="absolute inset-x-0 top-0"
             style={{
               height: "60%",
-              background: "radial-gradient(to top, transparent 0%, #161516 100%)",
+              background: "linear-gradient(to top, transparent 0%, #161516 100%)",
             }}
           />
+         
           {/* Side vignettes */}
           <div
             className="absolute inset-y-0 left-0 w-32"
@@ -563,7 +596,7 @@ export function LandingPage() {
         {/* Marquee */}
         <div
           className="relative z-20 border-y overflow-hidden py-3 mt-10"
-          style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.25)" }}
+          style={{ borderColor: "rgba(255,255,255,0.06)", background: "#101010" }}
         >
           <div className="flex anim-marquee gap-14 whitespace-nowrap">
             {[...Array(2)].flatMap((_, ri) =>
