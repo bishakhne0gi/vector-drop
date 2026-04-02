@@ -2,302 +2,398 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CaretDoubleRightIcon, CloudArrowUp, DownloadSimple, ArrowRight, BezierCurveIcon } from "@phosphor-icons/react";
+import {
+  CaretDoubleRightIcon,
+  CloudArrowUp,
+  DownloadSimple,
+  BezierCurveIcon,
+  FigmaLogo,
+  Code,
+  Palette,
+  PaintBrushBroad,
+  ShoppingCart,
+  ShareNetwork,
+} from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
 import { useEffect, useRef } from "react";
 
-const steps = [
+// ─── Color tokens ──────────────────────────────────────────────────────────────
+const C = {
+  orange: "#f97316",
+  purple: "#a855f7",
+  blue:   "#38bdf8",
+  green:  "#a3e635",
+  cyan:   "#22d3ee",
+  pink:   "#ec4899",
+} as const;
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { label: "How it works", href: "#how-it-works", color: C.purple },
+  { label: "Use cases",    href: "#use-cases",    color: C.orange },
+  { label: "Why us",       href: "#why-us",       color: C.green },
+];
+
+const STEPS = [
   {
-    label: "Step 01",
-    title: "Upload your image",
-    description: "Drop in a PNG, JPG, or WebP and start instantly without extra setup.",
-    icon: <CloudArrowUp size={22} weight="regular" />,
+    num: "01",
+    title: "Upload",
+    description: "Drag & drop your image or browse files. Supports PNG, JPG, WebP.",
+    detail: "Instant ingestion, zero setup. Your files never leave your browser.",
+    icon: <CloudArrowUp size={22} weight="light" />,
+    color: C.orange,
+    badge: "Instant ingestion",
   },
   {
-    label: "Step 02",
-    title: "Convert it to vector",
-    description: "The image is traced into crisp paths with cleaner edges and editable layers.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-      </svg>
-    ),
+    num: "02",
+    title: "Auto vectorize",
+    description: "Intelligent tracing converts your raster into clean vector paths — no noise or jagged edges.",
+    detail: "Crisp SVG output with editable anchor points, ready to use immediately.",
+    icon: <BezierCurveIcon size={22} weight="light" />,
+    color: C.green,
+    badge: "Crisp output",
   },
   {
-    label: "Step 03",
-    title: "Export the SVG",
-    description: "Fine-tune the result and download a lightweight SVG that is ready to use.",
-    icon: <DownloadSimple size={22} weight="regular" />,
+    num: "03",
+    title: "Edit & export",
+    description: "Fine-tune directly in your browser and download SVG ready for Figma, Illustrator, or web.",
+    detail: "Workflow-ready files that open instantly in every design tool.",
+    icon: <DownloadSimple size={22} weight="light" />,
+    color: C.cyan,
+    badge: "Workflow-ready",
   },
 ];
 
-const features = [
+const USE_CASES = [
   {
-    title: "Cleaner output",
-    description: "Sharper paths, simpler shapes, and SVGs that are easier to open and edit.",
+    title: "Logos",
+    description: "Convert low-quality logos into scalable assets",
+    icon: <Palette size={22} weight="light" />,
+    color: C.orange,
   },
   {
-    title: "Built-in editing",
-    description: "Make small visual adjustments before exporting instead of jumping into another app.",
+    title: "UI/UX Design",
+    description: "Turn images into editable vectors for Figma",
+    icon: <FigmaLogo size={22} weight="light" />,
+    color: C.purple,
   },
   {
-    title: "Works in your workflow",
-    description: "Open the exported SVG in Figma, Illustrator, Inkscape, or directly in the browser.",
+    title: "Web Development",
+    description: "Create lightweight SVGs for faster websites",
+    icon: <Code size={22} weight="light" />,
+    color: C.blue,
   },
   {
-    title: "Fast to try",
-    description: "The experience stays lightweight so first-time users can convert without friction.",
+    title: "Print & Merchandise",
+    description: "Get high-resolution vectors for t-shirts and posters",
+    icon: <PaintBrushBroad size={22} weight="light" />,
+    color: C.pink,
+  },
+  {
+    title: "Icons",
+    description: "Convert sketches into reusable icon sets",
+    icon: <ShoppingCart size={22} weight="light" />,
+    color: C.green,
+  },
+  {
+    title: "Social Media",
+    description: "Create sharp, scalable visuals for every platform",
+    icon: <ShareNetwork size={22} weight="light" />,
+    color: C.cyan,
   },
 ];
 
-function Surface({
+const WHY_CARDS = [
+  {
+    title: "No Illustrator Required",
+    description: "Works entirely in your browser. No downloads, no app installs, no subscriptions.",
+    cta: "Start converting →",
+    href: "/dashboard",
+    bgFrom: "#1e0f03",
+    bgTo: "#2d1800",
+    accentColor: C.orange,
+  },
+  {
+    title: "No Login Needed",
+    description: "Just drop an image and go. Your files stay private — nothing stored on our servers.",
+    cta: "Try it now →",
+    href: "/dashboard",
+    bgFrom: "#130025",
+    bgTo: "#1e0038",
+    accentColor: C.purple,
+  },
+  {
+    title: "Free Means Free",
+    description: "No hidden charges, no credit card, no premium tier you'll hit on day one.",
+    cta: "See the product →",
+    href: "/dashboard",
+    bgFrom: "#031409",
+    bgTo: "#052212",
+    accentColor: C.green,
+  },
+  {
+    title: "Built for Speed",
+    description: "From upload to SVG in seconds. We obsessed over every millisecond of performance.",
+    cta: "Start converting →",
+    href: "/dashboard",
+    bgFrom: "#021218",
+    bgTo: "#031e28",
+    accentColor: C.cyan,
+  },
+];
+
+// ─── Shared UI components ──────────────────────────────────────────────────────
+
+/** Thin 1px bordered label badge — matches reference "THE CASE FOR PLASTICITY" style exactly */
+function SectionLabel({ text, color }: { text: string; color: string }) {
+  return (
+    <span
+      className="inline-flex items-center px-[10px] py-[5px] text-[10.5px] tracking-[0.2em] uppercase leading-none"
+      style={{ fontFamily: "auxMono, monospace", color, border: `1px solid ${color}` }}
+    >
+      {text}
+    </span>
+  );
+}
+
+/** Standalone solid colored square — direct match to reference feature indicators */
+function ColorSquare({ color, size = 14 }: { color: string; size?: number }) {
+  return (
+    <div className="flex-shrink-0" style={{ width: size, height: size, background: color }} />
+  );
+}
+
+/** Section wrapper with thin side-rail lines and colored corner-dot markers at top of each section */
+function RailedSection({
   children,
+  accentColor,
   className = "",
+  id,
+  style,
 }: {
   children: ReactNode;
+  accentColor: string;
   className?: string;
+  id?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <div className={`rounded-[2rem] border border-white/8 bg-white/[0.04] shadow-[0_24px_60px_rgba(0,0,0,0.18)] ${className}`}>
+    <section id={id} className={`relative ${className}`} style={style}>
+      {/* Left rail line */}
+      <div
+        className="hidden xl:block absolute left-[80px] top-0 bottom-0 w-px"
+        style={{ background: "rgba(255,255,255,0.055)" }}
+      />
+      {/* Right rail line */}
+      <div
+        className="hidden xl:block absolute right-[80px] top-0 bottom-0 w-px"
+        style={{ background: "rgba(255,255,255,0.055)" }}
+      />
+      {/* Left corner dot */}
+      <div
+        className="hidden xl:block absolute left-[80px] top-0 w-[9px] h-[9px] -translate-x-1/2 -translate-y-1/2"
+        style={{ background: accentColor }}
+      />
+      {/* Right corner dot */}
+      <div
+        className="hidden xl:block absolute right-[80px] top-0 w-[9px] h-[9px] translate-x-1/2 -translate-y-1/2"
+        style={{ background: accentColor }}
+      />
       {children}
+    </section>
+  );
+}
+
+// ─── Before / After visual ─────────────────────────────────────────────────────
+function BeforeAfterVisual() {
+  const starPath =
+    "M70,18 L84,52 L118,54 L93,78 L100,110 L70,92 L40,110 L47,78 L22,54 L56,52 Z";
+  const anchorPts: [number, number][] = [
+    [70,18],[84,52],[118,54],[93,78],[100,110],
+    [70,92],[40,110],[47,78],[22,54],[56,52],
+  ];
+
+  return (
+    <div
+      className="relative overflow-hidden border border-white/[0.08]"
+      style={{ background: "#0f0f0f" }}
+    >
+      <div className="flex" style={{ height: 300 }}>
+        {/* BEFORE — blurry raster look */}
+        <div
+          className="flex-1 relative flex items-center justify-center border-r border-white/[0.07] overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#1c1b1c 0%,#141414 100%)" }}
+        >
+          {/* Pixel grid */}
+          <div
+            className="absolute inset-0"
+            style={{
+              opacity: 0.04,
+              backgroundImage:
+                "repeating-linear-gradient(0deg,transparent,transparent 7px,rgba(255,255,255,1) 7px,rgba(255,255,255,1) 8px),repeating-linear-gradient(90deg,transparent,transparent 7px,rgba(255,255,255,1) 7px,rgba(255,255,255,1) 8px)",
+            }}
+          />
+          <svg className="relative z-10" width="130" height="130" viewBox="0 0 140 140">
+            <defs>
+              <filter id="rBlur">
+                <feGaussianBlur stdDeviation="3" />
+              </filter>
+            </defs>
+            {Array.from({ length: 30 }, (_, i) => (
+              <rect
+                key={i}
+                x={10 + (i % 6) * 20}
+                y={10 + Math.floor(i / 6) * 22}
+                width={2 + (i % 4)}
+                height={2 + (i % 3)}
+                fill={`rgba(${110 + (i * 11) % 70},${110 + (i * 9) % 70},${110 + (i * 7) % 70},${0.08 + (i % 5) * 0.04})`}
+              />
+            ))}
+            <path d={starPath} fill="#484848" filter="url(#rBlur)" opacity="0.75" />
+          </svg>
+          <span
+            className="absolute bottom-3 left-3 text-[9px] uppercase tracking-[0.2em]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)" }}
+          >
+            Before · PNG
+          </span>
+        </div>
+
+        {/* AFTER — clean SVG */}
+        <div
+          className="flex-1 relative flex items-center justify-center overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#07100f 0%,#0d0d0d 100%)" }}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 60% 60% at 50% 50%,rgba(34,211,238,0.09),transparent)" }}
+          />
+          <svg className="relative z-10" width="130" height="130" viewBox="0 0 140 140">
+            <path d={starPath} fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinejoin="round" />
+            {anchorPts.map(([x, y], i) => (
+              <circle key={i} cx={x} cy={y} r="2.5" fill="#22d3ee" opacity="0.6" />
+            ))}
+          </svg>
+          <span
+            className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.2em]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)" }}
+          >
+            After · SVG
+          </span>
+        </div>
+      </div>
+      {/* VS divider */}
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none z-10">
+        <div className="w-px h-8 bg-white/[0.08]" />
+        <div
+          className="border border-white/[0.1] px-2 py-[4px] text-[8px] uppercase tracking-[0.15em]"
+          style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)", background: "#0f0f0f" }}
+        >
+          vs
+        </div>
+        <div className="w-px h-8 bg-white/[0.08]" />
+      </div>
     </div>
   );
 }
 
-
-function StepCard({
-  label,
-  title,
-  description,
-  icon,
-}: {
-  label: string;
-  title: string;
-  description: string;
-  icon: ReactNode;
-}) {
-  return (
-    <Surface className="p-6">
-      <div className="flex items-center justify-between">
-        <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-          {label}
-        </span>
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-[var(--accent)]">
-          {icon}
-        </div>
-      </div>
-      <h3 className="mt-6 text-xl font-semibold tracking-tight text-white/92">
-        {title}
-      </h3>
-      <p className="mt-3 text-sm leading-6 text-white/50">
-        {description}
-      </p>
-    </Surface>
-  );
-}
-
+// ─── LEGO background (kept from original) ─────────────────────────────────────
 function LegoBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
   const hoveredStuds = useRef<Set<number>>(new Set());
-  const studSpacing = 32; // Distance between studs
-  const hoverRadius = 70; // Radius for hover detection
+  const studSpacing = 32;
+  const hoverRadius = 70;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const studColors = {
-      normal: "#232323",
-      highlight: "#d4633e",
-    };
+    const studColors = { normal: "#232323", highlight: "#d4633e" };
 
     const drawStud = (x: number, y: number, isHovered: boolean) => {
       const baseColor = isHovered ? studColors.highlight : studColors.normal;
-
-      // Deep shadow underneath
-      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-      ctx.beginPath();
-      ctx.arc(x, y + 2.4, 7.6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Outer shadow ring
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.beginPath(); ctx.arc(x, y + 2.4, 7.6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#121212";
-      ctx.beginPath();
-      ctx.arc(x, y, 7.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Outer rim/border
+      ctx.beginPath(); ctx.arc(x, y, 7.2, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#1d1d1d";
-      ctx.beginPath();
-      ctx.arc(x, y, 7, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Mid-tone outer ring
+      ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#242424";
-      ctx.beginPath();
-      ctx.arc(x, y, 6.7, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Main stud body
+      ctx.beginPath(); ctx.arc(x, y, 6.7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = baseColor;
-      ctx.beginPath();
-      ctx.arc(x, y, 6.4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Lighter upper surface
+      ctx.beginPath(); ctx.arc(x, y, 6.4, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = isHovered ? "#e07856" : "#4b4b4b";
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Mid-light tone
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = isHovered ? "#d46a48" : "#101010";
-      ctx.beginPath();
-      ctx.arc(x, y, 5.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Recessed center area
+      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = isHovered ? "#c55a38" : "#2e2e2e";
-      ctx.beginPath();
-      ctx.arc(x, y, 4.8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Inner depression
+      ctx.beginPath(); ctx.arc(x, y, 4.8, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = isHovered ? "#b54a28" : "#1f1f1f";
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Inner rim
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#181818";
-      ctx.beginPath();
-      ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Center stud with subtle fill, inset highlight, and soft drop shadow
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 2.5;
+      ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 3;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2.5;
       ctx.fillStyle = "#262626";
-      ctx.beginPath();
-      ctx.arc(x, y, 2.6, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
-
-      // Approximate inset highlight along the upper inner edge
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.arc(x, y - 0.1, 2.1, Math.PI * 1.08, Math.PI * 1.92);
-      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(x, y - 0.1, 2.1, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
     };
 
     const drawLego = () => {
-      // Background
       ctx.fillStyle = "#161516";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       hoveredStuds.current.clear();
-
-      // Find which 2x2 block the cursor is over
       const blockX = Math.floor(mousePos.current.x / studSpacing);
       const blockY = Math.floor(mousePos.current.y / studSpacing);
       const blockCenterX = blockX * studSpacing + 16;
       const blockCenterY = blockY * studSpacing + 16;
-
-      // Check if cursor is close to the block center
-      const distanceToBlock = Math.hypot(
-        blockCenterX - mousePos.current.x,
-        blockCenterY - mousePos.current.y
-      );
+      const distanceToBlock = Math.hypot(blockCenterX - mousePos.current.x, blockCenterY - mousePos.current.y);
       const isBlockHovered = distanceToBlock < hoverRadius;
-
-      // First pass: Draw colored squares for hovered bricks
       if (isBlockHovered) {
         for (let bx = blockX; bx <= blockX + 1; bx++) {
           for (let by = blockY; by <= blockY + 1; by++) {
-            const rectX = bx * studSpacing;
-            const rectY = by * studSpacing;
             ctx.fillStyle = "#d4633e";
-            ctx.fillRect(rectX, rectY, studSpacing, studSpacing);
+            ctx.fillRect(bx * studSpacing, by * studSpacing, studSpacing, studSpacing);
           }
         }
       }
-
-      // Second pass: Draw studs in grid (centered in each square)
       for (let x = 16; x < canvas.width; x += studSpacing) {
         for (let y = 16; y < canvas.height; y += studSpacing) {
-          // Check if this stud is part of the hovered 2x2 block
           const gridX = Math.round((x - 16) / studSpacing);
           const gridY = Math.round((y - 16) / studSpacing);
-
           let isHovered = false;
           if (isBlockHovered) {
-            // Check if this stud is in the 2x2 block
-            isHovered =
-              gridX >= blockX &&
-              gridX <= blockX + 1 &&
-              gridY >= blockY &&
-              gridY <= blockY + 1;
+            isHovered = gridX >= blockX && gridX <= blockX + 1 && gridY >= blockY && gridY <= blockY + 1;
           }
-
-          if (isHovered) {
-            hoveredStuds.current.add(x * 10000 + y);
-          }
-
+          if (isHovered) hoveredStuds.current.add(x * 10000 + y);
           drawStud(x, y, isHovered);
         }
       }
-
-      // Draw subtle grid lines
-      ctx.strokeStyle = "#030303";
-      ctx.lineWidth = 0.6;
-      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "#030303"; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.5;
       for (let x = 0; x < canvas.width; x += studSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
       for (let y = 0; y < canvas.height; y += studSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
       ctx.globalAlpha = 1;
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mousePos.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const animate = () => {
-      drawLego();
-      requestAnimationFrame(animate);
-    };
-
+    const handleMouseMove = (e: MouseEvent) => { mousePos.current = { x: e.clientX, y: e.clientY }; };
+    const animate = () => { drawLego(); requestAnimationFrame(animate); };
     window.addEventListener("mousemove", handleMouseMove);
     animate();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
+    const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     window.addEventListener("resize", handleResize);
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);
@@ -307,245 +403,478 @@ function LegoBackground() {
   return <canvas ref={canvasRef} className="absolute inset-0" />;
 }
 
+// ─── Navbar ───────────────────────────────────────────────────────────────────
+function Navbar() {
+  return (
+    <nav
+      className="sticky top-0 z-50 border-b border-white/[0.07]"
+      style={{ background: "rgba(22,21,22,0.95)", backdropFilter: "blur(18px)" }}
+    >
+      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3.5">
+        <Link href="/" className="flex items-center gap-2.5">
+          <LogoMark size={18} />
+          <span className="text-sm font-semibold text-white tracking-tight">VectorDrop</span>
+        </Link>
+        <div className="hidden md:flex items-center">
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.18em] transition-colors"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
+            >
+              <span className="w-[9px] h-[9px] flex-shrink-0" style={{ background: item.color }} />
+              {item.label}
+            </a>
+          ))}
+        </div>
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 px-5 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-black transition-all hover:opacity-85"
+          style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+        >
+          Try for free <span className="ml-1 opacity-50">›</span>
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
 export function LandingPage() {
   return (
-    <main className="bg-[#161516] text-white" style={{ fontFamily: "'Helvetica Neue', 'Helvetica', sans-serif" }}>
-      <section className="relative overflow-hidden h-[60vh]">
-        {/* Top-left corner LEGO background */}
-        <div className="absolute top-0 left-0 w-1/3 h-1/3 pointer-events-none opacity-80">
-          <div className="relative w-full h-full overflow-hidden">
-            <LegoBackground />
-          </div>
-        </div>
-
-        {/* Top-right corner LEGO background */}
-        <div className="absolute top-0 right-0 w-1/3 h-1/3 pointer-events-none opacity-80">
-          <div className="relative w-full h-full overflow-hidden">
-            <LegoBackground />
-          </div>
-        </div>
-
-        {/* Bottom-left corner LEGO background */}
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/3 pointer-events-none opacity-80">
-          <div className="relative w-full h-full overflow-hidden">
-            <LegoBackground />
-          </div>
-        </div>
-
-        {/* Bottom-right corner LEGO background */}
-        <div className="absolute bottom-0 right-0 w-1/3 h-1/3 pointer-events-none opacity-80">
-          <div className="relative w-full h-full overflow-hidden">
-            <LegoBackground />
-          </div>
-        </div>
-
-        {/* Text content - centered */}
-        <div className="relative z-20 h-full flex flex-col justify-center items-center px-6 lg:px-12">
-          <div className="max-w-2xl text-center">
-            <span className="inline-flex text-sm leading-relaxed text-cyan-400/90 mx-auto max-w-md items-center justify-center gap-2">
-            <BezierCurveIcon size={14} />
-              Image to Vector
-            </span>
-            <h1 className="mt-2 text-5xl lg:text-6xl font-medium leading-16 tracking-tight">
-              Turn any image into an editable SVG.
-            </h1>
-            {/* <p className="mt-4 text-base leading-relaxed text-white/60 mx-auto max-w-md">
-              Upload a raster file, review the vector result, and export without the clutter of a heavy design workflow.
-            </p> */}
-
-            {/* Buttons */}
-            <div className="mt-6 flex flex-row gap-4 justify-center">
-              <Link
-                href="/dashboard"
-                className="inline-flex gap-10 tracking-tighter items-center justify-between uppercase bg-cyan-400 px-4 py-2 rounded-sm text-xs text-black"
-                style={{ fontFamily: "auxMono, monospace"}}
-              >
-
-               Try it for free
-               <CaretDoubleRightIcon size={14} />
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex gap-10 tracking-tighter items-center justify-between uppercase px-4 py-2 rounded-sm text-xs bg-white text-black"
-                style={{ fontFamily: "auxMono, monospace"}}
-              >
-                How it works
-                <CaretDoubleRightIcon size={14} />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Marquee - Features Strip - Full Width */}
-      <div className="w-full border-y border-white/10 bg-black/50 backdrop-blur py-4">
-        <div className="overflow-hidden">
-          <div className="flex animate-scroll gap-12 px-6 whitespace-nowrap">
-            {["Lightning Fast", "100% Offline", "Clean Output", "Easy Export", "No Setup Needed"].map((feature, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-xs uppercase tracking-widest text-white/60">•</span>
-                <span className="text-sm font-semibold text-white/80">{feature}</span>
-              </div>
-            ))}
-            {["Lightning Fast", "100% Offline", "Clean Output", "Easy Export", "No Setup Needed"].map((feature, i) => (
-              <div key={`dup-${i}`} className="flex items-center gap-3">
-                <span className="text-xs uppercase tracking-widest text-white/60">•</span>
-                <span className="text-sm font-semibold text-white/80">{feature}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
+    <main
+      className="min-h-screen text-white"
+      style={{ background: "#161516", fontFamily: "'Helvetica Neue', Helvetica, sans-serif" }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
-
-        * {
-          font-family: 'Helvetica Neue', 'Helvetica', sans-serif;
-        }
-
         @font-face {
           font-family: 'auxMono';
           src: url('/AuxMono-Regular.ttf') format('truetype');
           font-display: swap;
         }
+        @keyframes marquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        .anim-marquee { animation: marquee 28s linear infinite; }
 
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
+        @keyframes fadeUp {
+          from { opacity:0; transform:translateY(18px); }
+          to   { opacity:1; transform:translateY(0); }
         }
-        .animate-scroll {
-          animation: scroll 20s linear infinite;
-        }
+        .a0 { opacity:0; animation:fadeUp 0.6s ease forwards; animation-delay:0.05s; }
+        .a1 { opacity:0; animation:fadeUp 0.6s ease forwards; animation-delay:0.16s; }
+        .a2 { opacity:0; animation:fadeUp 0.6s ease forwards; animation-delay:0.28s; }
+        .a3 { opacity:0; animation:fadeUp 0.6s ease forwards; animation-delay:0.42s; }
+        .a4 { opacity:0; animation:fadeUp 0.6s ease forwards; animation-delay:0.58s; }
+
+        .why-card { transition: filter 0.2s ease; }
+        .why-card:hover { filter: brightness(1.12); }
       `}</style>
 
-      <section id="how-it-works" className="border-y border-white/8 px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="max-w-2xl">
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
-              How it works
-            </span>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] md:text-5xl">
-              Three simple steps from upload to export.
+      <Navbar />
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 1: HERO — LEGO background + 2-column layout
+      ═══════════════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden" style={{ minHeight: "75vh" }}>
+        {/* LEGO corners */}
+        <div className="absolute top-0 left-0 w-1/3 h-1/2 pointer-events-none opacity-70">
+          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
+        </div>
+        <div className="absolute top-0 right-0 w-1/4 h-1/3 pointer-events-none opacity-30">
+          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
+        </div>
+        <div className="absolute bottom-0 left-0 w-1/3 h-1/4 pointer-events-none opacity-50">
+          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
+        </div>
+        <div className="absolute bottom-0 right-0 w-1/4 h-1/4 pointer-events-none opacity-25">
+          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
+        </div>
+
+        {/* 2-column hero content */}
+        <div className="relative z-20 mx-auto max-w-[1280px] px-6 py-28 grid lg:grid-cols-2 gap-14 items-center">
+          {/* Left: text */}
+          <div>
+            <div className="a0">
+              <SectionLabel text="Image to SVG Converter" color={C.cyan} />
+            </div>
+            <h1 className="a1 mt-7 text-[2.85rem] xl:text-[3.5rem] font-bold leading-[1.06] tracking-[-0.022em] text-white">
+              Turn any image into a clean SVG — instantly.
+            </h1>
+            <p className="a2 mt-6 text-[15px] leading-7 max-w-[420px]" style={{ color: "rgba(255,255,255,0.50)" }}>
+              Upload a PNG, JPG, or WebP and get a crisp, editable vector in seconds.
+              No Illustrator. No messy traces. No waiting.
+            </p>
+            <p
+              className="a2 mt-3 text-[12px] leading-6 max-w-[400px]"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}
+            >
+              Built because existing tools were too complex, too expensive, or just didn't work right.
+            </p>
+            <div className="a3 mt-9 flex flex-wrap gap-3">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-3 px-6 py-[11px] text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all hover:opacity-88"
+                style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+              >
+                Convert image →
+              </Link>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center gap-3 px-6 py-[11px] text-[11px] uppercase tracking-[0.18em] transition-all"
+                style={{
+                  fontFamily: "auxMono, monospace",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  color: "rgba(255,255,255,0.58)",
+                }}
+              >
+                See how it works ›
+              </a>
+            </div>
+          </div>
+
+          {/* Right: Before/After visual */}
+          <div className="a4">
+            <BeforeAfterVisual />
+          </div>
+        </div>
+
+        {/* Marquee */}
+        <div
+          className="border-y overflow-hidden py-3"
+          style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.25)" }}
+        >
+          <div className="flex anim-marquee gap-14 whitespace-nowrap">
+            {[...Array(2)].flatMap((_, ri) =>
+              ["Lightning Fast","Clean SVG Output","No Login Required","Export to Figma",
+               "Illustrator Ready","Free Forever","Pixel-perfect Tracing","WebP Support"].map((f, i) => (
+                <div key={`${ri}-${i}`} className="flex items-center gap-4">
+                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span
+                    className="text-[10px] uppercase tracking-[0.22em]"
+                    style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)" }}
+                  >
+                    {f}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 2: HOW IT WORKS
+          — Feature rows: large visual left, text right (reference style)
+      ═══════════════════════════════════════════════════════ */}
+      <RailedSection id="how-it-works" accentColor={C.purple} className="py-28">
+        <div className="mx-auto max-w-[1280px] px-6">
+          <div className="mb-4">
+            <SectionLabel text="How it works" color={C.purple} />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-8 mb-20 items-end">
+            <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white leading-[1.08]">
+              From image to SVG in seconds
             </h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-white/52">
-              The layout is intentionally straightforward so the product feels clearer and calmer on first glance.
+            <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Three simple steps. No design skills needed.
             </p>
           </div>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {steps.map((step) => (
-              <StepCard
-                key={step.label}
-                label={step.label}
-                title={step.title}
-                description={step.description}
-                icon={step.icon}
-              />
+
+          <div>
+            {STEPS.map((step) => (
+              <div
+                key={step.num}
+                className="grid lg:grid-cols-2 gap-0 border-t"
+                style={{ borderColor: "rgba(255,255,255,0.07)", paddingTop: 52, paddingBottom: 52 }}
+              >
+                {/* Visual panel */}
+                <div
+                  className="relative flex items-center justify-center lg:mr-8 overflow-hidden"
+                  style={{
+                    background: "#111011",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    minHeight: 240,
+                  }}
+                >
+                  <span
+                    className="absolute top-4 left-4 text-[10px] uppercase tracking-[0.25em]"
+                    style={{ fontFamily: "auxMono, monospace", color: step.color, opacity: 0.45 }}
+                  >
+                    Step {step.num}
+                  </span>
+                  <div className="flex flex-col items-center gap-5">
+                    <div
+                      className="flex h-14 w-14 items-center justify-center border"
+                      style={{ borderColor: `${step.color}40`, color: step.color, background: `${step.color}0e` }}
+                    >
+                      {step.icon}
+                    </div>
+                    <div className="w-44 space-y-2">
+                      <div className="h-[3px]" style={{ background: `${step.color}38`, width: "100%" }} />
+                      <div className="h-[3px]" style={{ background: `${step.color}24`, width: "73%" }} />
+                      <div className="h-[3px]" style={{ background: `${step.color}15`, width: "52%" }} />
+                    </div>
+                  </div>
+                  {/* Top-right accent corner — matches reference card style */}
+                  <div className="absolute top-0 right-0 w-2 h-2" style={{ background: step.color }} />
+                </div>
+
+                {/* Text panel */}
+                <div className="flex flex-col justify-center pl-0 lg:pl-12 pt-8 lg:pt-0">
+                  <div className="flex items-center gap-3 mb-5">
+                    {/* Standalone colored square — exact reference feature indicator style */}
+                    <ColorSquare color={step.color} size={16} />
+                    <h3 className="text-[1.7rem] font-bold text-white tracking-[-0.01em]">{step.title}</h3>
+                  </div>
+                  <p className="text-[15px] leading-7 mb-3 max-w-[370px]" style={{ color: "rgba(255,255,255,0.47)" }}>
+                    {step.description}
+                  </p>
+                  <p className="text-[13px] leading-6 max-w-[360px]" style={{ color: "rgba(255,255,255,0.27)" }}>
+                    {step.detail}
+                  </p>
+                  <div
+                    className="mt-6 inline-block text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 border self-start"
+                    style={{
+                      fontFamily: "auxMono, monospace",
+                      color: step.color,
+                      borderColor: `${step.color}40`,
+                      background: `${step.color}0a`,
+                    }}
+                  >
+                    {step.badge}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      </section>
+      </RailedSection>
 
-      <section className="px-6 py-20">
-        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <Surface className="p-8 md:p-10">
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
-              Product benefits
-            </span>
-            <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-[-0.04em] md:text-5xl">
-              Subtle presentation, practical tools.
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 3: USE CASES
+      ═══════════════════════════════════════════════════════ */}
+      <RailedSection
+        id="use-cases"
+        accentColor={C.blue}
+        className="py-28"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-[1280px] px-6">
+          <div className="mb-4">
+            <SectionLabel text="Use cases" color={C.blue} />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-8 mb-16 items-end">
+            <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white leading-[1.08]">
+              Made for real design workflows
             </h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-white/52">
-              Instead of decorative motion, the page now leans on spacing, contrast, and a few quiet surfaces to make the product feel more focused.
+            <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
+              If it's an image, you can vectorize it.
             </p>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              {features.map((feature) => (
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {USE_CASES.map((uc) => (
+              <div
+                key={uc.title}
+                className="relative overflow-hidden p-7 transition-all"
+                style={{ background: "#111011", border: "1px solid rgba(255,255,255,0.07)" }}
+              >
+                {/* Top accent line */}
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: uc.color, opacity: 0.5 }} />
+                {/* Micro corner dot */}
+                <div className="absolute top-3 right-3 w-1.5 h-1.5" style={{ background: uc.color, opacity: 0.45 }} />
+
                 <div
-                  key={feature.title}
-                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.02] p-5"
+                  className="flex h-10 w-10 items-center justify-center border mb-5"
+                  style={{ borderColor: `${uc.color}38`, color: uc.color, background: `${uc.color}0d` }}
                 >
-                  <h3 className="text-base font-semibold text-white/90">
-                    {feature.title}
+                  {uc.icon}
+                </div>
+
+                <div className="flex items-center gap-3 mb-2">
+                  <ColorSquare color={uc.color} size={10} />
+                  <h3 className="text-[15px] font-semibold" style={{ color: "rgba(255,255,255,0.90)" }}>
+                    {uc.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-white/48">
-                    {feature.description}
-                  </p>
                 </div>
-              ))}
-            </div>
-          </Surface>
-
-          <Surface className="p-8 md:p-10">
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
-              Export targets
-            </span>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {["Figma", "Illustrator", "Inkscape", "Web", "React", "Marketing"].map((tool) => (
-                <span
-                  key={tool}
-                  className="rounded-full border border-white/8 px-4 py-2 text-sm text-white/76"
-                >
-                  {tool}
-                </span>
-              ))}
-            </div>
-            <div className="mt-10 rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-6">
-              <p className="text-sm leading-6 text-white/50">
-                Exported files stay easy to move between design, development, and production workflows without adding extra cleanup.
-              </p>
-              <div className="mt-6">
-                <div className="mb-2 flex items-center justify-between text-xs text-white/45">
-                  <span>SVG quality</span>
-                  <span>High</span>
-                </div>
-                <div className="h-2 rounded-full bg-white/[0.06]">
-                  <div className="h-2 w-[88%] rounded-full bg-[var(--accent)]" />
-                </div>
+                <p className="text-sm leading-6 pl-[22px]" style={{ color: "rgba(255,255,255,0.42)" }}>
+                  {uc.description}
+                </p>
               </div>
-            </div>
-          </Surface>
-        </div>
-      </section>
-
-      <section className="px-6 pb-20 pt-4">
-        <div className="mx-auto max-w-5xl rounded-[2.25rem] border border-white/8 bg-gradient-to-b from-white/[0.05] to-white/[0.03] px-8 py-10 text-center shadow-[0_24px_60px_rgba(0,0,0,0.18)] md:px-12 md:py-14">
-          <h2 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">
-            Start converting in seconds.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-white/54">
-            The landing page now stays focused on the product itself, with no floating pieces, no playful overlays, and no animation-heavy distractions.
-          </p>
-          <div className="mt-8">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition-all hover:shadow-lg hover:shadow-white/20">
-              Open dashboard
-              <ArrowRight size={13} weight="bold" />
-            </Link>
+            ))}
           </div>
         </div>
-      </section>
+      </RailedSection>
 
-      <footer className="border-t border-white/8 bg-[#09090b] px-6 py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 md:flex-row">
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 4: WHY VECTORDROP
+          — Large solid colored cards (direct reference match)
+      ═══════════════════════════════════════════════════════ */}
+      <RailedSection
+        id="why-us"
+        accentColor={C.green}
+        className="py-28"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-[1280px] px-6">
+          <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white mb-5">
+            Why VectorDrop?
+          </h2>
+          <p className="text-[15px] leading-7 max-w-[480px] mb-14" style={{ color: "rgba(255,255,255,0.43)" }}>
+            We built VectorDrop because the tools that existed were either too heavy, too expensive, or simply didn't produce good output. So we stripped everything back.
+          </p>
+
+          {/* 2×2 large colored card grid — direct reference match */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {WHY_CARDS.map((card) => (
+              <div
+                key={card.title}
+                className="why-card relative overflow-hidden p-10 border"
+                style={{
+                  background: `linear-gradient(135deg,${card.bgFrom} 0%,${card.bgTo} 100%)`,
+                  borderColor: `${card.accentColor}28`,
+                }}
+              >
+                {/* Right-side glow */}
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at right,${card.accentColor}1a,transparent 70%)` }}
+                />
+                {/* Wireframe geometric decoration — matching reference 3D wireframe aesthetic */}
+                <svg
+                  className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ opacity: 0.16 }}
+                  width="116"
+                  height="116"
+                  viewBox="0 0 120 120"
+                  fill="none"
+                >
+                  <rect x="18" y="18" width="60" height="60" stroke={card.accentColor} strokeWidth="1" />
+                  <rect x="34" y="34" width="60" height="60" stroke={card.accentColor} strokeWidth="1" />
+                  <line x1="18" y1="18" x2="34" y2="34" stroke={card.accentColor} strokeWidth="1" />
+                  <line x1="78" y1="18" x2="94" y2="34" stroke={card.accentColor} strokeWidth="1" />
+                  <line x1="18" y1="78" x2="34" y2="94" stroke={card.accentColor} strokeWidth="1" />
+                  <line x1="78" y1="78" x2="94" y2="94" stroke={card.accentColor} strokeWidth="1" />
+                  {([
+                    [18,18],[78,18],[18,78],[78,78],
+                    [34,34],[94,34],[34,94],[94,94],
+                  ] as [number,number][]).map(([x,y],i) => (
+                    <circle key={i} cx={x} cy={y} r="3" fill={card.accentColor} />
+                  ))}
+                </svg>
+
+                <div className="relative z-10">
+                  <h3 className="text-[1.45rem] font-bold text-white leading-tight max-w-[260px] mb-4">
+                    {card.title}
+                  </h3>
+                  <p className="text-[14px] leading-6 mb-8 max-w-[280px]" style={{ color: "rgba(255,255,255,0.50)" }}>
+                    {card.description}
+                  </p>
+                  <Link
+                    href={card.href}
+                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] px-4 py-2 border transition-all hover:opacity-75"
+                    style={{
+                      fontFamily: "auxMono, monospace",
+                      color: card.accentColor,
+                      borderColor: `${card.accentColor}50`,
+                    }}
+                  >
+                    {card.cta}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p
+            className="mt-10 text-sm border-l-2 pl-4"
+            style={{ color: "rgba(255,255,255,0.25)", borderColor: C.green }}
+          >
+            "Built for speed and simplicity — not complexity."
+          </p>
+        </div>
+      </RailedSection>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 5: FINAL CTA
+      ═══════════════════════════════════════════════════════ */}
+      <RailedSection
+        accentColor={C.cyan}
+        className="py-28"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-[1280px] px-6">
+          <div
+            className="relative overflow-hidden text-center px-10 py-24"
+            style={{ background: "#0f0f10", border: "1px solid rgba(255,255,255,0.09)" }}
+          >
+            {/* Cyan top glow */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
+              style={{ background: "radial-gradient(ellipse at top,rgba(34,211,238,0.1),transparent 70%)" }}
+            />
+            {/* Corner markers — matches reference CTA block exactly */}
+            <span className="absolute top-0 left-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
+            <span className="absolute top-0 right-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
+            <span className="absolute bottom-0 left-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
+            <span className="absolute bottom-0 right-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
+
+            <div className="relative">
+              <SectionLabel text="Get started free" color={C.cyan} />
+              <h2 className="mt-8 text-[2.8rem] md:text-[3.4rem] font-bold tracking-[-0.022em] text-white leading-[1.06]">
+                Stop wasting time on<br />manual vector work
+              </h2>
+              <p className="mt-5 text-[15px] max-w-[380px] mx-auto" style={{ color: "rgba(255,255,255,0.44)" }}>
+                Upload your image and get a clean SVG in seconds
+              </p>
+              <div className="mt-11">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-4 px-9 py-4 text-[12px] font-semibold uppercase tracking-[0.2em] text-black transition-all hover:opacity-88"
+                  style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+                >
+                  Convert now — it's free →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </RailedSection>
+
+      {/* ═══════════════════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════════════════ */}
+      <footer
+        className="border-t py-10"
+        style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0e0d0e" }}
+      >
+        <div className="mx-auto max-w-[1280px] px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <LogoMark size={22} />
-            <span className="text-sm font-semibold tracking-tight text-white/90">
+            <LogoMark size={18} />
+            <span className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.70)" }}>
               VectorDrop
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="text-sm text-white/50">
-              Sign in
-            </Link>
-            <Link href="/dashboard" className="text-sm text-white/50">
-              Dashboard
-            </Link>
+          <div className="flex items-center gap-8">
+            {[{ label: "Sign in", href: "/login" }, { label: "Dashboard", href: "/dashboard" }].map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-[11px] uppercase tracking-[0.18em] transition-colors"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)" }}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
-          <p className="text-xs text-white/40">
-            © 2026 VectorDrop. All rights reserved.
+          <p
+            className="text-[10px] uppercase tracking-[0.18em]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)" }}
+          >
+            © 2026 VectorDrop
           </p>
         </div>
       </footer>
