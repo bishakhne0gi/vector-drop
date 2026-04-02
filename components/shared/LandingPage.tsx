@@ -15,6 +15,7 @@ import {
   ShareNetwork,
 } from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
+import { LegoStud } from "./LegoStud";
 import { useEffect, useRef } from "react";
 
 // ─── Color tokens ──────────────────────────────────────────────────────────────
@@ -156,13 +157,6 @@ function SectionLabel({ text, color }: { text: string; color: string }) {
   );
 }
 
-/** Standalone solid colored square — direct match to reference feature indicators */
-function ColorSquare({ color, size = 14 }: { color: string; size?: number }) {
-  return (
-    <div className="flex-shrink-0" style={{ width: size, height: size, background: color }} />
-  );
-}
-
 /** Section wrapper with thin side-rail lines and colored corner-dot markers at top of each section */
 function RailedSection({
   children,
@@ -189,16 +183,14 @@ function RailedSection({
         className="hidden xl:block absolute right-[80px] top-0 bottom-0 w-px"
         style={{ background: "rgba(255,255,255,0.055)" }}
       />
-      {/* Left corner dot */}
-      <div
-        className="hidden xl:block absolute left-[80px] top-0 w-[9px] h-[9px] -translate-x-1/2 -translate-y-1/2"
-        style={{ background: accentColor }}
-      />
-      {/* Right corner dot */}
-      <div
-        className="hidden xl:block absolute right-[80px] top-0 w-[9px] h-[9px] translate-x-1/2 -translate-y-1/2"
-        style={{ background: accentColor }}
-      />
+      {/* Left corner — LEGO stud marker */}
+      <div className="hidden xl:block absolute left-[80px] top-0 -translate-x-1/2 -translate-y-1/2">
+        <LegoStud color={accentColor} size={14} />
+      </div>
+      {/* Right corner — LEGO stud marker */}
+      <div className="hidden xl:block absolute right-[80px] top-0 translate-x-1/2 -translate-y-1/2">
+        <LegoStud color={accentColor} size={14} />
+      </div>
       {children}
     </section>
   );
@@ -423,7 +415,7 @@ function Navbar() {
               className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.18em] transition-colors"
               style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
             >
-              <span className="w-[9px] h-[9px] flex-shrink-0" style={{ background: item.color }} />
+              <LegoStud color={item.color} size={10} />
               {item.label}
             </a>
           ))}
@@ -507,12 +499,12 @@ export function LandingPage() {
               Upload a PNG, JPG, or WebP and get a crisp, editable vector in seconds.
               No Illustrator. No messy traces. No waiting.
             </p>
-            <p
+            {/* <p
               className="a2 mt-3 text-[12px] leading-6 max-w-[400px]"
               style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}
             >
               Built because existing tools were too complex, too expensive, or just didn't work right.
-            </p>
+            </p> */}
             <div className="a3 mt-9 flex flex-wrap gap-3">
               <Link
                 href="/dashboard"
@@ -618,15 +610,16 @@ export function LandingPage() {
                       <div className="h-[3px]" style={{ background: `${step.color}15`, width: "52%" }} />
                     </div>
                   </div>
-                  {/* Top-right accent corner — matches reference card style */}
-                  <div className="absolute top-0 right-0 w-2 h-2" style={{ background: step.color }} />
+                  {/* Top-right accent corner — LEGO stud */}
+                  <div className="absolute top-0 right-0">
+                    <LegoStud color={step.color} size={14} />
+                  </div>
                 </div>
 
                 {/* Text panel */}
                 <div className="flex flex-col justify-center pl-0 lg:pl-12 pt-8 lg:pt-0">
                   <div className="flex items-center gap-3 mb-5">
-                    {/* Standalone colored square — exact reference feature indicator style */}
-                    <ColorSquare color={step.color} size={16} />
+                    <LegoStud color={step.color} size={20} />
                     <h3 className="text-[1.7rem] font-bold text-white tracking-[-0.01em]">{step.title}</h3>
                   </div>
                   <p className="text-[15px] leading-7 mb-3 max-w-[370px]" style={{ color: "rgba(255,255,255,0.47)" }}>
@@ -684,8 +677,10 @@ export function LandingPage() {
               >
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-px" style={{ background: uc.color, opacity: 0.5 }} />
-                {/* Micro corner dot */}
-                <div className="absolute top-3 right-3 w-1.5 h-1.5" style={{ background: uc.color, opacity: 0.45 }} />
+                {/* Micro corner LEGO stud */}
+                <div className="absolute top-2 right-2 opacity-60">
+                  <LegoStud color={uc.color} size={10} />
+                </div>
 
                 <div
                   className="flex h-10 w-10 items-center justify-center border mb-5"
@@ -695,7 +690,7 @@ export function LandingPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-2">
-                  <ColorSquare color={uc.color} size={10} />
+                  <LegoStud color={uc.color} size={14} />
                   <h3 className="text-[15px] font-semibold" style={{ color: "rgba(255,255,255,0.90)" }}>
                     {uc.title}
                   </h3>
@@ -816,11 +811,11 @@ export function LandingPage() {
               className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
               style={{ background: "radial-gradient(ellipse at top,rgba(34,211,238,0.1),transparent 70%)" }}
             />
-            {/* Corner markers — matches reference CTA block exactly */}
-            <span className="absolute top-0 left-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
-            <span className="absolute top-0 right-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
-            <span className="absolute bottom-0 left-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
-            <span className="absolute bottom-0 right-0 w-[9px] h-[9px]" style={{ background: C.cyan }} />
+            {/* Corner LEGO studs — 4 corners of CTA block */}
+            <div className="absolute top-0 left-0"><LegoStud color={C.cyan} size={14} /></div>
+            <div className="absolute top-0 right-0"><LegoStud color={C.cyan} size={14} /></div>
+            <div className="absolute bottom-0 left-0"><LegoStud color={C.cyan} size={14} /></div>
+            <div className="absolute bottom-0 right-0"><LegoStud color={C.cyan} size={14} /></div>
 
             <div className="relative">
               <SectionLabel text="Get started free" color={C.cyan} />
