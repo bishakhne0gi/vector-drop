@@ -289,13 +289,14 @@ function BeforeAfterVisual() {
   );
 }
 
-// ─── LEGO background (kept from original) ─────────────────────────────────────
+// ─── LEGO background — auto-animating continuous version ──────────────────────
 function LegoBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
-  const hoveredStuds = useRef<Set<number>>(new Set());
+  const autoTime = useRef(0);
+  const rafId = useRef<number>(0);
   const studSpacing = 32;
-  const hoverRadius = 70;
+  const hoverRadius = 80;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -303,13 +304,13 @@ function LegoBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const studColors = { normal: "#232323", highlight: "#d4633e" };
+    const resize = () => {
+      canvas.width  = canvas.offsetWidth  || window.innerWidth;
+      canvas.height = canvas.offsetHeight || window.innerHeight;
+    };
+    resize();
 
     const drawStud = (x: number, y: number, isHovered: boolean) => {
-      const baseColor = isHovered ? studColors.highlight : studColors.normal;
       ctx.fillStyle = "rgba(0,0,0,0.75)";
       ctx.beginPath(); ctx.arc(x, y + 2.4, 7.6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#121212";
@@ -318,7 +319,7 @@ function LegoBackground() {
       ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#242424";
       ctx.beginPath(); ctx.arc(x, y, 6.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = baseColor;
+      ctx.fillStyle = isHovered ? "#d4633e" : "#232323";
       ctx.beginPath(); ctx.arc(x, y, 6.4, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = isHovered ? "#e07856" : "#4b4b4b";
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
@@ -343,13 +344,21 @@ function LegoBackground() {
     const drawLego = () => {
       ctx.fillStyle = "#161516";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      hoveredStuds.current.clear();
+
+      // Auto-animate cursor along a Lissajous path covering the canvas
+      autoTime.current += 0.007;
+      const t = autoTime.current;
+      const autoX = canvas.width  * (0.5 + 0.42 * Math.sin(t * 1.3));
+      const autoY = canvas.height * (0.5 + 0.42 * Math.sin(t * 0.7 + 1.0));
+      mousePos.current = { x: autoX, y: autoY };
+
       const blockX = Math.floor(mousePos.current.x / studSpacing);
       const blockY = Math.floor(mousePos.current.y / studSpacing);
       const blockCenterX = blockX * studSpacing + 16;
       const blockCenterY = blockY * studSpacing + 16;
       const distanceToBlock = Math.hypot(blockCenterX - mousePos.current.x, blockCenterY - mousePos.current.y);
       const isBlockHovered = distanceToBlock < hoverRadius;
+
       if (isBlockHovered) {
         for (let bx = blockX; bx <= blockX + 1; bx++) {
           for (let by = blockY; by <= blockY + 1; by++) {
@@ -358,18 +367,18 @@ function LegoBackground() {
           }
         }
       }
+
       for (let x = 16; x < canvas.width; x += studSpacing) {
         for (let y = 16; y < canvas.height; y += studSpacing) {
           const gridX = Math.round((x - 16) / studSpacing);
           const gridY = Math.round((y - 16) / studSpacing);
-          let isHovered = false;
-          if (isBlockHovered) {
-            isHovered = gridX >= blockX && gridX <= blockX + 1 && gridY >= blockY && gridY <= blockY + 1;
-          }
-          if (isHovered) hoveredStuds.current.add(x * 10000 + y);
+          const isHovered = isBlockHovered &&
+            gridX >= blockX && gridX <= blockX + 1 &&
+            gridY >= blockY && gridY <= blockY + 1;
           drawStud(x, y, isHovered);
         }
       }
+
       ctx.strokeStyle = "#030303"; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.5;
       for (let x = 0; x < canvas.width; x += studSpacing) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
@@ -380,19 +389,18 @@ function LegoBackground() {
       ctx.globalAlpha = 1;
     };
 
-    const handleMouseMove = (e: MouseEvent) => { mousePos.current = { x: e.clientX, y: e.clientY }; };
-    const animate = () => { drawLego(); requestAnimationFrame(animate); };
-    window.addEventListener("mousemove", handleMouseMove);
+    const animate = () => { drawLego(); rafId.current = requestAnimationFrame(animate); };
     animate();
-    const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+
+    const handleResize = () => { resize(); };
     window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
+      cancelAnimationFrame(rafId.current);
       window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
@@ -468,66 +476,85 @@ export function LandingPage() {
       <Navbar />
 
       {/* ═══════════════════════════════════════════════════════
-          SECTION 1: HERO — LEGO background + 2-column layout
+          SECTION 1: HERO — centered Cartesia-style layout
       ═══════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden" style={{ minHeight: "75vh" }}>
-        {/* LEGO corners */}
-        <div className="absolute top-0 left-0 w-1/3 h-1/2 pointer-events-none opacity-70">
-          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
-        </div>
-        <div className="absolute top-0 right-0 w-1/4 h-1/3 pointer-events-none opacity-30">
-          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
-        </div>
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/4 pointer-events-none opacity-50">
-          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
-        </div>
-        <div className="absolute bottom-0 right-0 w-1/4 h-1/4 pointer-events-none opacity-25">
-          <div className="relative w-full h-full overflow-hidden"><LegoBackground /></div>
-        </div>
+      <section className="relative overflow-hidden" style={{ minHeight: "95vh" }}>
 
-        {/* 2-column hero content */}
-        <div className="relative z-20 mx-auto max-w-[1280px] px-6 py-28 grid lg:grid-cols-2 gap-14 items-center">
-          {/* Left: text */}
-          <div>
-            <div className="a0">
-              <SectionLabel text="Image to SVG Converter" color={C.cyan} />
-            </div>
-            <h1 className="a1 mt-7 text-[2.85rem] xl:text-[3.5rem] font-bold leading-[1.06] tracking-[-0.022em] text-white">
-              Turn any image into a clean SVG — instantly.
-            </h1>
-            <p className="a2 mt-6 text-[15px] leading-7 max-w-[420px]" style={{ color: "rgba(255,255,255,0.50)" }}>
-              Upload a PNG, JPG, or WebP and get a crisp, editable vector in seconds.
-              No Illustrator. No messy traces. No waiting.
-            </p>
-            {/* <p
-              className="a2 mt-3 text-[12px] leading-6 max-w-[400px]"
-              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}
-            >
-              Built because existing tools were too complex, too expensive, or just didn't work right.
-            </p> */}
-            <div className="a3 mt-9 flex flex-wrap gap-3">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-3 px-6 py-[11px] text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all hover:opacity-88"
-                style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
-              >
-                Convert image →
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center gap-3 px-6 py-[11px] text-[11px] uppercase tracking-[0.18em] transition-all"
-                style={{
-                  fontFamily: "auxMono, monospace",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  color: "rgba(255,255,255,0.58)",
-                }}
-              >
-                See how it works ›
-              </a>
-            </div>
+        {/* LEGO canvas — full width, covers top ~58% of hero, fades out */}
+        <div
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{ height: "58%" }}
+        >
+          <div className="relative w-full h-full overflow-hidden">
+            <LegoBackground />
           </div>
+          {/* Gradient fade to page bg */}
+          <div
+            className="absolute inset-x-0 bottom-0"
+            style={{
+              height: "60%",
+              background: "linear-gradient(to bottom, transparent 0%, #161516 100%)",
+            }}
+          />
+          <div
+            className="absolute inset-x-0 top-0"
+            style={{
+              height: "60%",
+              background: "radial-gradient(to top, transparent 0%, #161516 100%)",
+            }}
+          />
+          {/* Side vignettes */}
+          <div
+            className="absolute inset-y-0 left-0 w-32"
+            style={{ background: "linear-gradient(to right, #161516, transparent)" }}
+          />
+          <div
+            className="absolute inset-y-0 right-0 w-32"
+            style={{ background: "linear-gradient(to left, #161516, transparent)" }}
+          />
+        </div>
 
-          {/* Right: Before/After visual */}
+        {/* Centered text content */}
+        <div className="relative z-20 flex flex-col items-center text-center mx-auto max-w-[820px] px-6 pt-20 pb-10">
+          <div className="a0">
+            <SectionLabel text="Image to SVG Converter" color={C.cyan} />
+          </div>
+          <h1
+            className="a1 mt-8 text-[3rem] md:text-[3.8rem] xl:text-[4.4rem] font-bold leading-[1.04] tracking-[-0.025em] text-white"
+          >
+            Turn any image into a<br />clean SVG.
+          </h1>
+          <p
+            className="a2 mt-6 text-[15px] leading-7 max-w-[480px]"
+            style={{ color: "rgba(255,255,255,0.50)" }}
+          >
+            Upload a PNG, JPG, or WebP and get a crisp, editable vector in seconds.
+            No Illustrator. No messy traces. No waiting.
+          </p>
+          <div className="a3 mt-9 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-3 px-7 py-[12px] text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all hover:opacity-88"
+              style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+            >
+              Convert image →
+            </Link>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center gap-3 px-7 py-[12px] text-[11px] uppercase tracking-[0.18em] transition-all"
+              style={{
+                fontFamily: "auxMono, monospace",
+                border: "1px solid rgba(255,255,255,0.18)",
+                color: "rgba(255,255,255,0.58)",
+              }}
+            >
+              See how it works ›
+            </a>
+          </div>
+        </div>
+
+        {/* Before / After panel — centered, floating below text */}
+        <div className="relative z-20 mx-auto max-w-[860px] px-6 pb-0">
           <div className="a4">
             <BeforeAfterVisual />
           </div>
@@ -535,7 +562,7 @@ export function LandingPage() {
 
         {/* Marquee */}
         <div
-          className="border-y overflow-hidden py-3"
+          className="relative z-20 border-y overflow-hidden py-3 mt-10"
           style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.25)" }}
         >
           <div className="flex anim-marquee gap-14 whitespace-nowrap">
