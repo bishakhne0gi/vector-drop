@@ -196,6 +196,17 @@ function RailedSection({
   );
 }
 
+// ─── Raster cell opacities for VectorizeGraphic (7×7 deterministic grid) ─────
+const RASTER_CELLS = [
+  0.18, 0.08, 0.13, 0.06, 0.15, 0.09, 0.11,
+  0.06, 0.14, 0.07, 0.17, 0.05, 0.12, 0.08,
+  0.13, 0.07, 0.16, 0.09, 0.11, 0.14, 0.06,
+  0.08, 0.12, 0.06, 0.10, 0.13, 0.07, 0.15,
+  0.15, 0.06, 0.11, 0.14, 0.08, 0.10, 0.07,
+  0.07, 0.13, 0.09, 0.11, 0.06, 0.15, 0.12,
+  0.10, 0.08, 0.14, 0.06, 0.12, 0.07, 0.09,
+];
+
 // ─── Real pre-converted examples (SVGs in /public/vectors/) ──────────────────
 const PLAYGROUND_EXAMPLES = [
   {
@@ -590,6 +601,201 @@ function VectorPlayground() {
   );
 }
 
+// ─── Step graphic components ──────────────────────────────────────────────────
+
+function UploadGraphic({ color }: { color: string }) {
+  return (
+    <div className="relative flex items-center justify-center" style={{ minHeight: 200, width: "100%" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)",
+        backgroundSize: "18px 18px",
+      }} />
+      <div style={{
+        position: "relative",
+        width: 210, height: 134,
+        border: "1.5px dashed rgba(255,255,255,0.08)",
+        borderRadius: 10,
+        background: "rgba(255,255,255,0.012)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", top: 10, left: 0, right: 0,
+          textAlign: "center", fontSize: 7.5, letterSpacing: "0.2em",
+          color: "rgba(255,255,255,0.14)", fontFamily: "auxMono, monospace",
+          textTransform: "uppercase",
+        }}>Drop image here</div>
+
+        {/* Animated file card */}
+        <div style={{
+          width: 68, height: 80,
+          background: "#1e1e1e",
+          border: "1px solid rgba(255,255,255,0.09)",
+          borderRadius: 6,
+          boxShadow: "0 10px 28px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4)",
+          display: "flex", flexDirection: "column", alignItems: "center",
+          justifyContent: "center", gap: 5, position: "relative",
+          animation: "stepFileFloat 3s ease-in-out infinite",
+        }}>
+          <div style={{
+            position: "absolute", top: 0, right: 0, width: 14, height: 14,
+            background: "#2a2a2a",
+            borderLeft: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: "0 6px 0 2px",
+          }} />
+          <CloudArrowUp size={20} weight="light" style={{ color, opacity: 0.88 }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+            <div style={{ fontSize: 6.5, letterSpacing: "0.12em", color: "rgba(255,255,255,0.32)", fontFamily: "auxMono, monospace", textTransform: "uppercase" }}>image.png</div>
+            <div style={{ fontSize: 6, letterSpacing: "0.1em", color: "rgba(255,255,255,0.16)", fontFamily: "auxMono, monospace" }}>2.4 MB</div>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{
+          position: "absolute", bottom: 11, left: 16, right: 16,
+          height: 2, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden",
+        }}>
+          <div style={{
+            height: "100%", borderRadius: 2,
+            background: `linear-gradient(90deg, rgba(255,255,255,0.08) 0%, ${color} 100%)`,
+            animation: "stepProgressFill 3s ease-in-out infinite",
+          }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VectorizeGraphic({ color }: { color: string }) {
+  return (
+    <div className="relative flex items-center justify-center" style={{ minHeight: 200, width: "100%" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)",
+        backgroundSize: "18px 18px",
+      }} />
+      <div style={{ position: "relative", width: 220, height: 140, overflow: "hidden" }}>
+        {/* Raster pixel grid – left */}
+        <div style={{
+          position: "absolute", left: 0, top: 10, width: 95, height: 120,
+          display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(7, 1fr)",
+          gap: 2, padding: 4,
+        }}>
+          {RASTER_CELLS.map((op, i) => (
+            <div key={i} style={{ background: `rgba(255,255,255,${op})`, borderRadius: 1 }} />
+          ))}
+        </div>
+
+        {/* Animated scan line */}
+        <div style={{
+          position: "absolute", top: 0, bottom: 0, left: 0, width: 2,
+          background: `linear-gradient(to bottom, transparent 5%, ${color}80 40%, ${color}cc 50%, ${color}80 60%, transparent 95%)`,
+          animation: "stepScanLine 3s ease-in-out infinite",
+          willChange: "transform",
+        }} />
+
+        {/* Vector paths – right */}
+        <svg
+          style={{ position: "absolute", right: 0, top: 10, width: 110, height: 120 }}
+          viewBox="0 0 110 120" fill="none"
+        >
+          <path
+            d="M 8 90 C 28 55, 55 72, 75 36 C 85 16, 100 26, 100 46"
+            stroke="rgba(255,255,255,0.68)" strokeWidth="1.6" strokeLinecap="round"
+            style={{ strokeDasharray: 200, strokeDashoffset: 200, animation: "stepDrawPath 3s ease-in-out infinite" }}
+          />
+          <path
+            d="M 8 108 C 40 100, 70 90, 102 80"
+            stroke="rgba(255,255,255,0.20)" strokeWidth="1" strokeLinecap="round"
+            style={{ strokeDasharray: 130, strokeDashoffset: 130, animation: "stepDrawPath 3s ease-in-out 0.4s infinite" }}
+          />
+          {/* Handle dashes */}
+          <line x1="8" y1="90" x2="28" y2="55" stroke="rgba(255,255,255,0.09)" strokeWidth="0.8" strokeDasharray="2.5 2" />
+          <line x1="75" y1="36" x2="55" y2="72" stroke="rgba(255,255,255,0.09)" strokeWidth="0.8" strokeDasharray="2.5 2" />
+          {/* Anchor nodes */}
+          <circle cx="8" cy="90" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
+          <circle cx="75" cy="36" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
+          <circle cx="100" cy="46" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
+        </svg>
+
+        {/* Arrow divider */}
+        <div style={{
+          position: "absolute", left: "50%", top: "50%",
+          transform: "translate(-50%, -50%)",
+          fontSize: 10, color: "rgba(255,255,255,0.14)",
+          fontFamily: "auxMono, monospace", zIndex: 2,
+          background: "#0e0e0e", padding: "2px 4px",
+        }}>→</div>
+      </div>
+    </div>
+  );
+}
+
+function ExportGraphic({ color }: { color: string }) {
+  const formats = ["SVG", "AI", "Figma"] as const;
+  return (
+    <div className="relative flex items-center justify-center" style={{ minHeight: 200, width: "100%" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)",
+        backgroundSize: "18px 18px",
+      }} />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
+        {/* File card */}
+        <div style={{
+          width: 200,
+          background: "#1a1a1a",
+          border: "1px solid rgba(255,255,255,0.09)",
+          borderRadius: 9,
+          padding: "12px 14px",
+          boxShadow: "0 10px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)",
+          animation: "stepExportFloat 3.6s ease-in-out infinite",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{
+              width: 28, height: 28, background: "#242424",
+              border: "1px solid rgba(255,255,255,0.08)", borderRadius: 5,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <DownloadSimple size={13} weight="light" style={{ color, opacity: 0.88 }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", fontFamily: "auxMono, monospace", marginBottom: 2 }}>output</div>
+              <div style={{ fontSize: 7, color: "rgba(255,255,255,0.18)", fontFamily: "auxMono, monospace", letterSpacing: "0.08em" }}>14 KB · vector</div>
+            </div>
+          </div>
+          {/* Format chips */}
+          <div style={{ display: "flex", gap: 5 }}>
+            {formats.map((fmt, i) => (
+              <div key={fmt} style={{
+                padding: "3px 8px", fontSize: 7, letterSpacing: "0.12em",
+                fontFamily: "auxMono, monospace", textTransform: "uppercase", borderRadius: 3,
+                border: `1px solid ${i === 0 ? `${color}55` : "rgba(255,255,255,0.07)"}`,
+                background: i === 0 ? `${color}10` : "rgba(255,255,255,0.03)",
+                color: i === 0 ? color : "rgba(255,255,255,0.25)",
+                animation: "stepChipFadeIn 3s ease-in-out infinite",
+                animationDelay: `${i * 0.14}s`,
+              }}>
+                {fmt}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Download bar */}
+        <div style={{ width: 200, height: 2, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", borderRadius: 2,
+            background: `linear-gradient(90deg, rgba(255,255,255,0.08) 0%, ${color} 100%)`,
+            animation: "stepProgressFill 3s ease-in-out 0.5s infinite",
+          }} />
+        </div>
+        <div style={{ fontSize: 7.5, letterSpacing: "0.18em", color: "rgba(255,255,255,0.16)", fontFamily: "auxMono, monospace", textTransform: "uppercase" }}>
+          Ready to download
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── LEGO cursor configs — 5 independent roaming highlights ───────────────────
 const LEGO_CURSORS = [
   { phase: 0.0, freqX: 1.30, freqY: 0.70, speed: 1.00, color: "#f97316" }, // orange
@@ -634,42 +840,42 @@ function LegoBackground() {
     };
 
     // Draw a single stud cylinder at (x, y).
-    // col = null → normal dark stud; col = hex string → fully-colored stud
-    const drawStud = (x: number, y: number, col: string | null) => {
+    // col = base block color (hex); studs are always derived from it via shading.
+    const drawStud = (x: number, y: number, col: string) => {
       // Drop shadow
       ctx.fillStyle = "rgba(0,0,0,0.72)";
       ctx.beginPath(); ctx.arc(x, y + 2.4, 7.6, 0, Math.PI * 2); ctx.fill();
-      // Outer dark border ring
-      ctx.fillStyle = col ? blend(col, 0.42) : "#121212";
+      // Outer dark border ring (dark but still hued)
+      ctx.fillStyle = blend(col, 0.55);
       ctx.beginPath(); ctx.arc(x, y, 7.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col ? blend(col, 0.58) : "#1d1d1d";
+      ctx.fillStyle = blend(col, 0.68);
       ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col ? blend(col, 0.74) : "#242424";
+      ctx.fillStyle = blend(col, 0.82);
       ctx.beginPath(); ctx.arc(x, y, 6.7, 0, Math.PI * 2); ctx.fill();
       // Main stud surface (the color)
-      ctx.fillStyle = col ? col : "#232323";
+      ctx.fillStyle = col;
       ctx.beginPath(); ctx.arc(x, y, 6.4, 0, Math.PI * 2); ctx.fill();
       // Upper lighter rim (specular highlight)
-      ctx.fillStyle = col ? blend(col, 1.30) : "#4b4b4b";
+      ctx.fillStyle = blend(col, 1.25);
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
-      // Mid recession — darker
-      ctx.fillStyle = col ? blend(col, 0.50) : "#101010";
+      // Mid recession — clearly darker but visibly hued
+      ctx.fillStyle = blend(col, 0.82);
       ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col ? blend(col, 0.64) : "#2e2e2e";
+      ctx.fillStyle = blend(col, 0.88);
       ctx.beginPath(); ctx.arc(x, y, 4.8, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col ? blend(col, 0.44) : "#1f1f1f";
+      ctx.fillStyle = blend(col, 0.76);
       ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = col ? blend(col, 0.34) : "#181818";
+      ctx.fillStyle = blend(col, 0.68);
       ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
       // Center raised nub with shadow
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.3)";
       ctx.shadowBlur = 3; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2.5;
-      ctx.fillStyle = col ? blend(col, 0.46) : "#262626";
+      ctx.fillStyle = blend(col, 0.72);
       ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       // Arc specular highlight
-      ctx.strokeStyle = col ? "rgba(255,255,255,0.40)" : "rgba(255,255,255,0.15)";
+      ctx.strokeStyle = "rgba(255,255,255,0.40)";
       ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.arc(x, y - 0.1, 2.1, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
     };
@@ -709,7 +915,7 @@ function LegoBackground() {
         for (let y = 16; y < canvas.height; y += SS) {
           const gx = Math.round((x - 16) / SS);
           const gy = Math.round((y - 16) / SS);
-          drawStud(x, y, activeCells.get(`${gx},${gy}`) ?? null);
+          drawStud(x, y, activeCells.get(`${gx},${gy}`) ?? "#161516");
         }
       }
 
@@ -804,6 +1010,37 @@ export function LandingPage() {
 
         .why-card { transition: filter 0.2s ease; }
         .why-card:hover { filter: brightness(1.12); }
+
+        @keyframes stepFileFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        @keyframes stepProgressFill {
+          0%, 4% { width: 0%; }
+          70% { width: 82%; }
+          90%, 100% { width: 82%; }
+        }
+        @keyframes stepScanLine {
+          0% { transform: translateX(0); opacity: 0; }
+          4% { opacity: 1; }
+          94% { opacity: 1; }
+          100% { transform: translateX(222px); opacity: 0; }
+        }
+        @keyframes stepDrawPath {
+          0%, 3% { stroke-dashoffset: 200; opacity: 0; }
+          8% { opacity: 1; }
+          68% { stroke-dashoffset: 0; opacity: 1; }
+          90%, 100% { stroke-dashoffset: 0; opacity: 0.6; }
+        }
+        @keyframes stepExportFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes stepChipFadeIn {
+          0%, 5% { opacity: 0; transform: translateY(3px); }
+          22%, 82% { opacity: 1; transform: translateY(0); }
+          96%, 100% { opacity: 0; transform: translateY(3px); }
+        }
       `}</style>
 
       <Navbar />
@@ -856,7 +1093,7 @@ export function LandingPage() {
           <h1
             className="a1 mt-8 text-[3rem] md:text-[3.8rem] xl:text-[4.4rem] font-bold leading-[1.04] tracking-[-0.025em] text-white"
           >
-            Turn any image into a<br />clean SVG.
+            Turn any image into <br />editable vectors.
           </h1>
           <p
             className="a2 mt-6 text-[15px] leading-7 max-w-[480px]"
@@ -942,47 +1179,33 @@ export function LandingPage() {
             {STEPS.map((step) => (
               <div
                 key={step.num}
-                className="grid lg:grid-cols-2 gap-0 border-t"
+                className="grid lg:grid-cols-2 gap-0"
                 style={{ borderColor: "rgba(255,255,255,0.07)", paddingTop: 52, paddingBottom: 52 }}
               >
                 {/* Visual panel */}
                 <div
                   className="relative flex items-center justify-center lg:mr-8 overflow-hidden"
                   style={{
-                    background: "#111011",
+                    background: "#0e0e0e",
                     border: "1px solid rgba(255,255,255,0.07)",
-                    minHeight: 240,
+                    minHeight: 260,
                   }}
                 >
                   <span
                     className="absolute top-4 left-4 text-[10px] uppercase tracking-[0.25em]"
-                    style={{ fontFamily: "auxMono, monospace", color: step.color, opacity: 0.45 }}
+                    style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)" }}
                   >
                     Step {step.num}
                   </span>
-                  <div className="flex flex-col items-center gap-5">
-                    <div
-                      className="flex h-14 w-14 items-center justify-center border"
-                      style={{ borderColor: `${step.color}40`, color: step.color, background: `${step.color}0e` }}
-                    >
-                      {step.icon}
-                    </div>
-                    <div className="w-44 space-y-2">
-                      <div className="h-[3px]" style={{ background: `${step.color}38`, width: "100%" }} />
-                      <div className="h-[3px]" style={{ background: `${step.color}24`, width: "73%" }} />
-                      <div className="h-[3px]" style={{ background: `${step.color}15`, width: "52%" }} />
-                    </div>
-                  </div>
-                  {/* Top-right accent corner — LEGO stud */}
-                  <div className="absolute top-0 right-0">
-                    <LegoStud color={step.color} size={14} />
-                  </div>
+                  {step.num === "01" && <UploadGraphic color={step.color} />}
+                  {step.num === "02" && <VectorizeGraphic color={step.color} />}
+                  {step.num === "03" && <ExportGraphic color={step.color} />}
                 </div>
 
                 {/* Text panel */}
                 <div className="flex flex-col justify-center pl-0 lg:pl-12 pt-8 lg:pt-0">
                   <div className="flex items-center gap-3 mb-5">
-                    <LegoStud color={step.color} size={20} />
+                    <LegoStud color="rgba(255,255,255,0.22)" size={20} />
                     <h3 className="text-[1.7rem] font-bold text-white tracking-[-0.01em]">{step.title}</h3>
                   </div>
                   <p className="text-[15px] leading-7 mb-3 max-w-[370px]" style={{ color: "rgba(255,255,255,0.47)" }}>
@@ -1192,7 +1415,7 @@ export function LandingPage() {
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
-                  style={{ fontFamily: "auxMono, monospace", background: C.cyan }}
+                  style={{ fontFamily: "auxMono, monospace" }}
                 >
                   Convert now — it's free →
                 </Link>
