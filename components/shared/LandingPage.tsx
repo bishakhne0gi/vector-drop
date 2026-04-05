@@ -1215,20 +1215,20 @@ function Navbar() {
         borderBottom: "1px dashed rgba(255,255,255,0.1)",
       }}
     >
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3.5">
+      <div className="relative mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
           <VectorDropLogo size={18} />
           <span className="text-sm font-medium text-white">VectorDrop</span>
         </Link>
-        <div className="hidden md:flex items-center">
+        <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.label}
               href={item.href}
-              className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.18em] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.15em] transition-colors"
               style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
             >
-              <LegoStud color={item.color} size={10} />
+              <LegoStud color={item.color} size={9} />
               {item.label}
             </a>
           ))}
