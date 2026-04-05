@@ -6,12 +6,6 @@ import {
   CloudArrowUp,
   DownloadSimple,
   BezierCurveIcon,
-  FigmaLogo,
-  Code,
-  Palette,
-  PaintBrushBroad,
-  ShoppingCart,
-  ShareNetwork,
   CaretRightIcon,
 } from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
@@ -31,8 +25,8 @@ const C = {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: "How it works", href: "#how-it-works", color: C.purple },
-  { label: "Use cases",    href: "#use-cases",    color: C.orange },
-  { label: "Why us",       href: "#why-us",       color: C.green },
+  { label: "Why us",       href: "#why-us",       color: C.green  },
+  { label: "Icon styles",  href: "#icon-styles",  color: C.pink   },
 ];
 
 const STEPS = [
@@ -65,44 +59,6 @@ const STEPS = [
   },
 ];
 
-const USE_CASES = [
-  {
-    title: "Logos",
-    description: "Convert low-quality logos into scalable assets",
-    icon: <Palette size={22} weight="light" />,
-    color: C.orange,
-  },
-  {
-    title: "UI/UX Design",
-    description: "Turn images into editable vectors for Figma",
-    icon: <FigmaLogo size={22} weight="light" />,
-    color: C.purple,
-  },
-  {
-    title: "Web Development",
-    description: "Create lightweight SVGs for faster websites",
-    icon: <Code size={22} weight="light" />,
-    color: C.blue,
-  },
-  {
-    title: "Print & Merchandise",
-    description: "Get high-resolution vectors for t-shirts and posters",
-    icon: <PaintBrushBroad size={22} weight="light" />,
-    color: C.pink,
-  },
-  {
-    title: "Icons",
-    description: "Convert sketches into reusable icon sets",
-    icon: <ShoppingCart size={22} weight="light" />,
-    color: C.green,
-  },
-  {
-    title: "Social Media",
-    description: "Create sharp, scalable visuals for every platform",
-    icon: <ShareNetwork size={22} weight="light" />,
-    color: C.cyan,
-  },
-];
 
 const WHY_CARDS = [
   {
@@ -893,6 +849,199 @@ function ExportGraphic({ color }: { color: string }) {
   );
 }
 
+// ─── Icon Generation Demo (Coming Soon) ──────────────────────────────────────
+
+const REF_ICON_PATHS = [
+  "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42",
+  "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0",
+  "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
+  "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10",
+  "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z",
+  "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM21 21l-4.35-4.35",
+  "M12 2l8 4.5-8 4.5-8-4.5zM4 13l8 4.5 8-4.5M4 18l8 4.5 8-4.5",
+  "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+];
+
+type PandaPhase = "idle" | "searching" | "learning" | "generating" | "done";
+
+const PIPELINE_STEPS: PandaPhase[] = ["searching", "learning", "generating", "done"];
+
+function PandaIconDemo() {
+  const [phase,    setPhase]    = useState<PandaPhase>("idle");
+  const [cycleKey, setCycleKey] = useState(0);
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if      (phase === "idle")       t = setTimeout(() => setPhase("searching"),  1000);
+    else if (phase === "searching")  t = setTimeout(() => setPhase("learning"),   2600);
+    else if (phase === "learning")   t = setTimeout(() => setPhase("generating"), 1600);
+    else if (phase === "generating") t = setTimeout(() => setPhase("done"),       2400);
+    else if (phase === "done")       t = setTimeout(() => { setPhase("idle"); setCycleKey(k => k + 1); }, 3200);
+    return () => { if (t) clearTimeout(t); };
+  }, [phase]);
+
+  const stepIdx = PIPELINE_STEPS.indexOf(phase);
+
+  return (
+    <div style={{
+      background: "#0b0b0b",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: 14,
+      overflow: "hidden",
+      boxShadow: "0 32px 80px rgba(0,0,0,0.65), 0 4px 16px rgba(0,0,0,0.35)",
+    }}>
+      {/* macOS titlebar — desaturated */}
+      <div style={{ height: 40, background: "#111", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 16px" }}>
+        <div style={{ display: "flex", gap: 7 }}>
+          {(["#3d3d3d","#3d3d3d","#3d3d3d"] as const).map((c, i) => (
+            <div key={i} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />
+          ))}
+        </div>
+        <div style={{ flex: 1, textAlign: "center", fontSize: 11, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)" }}>
+          icon-generator · panda
+        </div>
+        <div style={{
+          width: 6, height: 6, borderRadius: "50%",
+          background: phase === "done" ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.15)",
+          boxShadow: phase === "done" ? "0 0 6px rgba(255,255,255,0.3)" : "none",
+          animation: "genStatusPulse 1.4s ease-in-out infinite",
+          flexShrink: 0, transition: "background 0.4s, box-shadow 0.4s",
+        }} />
+      </div>
+
+      <div style={{ padding: "14px 16px 18px" }}>
+        {/* Prompt */}
+        <div style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "7px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.40)", flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.50)", flex: 1 }}>
+            "a panda icon"
+          </span>
+          <span style={{ fontSize: 12, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)", animation: "genCursor 1s step-end infinite" }}>▋</span>
+        </div>
+
+        {/* Style — static */}
+        <div style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 7, height: 7, borderRadius: 1, background: "rgba(255,255,255,0.20)", flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.55)", flex: 1 }}>Phosphor Duotone</span>
+          <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.10)", padding: "1px 5px", borderRadius: 3, letterSpacing: "0.08em" }}>duotone</span>
+        </div>
+
+        {/* Pipeline progress bar */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+            {phase === "idle" ? "ready" : phase === "searching" ? "searching web..." : phase === "learning" ? "learning style..." : phase === "generating" ? "generating..." : "✓ done"}
+          </span>
+          <div style={{ display: "flex", gap: 3 }}>
+            {PIPELINE_STEPS.map((_, i) => (
+              <div key={i} style={{ width: 20, height: 2, borderRadius: 1, background: stepIdx >= i ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.08)", transition: "background 0.3s" }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Main display — key resets all animations on each cycle */}
+        <div
+          key={cycleKey}
+          style={{ background: "#080808", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, minHeight: 210, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          {/* Dot grid */}
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
+
+          {/* ── idle ── */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", opacity: phase === "idle" ? 1 : 0, transition: "opacity 0.3s", pointerEvents: "none" }}>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.10)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+              awaiting input...
+            </span>
+          </div>
+
+          {/* ── searching — mini browser with panda chrome.png ── */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, opacity: phase === "searching" ? 1 : 0, transition: "opacity 0.35s", pointerEvents: "none", padding: "12px 14px" }}>
+            <div style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
+              {/* Browser chrome */}
+              <div style={{ height: 26, background: "#151515", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 8px", gap: 5 }}>
+                <div style={{ display: "flex", gap: 3 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
+                </div>
+                <div style={{ flex: 1, height: 14, background: "#0d0d0d", borderRadius: 3, display: "flex", alignItems: "center", padding: "0 6px" }}>
+                  <span style={{ fontSize: 7, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)", whiteSpace: "nowrap", overflow: "hidden" }}>
+                    images.google.com/search?q=panda+icon+phosphor+duotone
+                  </span>
+                </div>
+              </div>
+              {/* Image + scan */}
+              <div style={{ position: "relative", overflow: "hidden", maxHeight: 108 }}>
+                <img src="/panda chrome.png" alt="" style={{ width: "100%", display: "block", opacity: 0.50, objectFit: "cover" }} />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(8,8,8,0.25)" }} />
+                <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: "linear-gradient(to right, transparent, rgba(255,255,255,0.40), transparent)", boxShadow: "0 0 8px rgba(255,255,255,0.15)", top: 0, animation: "pandaSearchScan 2.4s ease-in-out forwards" }} />
+              </div>
+            </div>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)", letterSpacing: "0.18em", textTransform: "uppercase", animation: "genStatusPulse 0.9s ease-in-out infinite" }}>
+              scanning reference...
+            </span>
+          </div>
+
+          {/* ── learning — ref icon grid (monochrome) ── */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, opacity: phase === "learning" ? 1 : 0, transition: "opacity 0.3s", pointerEvents: "none" }}>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+              learning phosphor style...
+            </span>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 36px)", gap: 6 }}>
+                {REF_ICON_PATHS.map((iconPath, i) => (
+                  <div key={i} style={{ width: 36, height: 36, border: "1px solid rgba(255,255,255,0.09)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.025)", animation: phase === "learning" ? "genIconFlash 1.1s ease-in-out infinite" : "none", animationDelay: `${(i * 0.1).toFixed(2)}s` }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d={iconPath} stroke="rgba(255,255,255,0.38)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="rgba(255,255,255,0.05)" opacity={0.7} />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+              {phase === "learning" && (
+                <div style={{ position: "absolute", top: -4, bottom: -4, width: 2, left: 0, background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.40), transparent)", boxShadow: "0 0 8px rgba(255,255,255,0.18)", animation: "genScanLine 1.5s ease-in-out forwards", borderRadius: 1 }} />
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 5 }}>
+              {[18, 30, 22, 26, 16].map((w, n) => (
+                <div key={n} style={{ height: 2, width: w, borderRadius: 2, background: "rgba(255,255,255,0.18)", animation: "genStatusPulse 0.55s ease-in-out infinite", animationDelay: `${(n * 0.1).toFixed(2)}s` }} />
+              ))}
+            </div>
+          </div>
+
+          {/* ── generating — panda.svg sweep reveal ── */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, opacity: phase === "generating" ? 1 : 0, transition: "opacity 0.35s", pointerEvents: "none" }}>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)", letterSpacing: "0.22em", textTransform: "uppercase", animation: "genStatusPulse 0.7s ease-in-out infinite" }}>
+              drawing paths...
+            </span>
+            <div style={{ position: "relative", width: 96, height: 96, overflow: "hidden" }}>
+              <img src="/panda.svg" alt="panda" style={{ width: 96, height: 96, objectFit: "contain", filter: "grayscale(100%) brightness(0.82)", animation: "pandaSvgReveal 2.2s cubic-bezier(0.4,0,0.2,1) forwards" }} />
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(to right, transparent, rgba(255,255,255,0.35), transparent)", animation: "pandaSearchScan 2.2s ease-in-out forwards" }} />
+            </div>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.14)", letterSpacing: "0.14em" }}>
+              applying duotone style...
+            </span>
+          </div>
+
+          {/* ── done ── */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, opacity: phase === "done" ? 1 : 0, transition: "opacity 0.5s", pointerEvents: "none" }}>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.48)", letterSpacing: "0.18em", textTransform: "uppercase", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)", padding: "2px 9px", borderRadius: 4 }}>
+              ✓ SVG ready
+            </span>
+            <div style={{ filter: "drop-shadow(0 0 14px rgba(255,255,255,0.10))" }}>
+              <img src="/panda.svg" alt="panda" style={{ width: 96, height: 96, objectFit: "contain", filter: "grayscale(100%) brightness(0.85) contrast(1.05)", opacity: 0.90 }} />
+            </div>
+            <span style={{ fontSize: 8, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)", letterSpacing: "0.12em" }}>
+              256px · phosphor duotone
+            </span>
+          </div>
+
+          {phase === "done" && (
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 55%, rgba(255,255,255,0.04) 0%, transparent 60%)" }} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── LEGO cursor configs — 5 independent roaming highlights ───────────────────
 const LEGO_CURSORS = [
   { phase: 0.0, freqX: 1.30, freqY: 0.70, speed: 1.00, color: "#f97316" }, // orange
@@ -1207,6 +1356,40 @@ export function LandingPage() {
           22%, 82% { opacity: 1; transform: translateY(0); }
           96%, 100% { opacity: 0; transform: translateY(3px); }
         }
+
+        /* ── Icon Generation Demo ── */
+        @keyframes genCursor {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+        @keyframes genIconFlash {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 1; }
+        }
+        @keyframes genScanLine {
+          from { left: -2px; opacity: 0; }
+          8%   { opacity: 1; }
+          88%  { opacity: 1; }
+          to   { left: 100%; opacity: 0; }
+        }
+        @keyframes genStatusPulse {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 1; }
+        }
+        @keyframes genDonePop {
+          from { transform: scale(0.8); opacity: 0; }
+          to   { transform: scale(1);   opacity: 1; }
+        }
+        @keyframes pandaSearchScan {
+          from { top: -2px; opacity: 0; }
+          8%   { opacity: 1; }
+          88%  { opacity: 1; }
+          to   { top: 100%; opacity: 0; }
+        }
+        @keyframes pandaSvgReveal {
+          from { clip-path: inset(0 100% 0 0); }
+          to   { clip-path: inset(0 0% 0 0); }
+        }
       `}</style>
 
       <Navbar />
@@ -1401,65 +1584,7 @@ export function LandingPage() {
       </RailedSection>
 
       {/* ═══════════════════════════════════════════════════════
-          SECTION 3: USE CASES
-      ═══════════════════════════════════════════════════════ */}
-      <RailedSection
-        id="use-cases"
-        accentColor={C.blue}
-        className="py-28"
-        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
-      >
-        <div className="mx-auto max-w-[1280px] px-6">
-          <div className="mb-4">
-            <SectionLabel text="Use cases" color={C.blue} />
-          </div>
-          <div className="grid lg:grid-cols-2 gap-8 mb-16 items-end">
-            <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white leading-[1.08]">
-              Made for real design workflows
-            </h2>
-            {/* <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
-              If it's an image, you can vectorize it.
-            </p> */}
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {USE_CASES.map((uc) => (
-              <div
-                key={uc.title}
-                className="relative overflow-hidden p-7 transition-all"
-                style={{ background: "#111011", border: "1px dashed rgba(255,255,255,0.1)" }}
-              >
-                {/* Top accent line */}
-                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: uc.color, opacity: 0.5 }} />
-                {/* Micro corner LEGO stud */}
-                <div className="absolute top-2 right-2 opacity-60">
-                  <LegoStud color={uc.color} size={10} />
-                </div>
-
-                <div
-                  className="flex h-10 w-10 items-center justify-center border mb-5"
-                  style={{ borderColor: `${uc.color}38`, color: uc.color, background: `${uc.color}0d` }}
-                >
-                  {uc.icon}
-                </div>
-
-                <div className="flex items-center gap-3 mb-2">
-                  <LegoStud color={uc.color} size={14} />
-                  <h3 className="text-[15px] font-semibold" style={{ color: "rgba(255,255,255,0.90)" }}>
-                    {uc.title}
-                  </h3>
-                </div>
-                <p className="text-sm leading-6 pl-[22px]" style={{ color: "rgba(255,255,255,0.42)" }}>
-                  {uc.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </RailedSection>
-
-      {/* ═══════════════════════════════════════════════════════
-          SECTION 4: WHY VECTORDROP
+          SECTION 3: WHY VECTORDROP
           — Large solid colored cards (direct reference match)
       ═══════════════════════════════════════════════════════ */}
       <RailedSection
@@ -1545,6 +1670,82 @@ export function LandingPage() {
           >
             "Built for speed and simplicity — not complexity."
           </p>
+        </div>
+      </RailedSection>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 4: ICON STYLE GENERATION (Coming soon)
+      ═══════════════════════════════════════════════════════ */}
+      <RailedSection
+        id="icon-styles"
+        accentColor={C.pink}
+        className="py-28"
+        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-[1280px] px-6">
+          <div className="grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
+
+            {/* Left: text */}
+            <div>
+              {/* Coming soon badge */}
+              <div className="mb-5 flex items-center gap-3">
+                <span
+                  className="inline-flex items-center gap-2 px-[10px] py-[5px] text-[10px] tracking-[0.18em] uppercase leading-none"
+                  style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.04)" }}
+                >
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.40)", display: "inline-block", animation: "genStatusPulse 1.4s ease-in-out infinite" }} />
+                  Coming soon
+                </span>
+                <SectionLabel text="Icon generation" color={C.pink} />
+              </div>
+
+              <h2 className="text-[2.5rem] font-bold tracking-[-0.022em] text-white leading-[1.07] mb-5">
+                Generate icons in<br />any design system style
+              </h2>
+              <p className="text-[15px] leading-7 mb-4 max-w-[420px]" style={{ color: "rgba(255,255,255,0.42)" }}>
+                Describe any icon. VectorDrop searches for visual references,
+                learns the style rules of your chosen icon library, then generates
+                a new icon that feels native to that system.
+              </p>
+              <p className="text-[13px] leading-6 mb-10 max-w-[380px]" style={{ color: "rgba(255,255,255,0.24)" }}>
+                Pipeline: web search → style extraction → SVG generation.
+                Supports Phosphor, Lucide, Heroicons, Tabler, and custom guides.
+              </p>
+
+              {/* Pipeline steps */}
+              <div className="flex flex-col gap-4 mb-10">
+                {[
+                  { num: "01", label: "Search", desc: "Find visual references from the web" },
+                  { num: "02", label: "Learn",  desc: "Extract style rules from the icon library" },
+                  { num: "03", label: "Generate", desc: "Produce a new SVG in that exact style" },
+                ].map((step) => (
+                  <div key={step.num} className="flex items-start gap-4">
+                    <span style={{ fontSize: 9, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)", letterSpacing: "0.14em", flexShrink: 0, marginTop: 1 }}>
+                      {step.num}
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)", marginTop: 6, flexShrink: 0 }} />
+                    <div className="text-right">
+                      <div style={{ fontSize: 11, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.55)", letterSpacing: "0.08em", marginBottom: 1 }}>{step.label}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.22)", lineHeight: 1.5 }}>{step.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] px-5 py-2"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)", border: "1px dashed rgba(255,255,255,0.12)" }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "inline-block", animation: "genStatusPulse 1.2s ease-in-out infinite" }} />
+                Notify me when it launches
+              </div>
+            </div>
+
+            {/* Right: demo */}
+            <div>
+              <PandaIconDemo />
+            </div>
+          </div>
         </div>
       </RailedSection>
 
