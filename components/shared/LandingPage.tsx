@@ -48,7 +48,7 @@ const STEPS = [
   {
     num: "02",
     title: "Auto vectorize",
-    description: "Intelligent tracing converts your raster into clean vector paths — no noise or jagged edges.",
+    description: "Intelligent tracing converts your raster into clean vector paths, no noise or jagged edges.",
     detail: "Crisp SVG output with editable anchor points, ready to use immediately.",
     icon: <BezierCurveIcon size={22} weight="light" />,
     color: C.green,
@@ -173,15 +173,19 @@ function RailedSection({
 }) {
   return (
     <section id={id} className={`relative ${className}`} style={style}>
-      {/* Left rail line */}
+      {/* Left rail line — dashed */}
       <div
-        className="hidden xl:block absolute left-[80px] top-0 bottom-0 w-px"
-        style={{ background: "rgba(255,255,255,0.055)" }}
+        className="hidden xl:block absolute left-[80px] top-0 bottom-0 w-px overflow-hidden"
+        style={{
+          backgroundImage: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.09) 0px, rgba(255,255,255,0.09) 3px, transparent 3px, transparent 6px)",
+        }}
       />
-      {/* Right rail line */}
+      {/* Right rail line — dashed */}
       <div
-        className="hidden xl:block absolute right-[80px] top-0 bottom-0 w-px"
-        style={{ background: "rgba(255,255,255,0.055)" }}
+        className="hidden xl:block absolute right-[80px] top-0 bottom-0 w-px overflow-hidden"
+        style={{
+          backgroundImage: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.09) 0px, rgba(255,255,255,0.09) 3px, transparent 3px, transparent 6px)",
+        }}
       />
       {/* Left corner — LEGO stud marker */}
       <div className="hidden xl:block absolute left-[80px] top-2 -translate-x-1/2 -translate-y-1/2">
@@ -196,15 +200,18 @@ function RailedSection({
   );
 }
 
-// ─── Raster cell opacities for VectorizeGraphic (7×7 deterministic grid) ─────
-const RASTER_CELLS = [
-  0.18, 0.08, 0.13, 0.06, 0.15, 0.09, 0.11,
-  0.06, 0.14, 0.07, 0.17, 0.05, 0.12, 0.08,
-  0.13, 0.07, 0.16, 0.09, 0.11, 0.14, 0.06,
-  0.08, 0.12, 0.06, 0.10, 0.13, 0.07, 0.15,
-  0.15, 0.06, 0.11, 0.14, 0.08, 0.10, 0.07,
-  0.07, 0.13, 0.09, 0.11, 0.06, 0.15, 0.12,
-  0.10, 0.08, 0.14, 0.06, 0.12, 0.07, 0.09,
+// ─── Staircase raster pixel grid: 6 cols × 8 rows ────────────────────────────
+// Diagonal band of alternating bright/dark stripes (zebra staircase pattern).
+// Even rows = bright stripe, odd rows = dark stripe; row 3 has a person hint.
+const STAIR_CELLS = [
+  0.03, 0.03, 0.60, 0.60, 0.60, 0.03,  // row 0: bright stripe, band at cols 2–4
+  0.03, 0.03, 0.05, 0.05, 0.05, 0.03,  // row 1: dark stripe
+  0.03, 0.60, 0.60, 0.60, 0.03, 0.03,  // row 2: bright stripe, band shifts left
+  0.03, 0.05, 0.16, 0.05, 0.03, 0.03,  // row 3: dark stripe (person silhouette at col 2)
+  0.60, 0.60, 0.60, 0.03, 0.03, 0.03,  // row 4: bright stripe, band at cols 0–2
+  0.05, 0.05, 0.05, 0.03, 0.03, 0.03,  // row 5: dark stripe
+  0.42, 0.42, 0.03, 0.03, 0.03, 0.03,  // row 6: bright stripe, fading out
+  0.05, 0.05, 0.03, 0.03, 0.03, 0.03,  // row 7: dark stripe
 ];
 
 // ─── Real pre-converted examples (SVGs in /public/vectors/) ──────────────────
@@ -497,7 +504,7 @@ function VectorPlayground() {
                 style={{ opacity: Math.max(0, (progress - 0.5) * 2) }}>
                 <span className="text-[8px] uppercase tracking-[0.18em]"
                   style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.50)",
-                    textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>SVG</span>
+                    textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>VECTOR</span>
               </div>
             </div>
           </div>
@@ -644,7 +651,7 @@ function UploadGraphic({ color }: { color: string }) {
             borderBottom: "1px solid rgba(255,255,255,0.06)",
             borderRadius: "0 6px 0 2px",
           }} />
-          <CloudArrowUp size={20} weight="light" style={{ color, opacity: 0.88 }} />
+          <CloudArrowUp size={20} weight="light" style={{ color: "rgba(255,255,255,0.55)", opacity: 0.88 }} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
             <div style={{ fontSize: 6.5, letterSpacing: "0.12em", color: "rgba(255,255,255,0.32)", fontFamily: "auxMono, monospace", textTransform: "uppercase" }}>image.png</div>
             <div style={{ fontSize: 6, letterSpacing: "0.1em", color: "rgba(255,255,255,0.16)", fontFamily: "auxMono, monospace" }}>2.4 MB</div>
@@ -658,7 +665,7 @@ function UploadGraphic({ color }: { color: string }) {
         }}>
           <div style={{
             height: "100%", borderRadius: 2,
-            background: `linear-gradient(90deg, rgba(255,255,255,0.08) 0%, ${color} 100%)`,
+            background: "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.42) 100%)",
             animation: "stepProgressFill 3s ease-in-out infinite",
           }} />
         </div>
@@ -667,65 +674,155 @@ function UploadGraphic({ color }: { color: string }) {
   );
 }
 
-function VectorizeGraphic({ color }: { color: string }) {
+function VectorizeGraphic({ color: _color }: { color: string }) {
   return (
     <div className="relative flex items-center justify-center" style={{ minHeight: 200, width: "100%" }}>
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)",
         backgroundSize: "18px 18px",
       }} />
-      <div style={{ position: "relative", width: 220, height: 140, overflow: "hidden" }}>
-        {/* Raster pixel grid – left */}
-        <div style={{
-          position: "absolute", left: 0, top: 10, width: 95, height: 120,
-          display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(7, 1fr)",
-          gap: 2, padding: 4,
-        }}>
-          {RASTER_CELLS.map((op, i) => (
-            <div key={i} style={{ background: `rgba(255,255,255,${op})`, borderRadius: 1 }} />
-          ))}
+
+      <div style={{ position: "relative", width: 222, height: 148, overflow: "hidden" }}>
+
+        {/* ── LEFT: actual stairs.png with pixel-grid overlay ── */}
+        <div style={{ position: "absolute", left: 0, top: 0, width: 104, height: 148, overflow: "hidden" }}>
+          <img
+            src="/stairs.png"
+            alt="source raster"
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "35% 40%", display: "block", opacity: 0.88 }}
+          />
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
+            backgroundSize: "8px 8px",
+          }} />
+          <span style={{
+            position: "absolute", bottom: 5, left: 6,
+            fontSize: 6.5, letterSpacing: "0.22em", textTransform: "uppercase",
+            color: "rgba(255,255,255,0.18)", fontFamily: "auxMono, monospace",
+          }}>raster</span>
         </div>
 
-        {/* Animated scan line */}
-        <div style={{
-          position: "absolute", top: 0, bottom: 0, left: 0, width: 2,
-          background: `linear-gradient(to bottom, transparent 5%, ${color}80 40%, ${color}cc 50%, ${color}80 60%, transparent 95%)`,
-          animation: "stepScanLine 3s ease-in-out infinite",
-          willChange: "transform",
-        }} />
-
-        {/* Vector paths – right */}
-        <svg
-          style={{ position: "absolute", right: 0, top: 10, width: 110, height: 120 }}
-          viewBox="0 0 110 120" fill="none"
-        >
-          <path
-            d="M 8 90 C 28 55, 55 72, 75 36 C 85 16, 100 26, 100 46"
-            stroke="rgba(255,255,255,0.68)" strokeWidth="1.6" strokeLinecap="round"
-            style={{ strokeDasharray: 200, strokeDashoffset: 200, animation: "stepDrawPath 3s ease-in-out infinite" }}
-          />
-          <path
-            d="M 8 108 C 40 100, 70 90, 102 80"
-            stroke="rgba(255,255,255,0.20)" strokeWidth="1" strokeLinecap="round"
-            style={{ strokeDasharray: 130, strokeDashoffset: 130, animation: "stepDrawPath 3s ease-in-out 0.4s infinite" }}
-          />
-          {/* Handle dashes */}
-          <line x1="8" y1="90" x2="28" y2="55" stroke="rgba(255,255,255,0.09)" strokeWidth="0.8" strokeDasharray="2.5 2" />
-          <line x1="75" y1="36" x2="55" y2="72" stroke="rgba(255,255,255,0.09)" strokeWidth="0.8" strokeDasharray="2.5 2" />
-          {/* Anchor nodes */}
-          <circle cx="8" cy="90" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
-          <circle cx="75" cy="36" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
-          <circle cx="100" cy="46" r="3" fill="#0e0e0e" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
-        </svg>
-
-        {/* Arrow divider */}
+        {/* ── CENTER: arrow ── */}
         <div style={{
           position: "absolute", left: "50%", top: "50%",
-          transform: "translate(-50%, -50%)",
-          fontSize: 10, color: "rgba(255,255,255,0.14)",
-          fontFamily: "auxMono, monospace", zIndex: 2,
-          background: "#0e0e0e", padding: "2px 4px",
+          transform: "translate(-50%, -50%)", zIndex: 20,
+          fontSize: 9, color: "rgba(255,255,255,0.14)",
+          fontFamily: "auxMono, monospace",
+          background: "#0d0d0d", padding: "2px 3px",
         }}>→</div>
+
+        {/* ── RIGHT: vectorization animation ── */}
+        <div style={{ position: "absolute", right: 0, top: 0, width: 106, height: 148, overflow: "hidden" }}>
+
+          {/* Base: dark background */}
+          <div style={{ position: "absolute", inset: 0, background: "#080808" }} />
+
+          {/* ── Layer A: the REAL converted SVG — wipes in (Phase 3) then zooms (Phase 5) ── */}
+          <img
+            src="/vectors/stairs.svg"
+            alt="vector result"
+            style={{
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "cover", objectPosition: "35% 40%",
+              display: "block",
+              transformOrigin: "35% 40%",
+              animation: "stairSvgAnim 7s cubic-bezier(0.4,0,0.2,1) infinite",
+            }}
+          />
+
+          {/* ── Layer B: overlay SVG for Phase 1 (raster) + Phase 2 (scan) ── */}
+          <svg width="106" height="148" viewBox="0 0 106 148" fill="none"
+            style={{ position: "absolute", inset: 0, display: "block" }}>
+
+            {/* Dark curtain — covers the real SVG during Phase 1 & 2 */}
+            <rect width="106" height="148" fill="#080808"
+              style={{ animation: "stairDarkCover 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+
+            {/* Phase 1: staircase-shaped raster pixel cells */}
+            {STAIR_CELLS.map((op, i) => {
+              const col = i % 6;
+              const row = Math.floor(i / 6);
+              const cw = 106 / 6;
+              const ch = 148 / 8;
+              return (
+                <rect key={`rc${i}`}
+                  x={col * cw + 1} y={row * ch + 1}
+                  width={cw - 2} height={ch - 2}
+                  fill={`rgba(255,255,255,${op})`} rx="1"
+                  style={{ animation: "stairRasterCell 7s cubic-bezier(0.4,0,0.2,1) infinite" }}
+                />
+              );
+            })}
+            {/* Grid lines */}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <line key={`gv${i}`} x1={i * (106 / 6)} y1="0" x2={i * (106 / 6)} y2="148"
+                stroke="rgba(255,255,255,0.06)" strokeWidth="0.7"
+                style={{ animation: "stairRasterCell 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+            ))}
+            {Array.from({ length: 9 }).map((_, i) => (
+              <line key={`gh${i}`} x1="0" y1={i * (148 / 8)} x2="106" y2={i * (148 / 8)}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="0.7"
+                style={{ animation: "stairRasterCell 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+            ))}
+
+            {/* Phase 2: scan line that sweeps across */}
+            <line x1="0" y1="0" x2="0" y2="148"
+              stroke="rgba(255,255,255,0.32)" strokeWidth="1.5"
+              strokeLinecap="round"
+              style={{ animation: "stairScanGlide 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+          </svg>
+
+          {/* ── Layer C: wireframe paths overlay (Phase 4) + ∞ label (Phase 5) ── */}
+          <svg width="106" height="148" viewBox="0 0 106 148" fill="none"
+            style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}>
+            {/* Diagonal band polygon — stroke draws in via dashoffset */}
+            <polygon
+              points="46,4 104,20 62,144 4,128"
+              fill="none"
+              stroke="rgba(255,255,255,0.26)"
+              strokeWidth="0.8"
+              strokeDasharray="400"
+              style={{ animation: "stairWireDraw 7s cubic-bezier(0.4,0,0.2,1) infinite" }}
+            />
+            {/* Stair tread dashed horizontal lines */}
+            {([
+              [35, 18.5, 88, 18.5],
+              [17.7, 55.5, 70.7, 55.5],
+              [0, 92.5, 53, 92.5],
+            ] as [number, number, number, number][]).map(([x1, y1, x2, y2], i) => (
+              <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="rgba(255,255,255,0.18)" strokeWidth="0.65" strokeDasharray="3 2.5"
+                style={{ opacity: 0, animation: "stairStepLine 7s cubic-bezier(0.4,0,0.2,1) infinite", animationDelay: `${i * 0.12}s`, animationFillMode: "backwards" }}
+              />
+            ))}
+            {/* Anchor dots at band corners + long-side midpoints */}
+            {([[46, 4], [104, 20], [62, 144], [4, 128], [83, 82], [25, 66]] as [number, number][]).map(([cx, cy], i) => (
+              <circle key={i} cx={cx} cy={cy} r="2"
+                fill="#080808" stroke="rgba(255,255,255,0.45)" strokeWidth="0.9"
+                style={{ opacity: 0, animation: "stairVecDot 7s cubic-bezier(0.4,0,0.2,1) infinite", animationDelay: `${i * 0.05}s`, animationFillMode: "backwards" }} />
+            ))}
+            {/* Bezier handle lines from midpoint anchors */}
+            <line x1="75" y1="70" x2="91" y2="94"
+              stroke="rgba(255,255,255,0.13)" strokeWidth="0.6"
+              style={{ opacity: 0, animation: "stairVecDot 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+            <line x1="17" y1="55" x2="33" y2="77"
+              stroke="rgba(255,255,255,0.13)" strokeWidth="0.6"
+              style={{ opacity: 0, animation: "stairVecDot 7s cubic-bezier(0.4,0,0.2,1) infinite" }} />
+            {/* PATHS label — Phase 4 */}
+            <text x="5" y="11" fontSize="5.5" fill="rgba(255,255,255,0.22)"
+              style={{ fontFamily: "auxMono, monospace", letterSpacing: "0.22em", opacity: 0, animation: "stairVecLabel 7s cubic-bezier(0.4,0,0.2,1) infinite" }}>
+              PATHS
+            </text>
+            {/* ∞ SCALABLE label — Phase 5 zoom */}
+            <text x="53" y="143" textAnchor="middle" fontSize="5.5" fill="rgba(255,255,255,0.5)"
+              style={{ fontFamily: "auxMono, monospace", letterSpacing: "0.15em", opacity: 0, animation: "stairScaleLabel 7s cubic-bezier(0.4,0,0.2,1) infinite" }}>
+              ∞ SCALABLE
+            </text>
+          </svg>
+        </div>
       </div>
     </div>
   );
@@ -756,7 +853,7 @@ function ExportGraphic({ color }: { color: string }) {
               border: "1px solid rgba(255,255,255,0.08)", borderRadius: 5,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <DownloadSimple size={13} weight="light" style={{ color, opacity: 0.88 }} />
+              <DownloadSimple size={13} weight="light" style={{ color: "rgba(255,255,255,0.55)", opacity: 0.88 }} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", fontFamily: "auxMono, monospace", marginBottom: 2 }}>output</div>
@@ -769,9 +866,9 @@ function ExportGraphic({ color }: { color: string }) {
               <div key={fmt} style={{
                 padding: "3px 8px", fontSize: 7, letterSpacing: "0.12em",
                 fontFamily: "auxMono, monospace", textTransform: "uppercase", borderRadius: 3,
-                border: `1px solid ${i === 0 ? `${color}55` : "rgba(255,255,255,0.07)"}`,
-                background: i === 0 ? `${color}10` : "rgba(255,255,255,0.03)",
-                color: i === 0 ? color : "rgba(255,255,255,0.25)",
+                border: `1px solid ${i === 0 ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.07)"}`,
+                background: i === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+                color: i === 0 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)",
                 animation: "stepChipFadeIn 3s ease-in-out infinite",
                 animationDelay: `${i * 0.14}s`,
               }}>
@@ -784,7 +881,7 @@ function ExportGraphic({ color }: { color: string }) {
         <div style={{ width: 200, height: 2, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
           <div style={{
             height: "100%", borderRadius: 2,
-            background: `linear-gradient(90deg, rgba(255,255,255,0.08) 0%, ${color} 100%)`,
+            background: "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.42) 100%)",
             animation: "stepProgressFill 3s ease-in-out 0.5s infinite",
           }} />
         </div>
@@ -946,8 +1043,12 @@ function LegoBackground() {
 function Navbar() {
   return (
     <nav
-      className="sticky top-0 z-50 border-b border-white/[0.07]"
-      style={{ background: "rgba(22,21,22,0.95)", backdropFilter: "blur(18px)" }}
+      className="sticky top-0 z-50"
+      style={{
+        background: "rgba(22,21,22,0.95)",
+        backdropFilter: "blur(18px)",
+        borderBottom: "1px dashed rgba(255,255,255,0.1)",
+      }}
     >
       <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
@@ -1026,11 +1127,76 @@ export function LandingPage() {
           94% { opacity: 1; }
           100% { transform: translateX(222px); opacity: 0; }
         }
-        @keyframes stepDrawPath {
-          0%, 3% { stroke-dashoffset: 200; opacity: 0; }
-          8% { opacity: 1; }
-          68% { stroke-dashoffset: 0; opacity: 1; }
-          90%, 100% { stroke-dashoffset: 0; opacity: 0.6; }
+        /* ── Stair conversion animation (7s loop) ── */
+
+        /* Phase 1: Raster pixel grid — 0–25% visible, gone by 38% */
+        @keyframes stairRasterCell {
+          0%, 25% { opacity: 1; }
+          38%, 100% { opacity: 0; }
+        }
+
+        /* Dark curtain — covers SVG during Phase 1 & 2, lifts in Phase 3 */
+        @keyframes stairDarkCover {
+          0%, 45%  { opacity: 1; }
+          63%, 90% { opacity: 0; }
+          100%     { opacity: 1; }
+        }
+
+        /* Phase 2: scan line glides left→right (25–52%) */
+        @keyframes stairScanGlide {
+          0%, 25%   { transform: translateX(0px);   opacity: 0; }
+          29%       { opacity: 1; }
+          52%       { transform: translateX(106px);  opacity: 1; }
+          57%, 100% { transform: translateX(106px);  opacity: 0; }
+        }
+
+        /* Phase 3: SVG wipes in, Phase 5: zooms to demonstrate infinite crispness */
+        @keyframes stairSvgAnim {
+          0%, 47%   { clip-path: inset(0 100% 0 0); transform: scale(1);   opacity: 0; }
+          50%       { clip-path: inset(0 80%  0 0); transform: scale(1);   opacity: 1; }
+          63%       { clip-path: inset(0 0%   0 0); transform: scale(1);   opacity: 1; }
+          76%       { clip-path: inset(0 0%   0 0); transform: scale(1);   opacity: 1; }
+          83%, 91%  { clip-path: inset(0 0%   0 0); transform: scale(2.4); opacity: 1; }
+          97%       { clip-path: inset(0 0%   0 0); transform: scale(2.4); opacity: 0; }
+          100%      { clip-path: inset(0 100% 0 0); transform: scale(1);   opacity: 0; }
+        }
+
+        /* Phase 4: diagonal band polygon draws in via stroke-dashoffset */
+        @keyframes stairWireDraw {
+          0%, 61%  { stroke-dashoffset: 400; opacity: 0; }
+          63%      { opacity: 1; }
+          75%      { stroke-dashoffset: 0;   opacity: 1; }
+          88%      { stroke-dashoffset: 0;   opacity: 1; }
+          94%      { stroke-dashoffset: 0;   opacity: 0; }
+          100%     { stroke-dashoffset: 400; opacity: 0; }
+        }
+
+        /* Phase 4: stair tread dashed lines fade in */
+        @keyframes stairStepLine {
+          0%, 64%   { opacity: 0; }
+          72%, 87%  { opacity: 1; }
+          94%, 100% { opacity: 0; }
+        }
+
+        /* Phase 4: anchor dots pop in */
+        @keyframes stairVecDot {
+          0%, 67%   { opacity: 0; transform: scale(0); }
+          74%, 88%  { opacity: 1; transform: scale(1); }
+          95%, 100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        /* Phase 4: PATHS label */
+        @keyframes stairVecLabel {
+          0%, 70%   { opacity: 0; }
+          76%, 87%  { opacity: 1; }
+          94%, 100% { opacity: 0; }
+        }
+
+        /* Phase 5: ∞ SCALABLE label during zoom */
+        @keyframes stairScaleLabel {
+          0%, 78%   { opacity: 0; transform: scale(0.9) translateY(4px); }
+          84%, 90%  { opacity: 1; transform: scale(1)   translateY(0px); }
+          96%, 100% { opacity: 0; transform: scale(0.9) translateY(4px); }
         }
         @keyframes stepExportFloat {
           0%, 100% { transform: translateY(0px); }
@@ -1116,7 +1282,7 @@ export function LandingPage() {
               className="inline-flex items-center justify-center gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] transition-all hover:opacity-88"
               style={{
                 fontFamily: "auxMono, monospace",
-                border: "1px solid rgba(255,255,255,0.18)",
+                border: "1px dashed rgba(255,255,255,0.22)",
                 color: "rgba(255,255,255,0.58)",
               }}
             >
@@ -1166,30 +1332,32 @@ export function LandingPage() {
           <div className="mb-4">
             <SectionLabel text="How it works" color={C.purple} />
           </div>
-          <div className="grid lg:grid-cols-2 gap-8 mb-20 items-end">
-            <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white leading-[1.08]">
-              From image to SVG in seconds
+          <div className="grid lg:grid-cols-3 gap-8 mb-20 items-end">
+            <h2 className="text-[2.6rem] col-span-2 font-bold tracking-[-0.022em] text-white leading-[1.08]">
+              From image to vectors in seconds
             </h2>
-            <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
+            {/* <p className="text-[15px] col-span-1 leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
               Three simple steps. No design skills needed.
-            </p>
+            </p> */}
           </div>
 
-          <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {STEPS.map((step) => (
               <div
                 key={step.num}
-                className="grid lg:grid-cols-2 gap-0"
-                style={{ borderColor: "rgba(255,255,255,0.07)", paddingTop: 52, paddingBottom: 52 }}
+                className="relative flex flex-col overflow-hidden"
+                style={{
+                  background: "#0e0e0e",
+                  border: "1px dashed rgba(255,255,255,0.1)",
+                }}
               >
+                {/* Top accent line */}
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: step.color, opacity: 0.5 }} />
+
                 {/* Visual panel */}
                 <div
-                  className="relative flex items-center justify-center lg:mr-8 overflow-hidden"
-                  style={{
-                    background: "#0e0e0e",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    minHeight: 260,
-                  }}
+                  className="relative flex items-center justify-center overflow-hidden"
+                  style={{ minHeight: 220 }}
                 >
                   <span
                     className="absolute top-4 left-4 text-[10px] uppercase tracking-[0.25em]"
@@ -1203,23 +1371,23 @@ export function LandingPage() {
                 </div>
 
                 {/* Text panel */}
-                <div className="flex flex-col justify-center pl-0 lg:pl-12 pt-8 lg:pt-0">
-                  <div className="flex items-center gap-3 mb-5">
+                <div className="flex flex-col p-7 pt-5 flex-1" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                  <div className="flex items-center gap-3 mb-4">
                     <LegoStud color="rgba(255,255,255,0.22)" size={20} />
-                    <h3 className="text-[1.7rem] font-bold text-white tracking-[-0.01em]">{step.title}</h3>
+                    <h3 className="text-[1.35rem] font-bold text-white tracking-[-0.01em]">{step.title}</h3>
                   </div>
-                  <p className="text-[15px] leading-7 mb-3 max-w-[370px]" style={{ color: "rgba(255,255,255,0.47)" }}>
+                  <p className="text-[14px] leading-6 mb-3" style={{ color: "rgba(255,255,255,0.47)" }}>
                     {step.description}
                   </p>
-                  <p className="text-[13px] leading-6 max-w-[360px]" style={{ color: "rgba(255,255,255,0.27)" }}>
+                  {/* <p className="text-[12px] leading-5" style={{ color: "rgba(255,255,255,0.27)" }}>
                     {step.detail}
-                  </p>
+                  </p> */}
                   <div
-                    className="mt-6 inline-block text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 border self-start"
+                    className="mt-5 inline-block text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 self-start"
                     style={{
                       fontFamily: "auxMono, monospace",
                       color: step.color,
-                      borderColor: `${step.color}40`,
+                      border: `1px dashed ${step.color}60`,
                       background: `${step.color}0a`,
                     }}
                   >
@@ -1239,7 +1407,7 @@ export function LandingPage() {
         id="use-cases"
         accentColor={C.blue}
         className="py-28"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-[1280px] px-6">
           <div className="mb-4">
@@ -1249,9 +1417,9 @@ export function LandingPage() {
             <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white leading-[1.08]">
               Made for real design workflows
             </h2>
-            <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
+            {/* <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
               If it's an image, you can vectorize it.
-            </p>
+            </p> */}
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1259,7 +1427,7 @@ export function LandingPage() {
               <div
                 key={uc.title}
                 className="relative overflow-hidden p-7 transition-all"
-                style={{ background: "#111011", border: "1px solid rgba(255,255,255,0.07)" }}
+                style={{ background: "#111011", border: "1px dashed rgba(255,255,255,0.1)" }}
               >
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-px" style={{ background: uc.color, opacity: 0.5 }} />
@@ -1298,7 +1466,7 @@ export function LandingPage() {
         id="why-us"
         accentColor={C.green}
         className="py-28"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-[1280px] px-6">
           <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white mb-5">
@@ -1316,7 +1484,8 @@ export function LandingPage() {
                 className="why-card relative overflow-hidden p-10 border"
                 style={{
                   background: `linear-gradient(135deg,${card.bgFrom} 0%,${card.bgTo} 100%)`,
-                  borderColor: `${card.accentColor}28`,
+                  borderStyle: "dashed",
+                  borderColor: `${card.accentColor}40`,
                 }}
               >
                 {/* Right-side glow */}
@@ -1356,11 +1525,11 @@ export function LandingPage() {
                   </p>
                   <Link
                     href={card.href}
-                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] px-4 py-2 border transition-all hover:opacity-75"
+                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] px-4 py-2 transition-all hover:opacity-75"
                     style={{
                       fontFamily: "auxMono, monospace",
                       color: card.accentColor,
-                      borderColor: `${card.accentColor}50`,
+                      border: `1px dashed ${card.accentColor}70`,
                     }}
                   >
                     {card.cta}
@@ -1385,12 +1554,12 @@ export function LandingPage() {
       <RailedSection
         accentColor={C.cyan}
         className="py-28"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" } as React.CSSProperties}
+        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-[1280px] px-6">
           <div
             className="relative overflow-hidden text-center px-10 py-24"
-            style={{ background: "#0f0f10", border: "1px solid rgba(255,255,255,0.09)" }}
+            style={{ background: "#0f0f10", border: "1px dashed rgba(255,255,255,0.12)" }}
           >
             {/* Cyan top glow */}
             <div
@@ -1409,7 +1578,7 @@ export function LandingPage() {
                 Stop wasting time on<br />manual vector work
               </h2>
               <p className="mt-5 text-[15px] max-w-[380px] mx-auto" style={{ color: "rgba(255,255,255,0.44)" }}>
-                Upload your image and get a clean SVG in seconds
+                Upload your image and get a clean vectors in seconds
               </p>
               <div className="mt-11">
                 <Link
