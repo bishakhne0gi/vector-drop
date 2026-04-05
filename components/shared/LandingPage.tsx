@@ -320,6 +320,25 @@ function VectorPlayground() {
   const changedKeys = Object.keys(colorOverrides).filter(k => k.startsWith(ex.id + "-"));
 
   return (
+    <>
+    <style>{`
+      @keyframes scanShimmer {
+        0%   { top: -32%; opacity: 0; }
+        8%   { opacity: 1; }
+        92%  { opacity: 1; }
+        100% { top: 112%; opacity: 0; }
+      }
+      @keyframes scanGlint {
+        0%   { top: -20%; opacity: 0; }
+        6%   { opacity: 1; }
+        94%  { opacity: 1; }
+        100% { top: 110%; opacity: 0; }
+      }
+      @keyframes scanPulse {
+        0%, 100% { opacity: 0.55; }
+        50%       { opacity: 0.90; }
+      }
+    `}</style>
     <div
       className="relative overflow-hidden"
       style={{
@@ -369,10 +388,10 @@ function VectorPlayground() {
       </div>
 
       {/* ── Body ── */}
-      <div className="flex" style={{ minHeight: 440 }}>
+      <div className="flex min-h-[280px] md:min-h-[360px] lg:min-h-[440px]">
 
         {/* ── Left sidebar — thumbnails with mini color strips ── */}
-        <div className="flex flex-col flex-shrink-0"
+        <div className="hidden md:flex flex-col flex-shrink-0"
           style={{ width: 136, background: "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
           <div className="px-3 pt-3 pb-1.5 text-[7.5px] uppercase tracking-[0.22em]"
             style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.16)" }}>
@@ -412,7 +431,7 @@ function VectorPlayground() {
         {/* ── Main canvas ── */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 relative flex items-center justify-center"
-            style={{ background: "#0f0f0f", padding: "24px 20px" }}>
+            style={{ background: "#0f0f0f", padding: "12px 12px" }}>
             {/* Dot grid */}
             <div className="absolute inset-0 pointer-events-none" style={{
               backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)",
@@ -442,12 +461,55 @@ function VectorPlayground() {
               />
               {/* Scan line */}
               {isAnimating && progress > 0.01 && progress < 0.99 && (
-                <div className="absolute top-0 bottom-0 pointer-events-none"
-                  style={{
-                    left: `calc(${progress * 100}% - 0.5px)`, width: 1,
-                    background: "rgba(255,255,255,0.70)",
-                    boxShadow: "0 0 10px rgba(255,255,255,0.25), 0 0 3px rgba(255,255,255,0.9)",
-                  }} />
+                <>
+                  {/* Atmospheric bloom */}
+                  <div className="absolute top-0 bottom-0 pointer-events-none"
+                    style={{
+                      left: `calc(${progress * 100}% - 14px)`,
+                      width: 28,
+                      background: "linear-gradient(to right, transparent 0%, rgba(210,210,210,0.03) 25%, rgba(220,220,220,0.06) 50%, rgba(210,210,210,0.03) 75%, transparent 100%)",
+                      animation: "scanPulse 2.4s ease-in-out infinite",
+                    }} />
+                  {/* Inner glow */}
+                  <div className="absolute top-0 bottom-0 pointer-events-none"
+                    style={{
+                      left: `calc(${progress * 100}% - 3px)`,
+                      width: 6,
+                      background: "linear-gradient(to right, transparent 0%, rgba(220,220,220,0.14) 30%, rgba(232,232,232,0.28) 50%, rgba(220,220,220,0.14) 70%, transparent 100%)",
+                    }} />
+                  {/* Core line — near-white, faded at top/bottom */}
+                  <div className="absolute top-0 bottom-0 pointer-events-none"
+                    style={{
+                      left: `calc(${progress * 100}% - 0.5px)`,
+                      width: 1,
+                      background: "linear-gradient(to bottom, transparent 0%, rgba(180,180,180,0.28) 3%, rgba(210,210,210,0.68) 12%, rgba(230,230,230,0.85) 30%, rgba(240,240,240,0.92) 50%, rgba(230,230,230,0.85) 70%, rgba(210,210,210,0.68) 88%, rgba(180,180,180,0.28) 97%, transparent 100%)",
+                      boxShadow: "0 0 2px 0.5px rgba(200,200,200,0.20), 0 0 1px rgba(230,230,230,0.55)",
+                    }} />
+                  {/* Moving glint */}
+                  <div className="pointer-events-none"
+                    style={{
+                      position: "absolute",
+                      left: `calc(${progress * 100}% - 6px)`,
+                      width: 12,
+                      height: "16%",
+                      background: "radial-gradient(ellipse 6px 100% at 50% 50%, rgba(248,248,248,0.48) 0%, rgba(228,228,228,0.16) 50%, transparent 100%)",
+                      animation: "scanGlint 1.8s ease-in-out infinite",
+                    }} />
+                  {/* Top tick */}
+                  <div className="absolute pointer-events-none"
+                    style={{
+                      left: `calc(${progress * 100}% - 3px)`,
+                      top: 5, width: 6, height: 1,
+                      background: "linear-gradient(to right, transparent, rgba(200,200,200,0.42) 50%, transparent)",
+                    }} />
+                  {/* Bottom tick */}
+                  <div className="absolute pointer-events-none"
+                    style={{
+                      left: `calc(${progress * 100}% - 3px)`,
+                      bottom: 5, width: 6, height: 1,
+                      background: "linear-gradient(to right, transparent, rgba(200,200,200,0.42) 50%, transparent)",
+                    }} />
+                </>
               )}
               {/* Format labels */}
               <div className="absolute bottom-2 left-3 pointer-events-none"
@@ -465,6 +527,31 @@ function VectorPlayground() {
             </div>
           </div>
 
+          {/* ── Mobile example selector (hidden on md+) ── */}
+          <div className="flex md:hidden items-center gap-2 px-3 py-2.5 border-t overflow-x-auto"
+            style={{ background: "#0a0a0a", borderColor: "rgba(255,255,255,0.05)" }}>
+            {PLAYGROUND_EXAMPLES.map((e, i) => (
+              <button key={e.id} onClick={() => triggerTransform(i)}
+                className="flex-shrink-0 flex flex-col items-center gap-1 transition-all"
+                style={{ outline: "none" }}>
+                <div className="rounded overflow-hidden"
+                  style={{
+                    width: 44, height: 44,
+                    border: `1px solid ${activeIdx === i ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.07)"}`,
+                  }}>
+                  <img src={`/${e.id}.png`} alt={e.label}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block",
+                      filter: activeIdx === i ? "none" : "brightness(0.40) saturate(0.5)" }} />
+                </div>
+                <span className="text-[7px] uppercase tracking-[0.10em]"
+                  style={{ fontFamily: "auxMono, monospace",
+                    color: activeIdx === i ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.20)" }}>
+                  {e.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
           {/* Bottom status bar */}
           <div className="flex items-center gap-5 px-5 border-t flex-shrink-0"
             style={{ height: 38, background: "#0d0d0d", borderColor: "rgba(255,255,255,0.05)" }}>
@@ -478,7 +565,7 @@ function VectorPlayground() {
         </div>
 
         {/* ── Right palette panel ── */}
-        <div className="flex flex-col flex-shrink-0 border-l"
+        <div className="hidden lg:flex flex-col flex-shrink-0 border-l"
           style={{ width: 92, background: "#0a0a0a", borderColor: "rgba(255,255,255,0.05)" }}>
           {/* Header */}
           <div className="px-2.5 pt-3 pb-2 flex items-center justify-between">
@@ -561,6 +648,7 @@ function VectorPlayground() {
 
       </div>
     </div>
+    </>
   );
 }
 
