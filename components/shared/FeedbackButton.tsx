@@ -9,6 +9,11 @@ interface FeedbackButtonProps {
   page: Page;
 }
 
+// Color tokens matching landing page
+const C = {
+  cyan: "#22d3ee",
+} as const;
+
 export function FeedbackButton({ page }: FeedbackButtonProps) {
   const [visible, setVisible] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,33 +47,31 @@ export function FeedbackButton({ page }: FeedbackButtonProps) {
           bottom: 28,
           right: 28,
           zIndex: 50,
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
-          gap: 8,
-          padding: "10px 16px",
-          borderRadius: 40,
-          border: "1px solid var(--border-default)",
-          background: "var(--bg-card)",
-          color: "var(--text-secondary)",
-          fontSize: 13,
-          fontWeight: 600,
+          justifyContent: "center",
+          gap: 6,
+          padding: "8px 20px",
+          borderRadius: 0,
+          border: "none",
+          background: "white",
+          color: "#000",
+          fontSize: 11,
+          fontWeight: 400,
           cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          backdropFilter: "blur(12px)",
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0) scale(1)" : "translateY(12px) scale(0.95)",
           pointerEvents: visible ? "auto" : "none",
-          transition: "opacity 0.3s ease, transform 0.3s ease, background 0.15s, color 0.15s",
+          transition: "opacity 0.3s ease, transform 0.3s ease, background 0.15s",
+          fontFamily: "auxMono, monospace",
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--accent)";
-          (e.currentTarget as HTMLButtonElement).style.color = "white";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
+          (e.currentTarget as HTMLButtonElement).style.background = "#888";
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-card)";
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
+          (e.currentTarget as HTMLButtonElement).style.background = "white";
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

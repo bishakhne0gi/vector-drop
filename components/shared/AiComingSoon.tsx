@@ -272,7 +272,7 @@ function DemoPanel() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>{demo.label}</span>
                   <span className="rounded-sm px-1.5 py-0.5 text-[9px] font-semibold" style={{ background: `${demo.color}30`, color: demo.color }}>
-                    SVG ready
+                    Vector ready
                   </span>
                 </div>
               </motion.div>

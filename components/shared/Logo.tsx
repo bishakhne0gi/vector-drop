@@ -52,7 +52,7 @@ export function Logo({ size = 28, className, textClassName }: LogoFullProps) {
       <LogoMark size={size} />
       <span
         className={cn(
-          "text-sm font-semibold tracking-tight text-[var(--text-primary)]",
+          "text-sm font-medium tracking-tight text-[var(--text-primary)]",
           textClassName,
         )}
       >

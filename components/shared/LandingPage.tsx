@@ -7,8 +7,8 @@ import {
   DownloadSimple,
   BezierCurveIcon,
   CaretRightIcon,
+  CoffeeIcon,
 } from "@phosphor-icons/react";
-import { LogoMark } from "./Logo";
 import { LegoStud } from "./LegoStud";
 import { useEffect, useRef, useState } from "react";
 
@@ -90,7 +90,7 @@ const WHY_CARDS = [
   },
   {
     title: "Built for Speed",
-    description: "From upload to SVG in seconds. We obsessed over every millisecond of performance.",
+    description: "We are obsessed over every millisecond of performance.",
     cta: "Start converting →",
     href: "/dashboard",
     bgFrom: "#021218",
@@ -1188,6 +1188,22 @@ function LegoBackground() {
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 }
 
+// ─── VectorDrop Logo ──────────────────────────────────────────────────────────
+function VectorDropLogo({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 28 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M6 9.32256L8.08064 8.13363L10.1613 9.32256L10.018 21.5092L12.1924 22.6517L16.4032 20.3202V17.8433L18.5829 16.5553L18.3848 2.08986L20.5645 1L22.8433 2.08986V16.7534L20.7131 17.8433V20.3202L18.5829 21.4811V23.788L12.2419 27.5529L9.96313 26.1784L7.98156 24.9832L6 23.788V9.32256Z" fill="white"/>
+      <path d="M6 9.32256L8.08064 8.13363L10.1613 9.32256M6 9.32256L8.08064 10.5115M6 9.32256V23.788L7.98156 24.9832M10.1613 9.32256L8.08064 10.5115M10.1613 9.32256L10.018 21.5092M8.08064 10.5115L7.98156 24.9832M12.2419 27.5529L18.5829 23.788V21.3606M12.2419 27.5529L9.96313 26.1784M12.2419 27.5529L12.1924 22.6517M18.5829 18.9331L20.7131 17.8433M18.5829 18.9331V21.3606M18.5829 18.9331L16.4032 17.8433M22.8433 2.08986V16.7534L20.7131 17.8433M22.8433 2.08986L20.5645 3.08064M22.8433 2.08986L20.5645 1L18.3848 2.08986M20.5645 3.08064L18.3848 2.08986M20.5645 3.08064L20.7131 17.8433M18.3848 2.08986L18.5829 16.5553M20.7131 17.8433V20.3202L9.96313 26.1784M20.7131 17.8433L18.5829 16.5553M18.5829 16.5553L16.4032 17.8433M9.96313 26.1784L7.98156 24.9832M9.96313 26.1784L10.018 21.5092M7.98156 24.9832L12.1924 22.6517M16.4032 20.3202L18.5829 21.3606M16.4032 20.3202L12.1924 22.6517M16.4032 20.3202V17.8433M10.018 21.5092L12.1924 22.6517" stroke="#383838" strokeWidth="0.2"/>
+    </svg>
+  );
+}
+
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
   return (
@@ -1201,8 +1217,8 @@ function Navbar() {
     >
       <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
-          <LogoMark size={18} />
-          <span className="text-sm font-semibold text-white tracking-tight">VectorDrop</span>
+          <VectorDropLogo size={18} />
+          <span className="text-sm font-medium text-white">VectorDrop</span>
         </Link>
         <div className="hidden md:flex items-center">
           {NAV_ITEMS.map((item) => (
@@ -1217,13 +1233,29 @@ function Navbar() {
             </a>
           ))}
         </div>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
-          style={{ fontFamily: "auxMono, monospace" }}
-        >
-          Try for free <CaretRightIcon size={12} />
-        </Link>
+        <div className="flex items-center gap-3">
+          <a
+            href="https://buymeacoffee.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
+            style={{
+              fontFamily: "auxMono, monospace",
+              color: "#FBBF24",
+              border: "1px dashed rgba(251,191,36,0.40)",
+            }}
+          >
+            Buy me a coffee 
+            <CoffeeIcon size={10} />
+          </a>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
+            style={{ fontFamily: "auxMono, monospace" }}
+          >
+            Try for free <CaretRightIcon size={12} />
+          </Link>
+        </div>
       </div>
     </nav>
   );
@@ -1437,10 +1469,10 @@ export function LandingPage() {
         {/* Centered text content */}
         <div className="relative z-20 flex flex-col items-center text-center mx-auto max-w-[820px] px-6 pt-20 pb-10">
           <div className="a0">
-            <SectionLabel text="Image to SVG Converter" color={C.cyan} />
+            <SectionLabel text="Image to Vector Converter" color={C.cyan} />
           </div>
           <h1
-            className="a1 mt-8 text-[3rem] md:text-[3.8rem] xl:text-[4.4rem] font-bold leading-[1.04] tracking-[-0.025em] text-white"
+            className="a1 mt-8 text-[3rem] md:text-[3.8rem] xl:text-[4.4rem] font-medium leading-[1.04] tracking-[-0.025em] text-white"
           >
             Turn any image into <br />editable vectors.
           </h1>
@@ -1516,7 +1548,7 @@ export function LandingPage() {
             <SectionLabel text="How it works" color={C.purple} />
           </div>
           <div className="grid lg:grid-cols-3 gap-8 mb-20 items-end">
-            <h2 className="text-[2.6rem] col-span-2 font-bold tracking-[-0.022em] text-white leading-[1.08]">
+            <h2 className="text-[2.6rem] col-span-2 font-medium tracking-[-0.022em] text-white leading-[1.08]">
               From image to vectors in seconds
             </h2>
             {/* <p className="text-[15px] col-span-1 leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
@@ -1594,11 +1626,11 @@ export function LandingPage() {
         style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-[1280px] px-6">
-          <h2 className="text-[2.6rem] font-bold tracking-[-0.022em] text-white mb-5">
+          <h2 className="text-[2.6rem] font-medium tracking-[-0.022em] text-white mb-5">
             Why VectorDrop?
           </h2>
           <p className="text-[15px] leading-7 max-w-[480px] mb-14" style={{ color: "rgba(255,255,255,0.43)" }}>
-            We built VectorDrop because the tools that existed were either too heavy, too expensive, or simply didn't produce good output. So we stripped everything back.
+            We built VectorDrop because the tools that existed were either too heavy, too expensive, or simply didn't produce good output.
           </p>
 
           {/* 2×2 large colored card grid — direct reference match */}
@@ -1699,25 +1731,20 @@ export function LandingPage() {
                 <SectionLabel text="Icon generation" color={C.pink} />
               </div>
 
-              <h2 className="text-[2.5rem] font-bold tracking-[-0.022em] text-white leading-[1.07] mb-5">
+              <h2 className="text-[2.5rem] font-medium tracking-[-0.022em] text-white leading-[1.07] mb-5">
                 Generate icons in<br />any design system style
               </h2>
-              <p className="text-[15px] leading-7 mb-4 max-w-[420px]" style={{ color: "rgba(255,255,255,0.42)" }}>
-                Describe any icon. VectorDrop searches for visual references,
-                learns the style rules of your chosen icon library, then generates
-                a new icon that feels native to that system.
+              <p className="text-[15px] leading-7 mb-10 max-w-[420px]" style={{ color: "rgba(255,255,255,0.42)" }}>
+                Describe any icon. VectorDrop learns your design system and generates a new icon that feels native.
               </p>
-              <p className="text-[13px] leading-6 mb-10 max-w-[380px]" style={{ color: "rgba(255,255,255,0.24)" }}>
-                Pipeline: web search → style extraction → SVG generation.
-                Supports Phosphor, Lucide, Heroicons, Tabler, and custom guides.
-              </p>
+              
 
               {/* Pipeline steps */}
               <div className="flex flex-col gap-4 mb-10">
                 {[
-                  { num: "01", label: "Search", desc: "Find visual references from the web" },
-                  { num: "02", label: "Learn",  desc: "Extract style rules from the icon library" },
-                  { num: "03", label: "Generate", desc: "Produce a new SVG in that exact style" },
+                  { num: "01", label: "Search", desc: "Find visual references" },
+                  { num: "02", label: "Learn",  desc: "Extract design rules" },
+                  { num: "03", label: "Generate", desc: "Create SVG output" },
                 ].map((step) => (
                   <div key={step.num} className="flex items-start gap-4">
                     <span style={{ fontSize: 9, fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)", letterSpacing: "0.14em", flexShrink: 0, marginTop: 1 }}>
@@ -1762,11 +1789,8 @@ export function LandingPage() {
             className="relative overflow-hidden text-center px-10 py-24"
             style={{ background: "#0f0f10", border: "1px dashed rgba(255,255,255,0.12)" }}
           >
-            {/* Cyan top glow */}
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
-              style={{ background: "radial-gradient(ellipse at top,rgba(34,211,238,0.1),transparent 70%)" }}
-            />
+          
+           
             {/* Corner LEGO studs — 4 corners of CTA block */}
             <div className="absolute top-0 left-0"><LegoStud color={C.cyan} size={14} /></div>
             <div className="absolute top-0 right-0"><LegoStud color={C.cyan} size={14} /></div>
@@ -1775,12 +1799,12 @@ export function LandingPage() {
 
             <div className="relative">
               <SectionLabel text="Get started free" color={C.cyan} />
-              <h2 className="mt-8 text-[2.8rem] md:text-[3.4rem] font-bold tracking-[-0.022em] text-white leading-[1.06]">
+              <h2 className="mt-8 text-[2.8rem] md:text-[3.4rem] font-medium tracking-[-0.022em] text-white leading-[1.06]">
                 Stop wasting time on<br />manual vector work
               </h2>
-              <p className="mt-5 text-[15px] max-w-[380px] mx-auto" style={{ color: "rgba(255,255,255,0.44)" }}>
+              {/* <p className="mt-5 text-[15px] max-w-[380px] mx-auto" style={{ color: "rgba(255,255,255,0.44)" }}>
                 Upload your image and get a clean vectors in seconds
-              </p>
+              </p> */}
               <div className="mt-11">
                 <Link
                   href="/dashboard"
@@ -1804,8 +1828,8 @@ export function LandingPage() {
       >
         <div className="mx-auto max-w-[1280px] px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <LogoMark size={18} />
-            <span className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.70)" }}>
+            <VectorDropLogo size={18} />
+            <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.70)" }}>
               VectorDrop
             </span>
           </div>
@@ -1820,6 +1844,20 @@ export function LandingPage() {
                 {link.label}
               </Link>
             ))}
+            <a
+            href="https://buymeacoffee.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
+            style={{
+              fontFamily: "auxMono, monospace",
+              color: "#FBBF24",
+              border: "1px dashed rgba(251,191,36,0.40)",
+            }}
+          >
+            Buy me a coffee 
+            <CoffeeIcon size={10} />
+          </a>
           </div>
           <p
             className="text-[10px] uppercase tracking-[0.18em]"
