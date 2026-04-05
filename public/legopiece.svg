@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <foreignObject x="-120" y="-120" width="272" height="272"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(60px);clip-path:url(#bgblur_0_291_22397_clip_path);height:100%;width:100%"></div></foreignObject><g filter="url(#filter0_i_291_22397)" data-figma-bg-blur-radius="120">
+    <rect width="32" height="32" fill="#C4C4C4" fill-opacity="0.01"/>
+  </g>
+  <g filter="url(#filter1_di_291_22397)">
+    <circle cx="16" cy="16" r="8" fill="#C4C4C4" fill-opacity="0.01"/>
+  </g>
+  <defs>
+    <filter id="filter0_i_291_22397" x="-120" y="-120" width="272" height="272" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="2"/>
+      <feGaussianBlur stdDeviation="1"/>
+      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.15 0"/>
+      <feBlend mode="normal" in2="shape" result="effect1_innerShadow_291_22397"/>
+    </filter>
+    <clipPath id="bgblur_0_291_22397_clip_path" transform="translate(120 120)"><rect width="32" height="32"/>
+  </clipPath><filter id="filter1_di_291_22397" x="6" y="8" width="20" height="20" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+  <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+  <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+  <feOffset dy="2"/>
+  <feGaussianBlur stdDeviation="1"/>
+  <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+  <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_291_22397"/>
+  <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_291_22397" result="shape"/>
+  <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+  <feOffset dy="2"/>
+  <feGaussianBlur stdDeviation="1"/>
+  <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+  <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.15 0"/>
+  <feBlend mode="normal" in2="shape" result="effect2_innerShadow_291_22397"/>
+</filter>
+</defs>
+</svg>
