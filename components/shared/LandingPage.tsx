@@ -1777,96 +1777,162 @@ export function LandingPage() {
       </RailedSection>
 
       {/* ═══════════════════════════════════════════════════════
-          SECTION 5: FINAL CTA
+          COMBINED CTA + FOOTER
       ═══════════════════════════════════════════════════════ */}
-      <RailedSection
-        accentColor={C.cyan}
-        className="py-28"
-        style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
+      <section
+        className="relative overflow-hidden"
+        style={{ background: "#161516", borderTop: "1px dashed rgba(255,255,255,0.07)" }}
       >
-        <div className="mx-auto max-w-[1280px] px-6">
+        {/* ── Rail lines (left + right) matching site-wide pattern ── */}
+        <div
+          className="hidden xl:block absolute left-[80px] top-0 bottom-0 w-px pointer-events-none"
+          style={{ backgroundImage: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 3px, transparent 3px, transparent 6px)" }}
+        />
+        <div
+          className="hidden xl:block absolute right-[80px] top-0 bottom-0 w-px pointer-events-none"
+          style={{ backgroundImage: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 3px, transparent 3px, transparent 6px)" }}
+        />
+
+        {/* ── 1. CTA Block ── */}
+        <div className="relative mx-auto max-w-[1280px] px-6 py-20">
+          {/* Rail corner studs */}
+          <div className="hidden xl:block absolute left-[80px] top-20 -translate-x-1/2"><LegoStud color={C.cyan} size={14} /></div>
+          <div className="hidden xl:block absolute right-[80px] top-20 translate-x-1/2"><LegoStud color={C.cyan} size={14} /></div>
+
           <div
-            className="relative overflow-hidden text-center px-10 py-24"
+            className="relative overflow-hidden text-center px-8 py-24"
             style={{ background: "#0f0f10", border: "1px dashed rgba(255,255,255,0.12)" }}
           >
-          
-           
-            {/* Corner LEGO studs — 4 corners of CTA block */}
+
+            {/* Corner LEGO studs — 4 corners */}
             <div className="absolute top-0 left-0"><LegoStud color={C.cyan} size={14} /></div>
             <div className="absolute top-0 right-0"><LegoStud color={C.cyan} size={14} /></div>
             <div className="absolute bottom-0 left-0"><LegoStud color={C.cyan} size={14} /></div>
             <div className="absolute bottom-0 right-0"><LegoStud color={C.cyan} size={14} /></div>
+
+            {/* Mid-edge studs for extra Lego structure feel */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2"><LegoStud color={C.cyan} size={10} /></div>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2"><LegoStud color={C.cyan} size={10} /></div>
 
             <div className="relative">
               <SectionLabel text="Get started free" color={C.cyan} />
               <h2 className="mt-8 text-[2.8rem] md:text-[3.4rem] font-medium tracking-[-0.022em] text-white leading-[1.06]">
                 Stop wasting time on<br />manual vector work
               </h2>
-              {/* <p className="mt-5 text-[15px] max-w-[380px] mx-auto" style={{ color: "rgba(255,255,255,0.44)" }}>
-                Upload your image and get a clean vectors in seconds
-              </p> */}
               <div className="mt-11">
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
                   style={{ fontFamily: "auxMono, monospace" }}
                 >
-                  Convert now — it's free →
+                  Convert now — it&apos;s free →
                 </Link>
               </div>
             </div>
           </div>
         </div>
-      </RailedSection>
 
-      {/* ═══════════════════════════════════════════════════════
-          FOOTER
-      ═══════════════════════════════════════════════════════ */}
-      <footer
-        className="border-t py-10"
-        style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0e0d0e" }}
-      >
-        <div className="mx-auto max-w-[1280px] px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <VectorDropLogo size={18} />
-            <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.70)" }}>
+        {/* ── 2. Footer content row ── */}
+        <div
+          className="relative mx-auto max-w-[1280px] px-6"
+          style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" }}
+        >
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 py-8">
+            {/* Left: logo + name + copyright */}
+            <div className="flex items-center gap-3">
+              <VectorDropLogo size={18} />
+              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>
+                VectorDrop
+              </span>
+              <span
+                className="hidden sm:inline text-[10px] uppercase tracking-[0.16em]"
+                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.18)", marginLeft: 6 }}
+              >
+                · © 2026
+              </span>
+            </div>
+
+            {/* Center: nav links */}
+            <div className="flex items-center gap-8">
+              {[
+                // { label: "Sign in", href: "/login" },
+                { label: "Dashboard", href: "/dashboard" },
+              ].map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="text-[11px] uppercase tracking-[0.18em] transition-opacity hover:opacity-100"
+                  style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Right: buy coffee + actions */}
+            <div className="flex items-center gap-3">
+              <a
+                href="https://buymeacoffee.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
+                style={{
+                  fontFamily: "auxMono, monospace",
+                  color: "#FBBF24",
+                  border: "1px dashed rgba(251,191,36,0.38)",
+                }}
+              >
+                Buy me a coffee
+                <CoffeeIcon size={10} />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. Brand block — large VectorDrop watermark ── */}
+        <div
+          className="relative overflow-hidden select-none"
+          style={{ borderTop: "1px dashed rgba(255,255,255,0.05)" }}
+        >
+          {/* Scattered Lego studs — like structural nodes of an invisible grid */}
+          <div className="absolute left-[5%]  top-[28%]" style={{ opacity: 0.55 }}><LegoStud color={C.cyan}   size={10} /></div>
+          <div className="absolute left-[12%] top-[58%]" style={{ opacity: 0.35 }}><LegoStud color={C.orange} size={8}  /></div>
+          <div className="absolute left-[28%] top-[18%]" style={{ opacity: 0.28 }}><LegoStud color={C.green}  size={8}  /></div>
+          <div className="absolute right-[6%]  top-[22%]" style={{ opacity: 0.50 }}><LegoStud color={C.purple} size={10} /></div>
+          <div className="absolute right-[15%] top-[62%]" style={{ opacity: 0.32 }}><LegoStud color={C.cyan}   size={8}  /></div>
+          <div className="absolute right-[32%] top-[70%]" style={{ opacity: 0.22 }}><LegoStud color={C.pink}   size={8}  /></div>
+
+          {/* Large brand wordmark — logo mark + text together */}
+          <div className="flex items-center justify-center gap-[0.04em] overflow-hidden pt-6 pb-10" style={{ lineHeight: 1 }}>
+            {/* Integrated logo mark, sized to cap-height of the wordmark */}
+            <div
+              className="shrink-0 [&>svg]:w-full [&>svg]:h-full"
+              style={{
+                opacity: 0.038,
+                marginBottom: "0.055em",
+                alignSelf: "flex-end",
+                width: "clamp(28px, 11.2vw, 168px)",
+                height: "clamp(28px, 11.2vw, 168px)",
+              }}
+            >
+              <VectorDropLogo size={168} />
+            </div>
+
+            {/* VectorDrop wordmark */}
+            <span
+              className="font-medium text-white leading-none"
+              style={{
+                fontFamily: "auxMono, monospace",
+                fontSize: "clamp(30px, 12vw, 180px)",
+                opacity: 0.038,
+                letterSpacing: "-0.14em",
+              }}
+            >
               VectorDrop
             </span>
           </div>
-          <div className="flex items-center gap-8">
-            {[{ label: "Sign in", href: "/login" }, { label: "Dashboard", href: "/dashboard" }].map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="text-[11px] uppercase tracking-[0.18em] transition-colors"
-                style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.30)" }}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <a
-            href="https://buymeacoffee.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
-            style={{
-              fontFamily: "auxMono, monospace",
-              color: "#FBBF24",
-              border: "1px dashed rgba(251,191,36,0.40)",
-            }}
-          >
-            Buy me a coffee 
-            <CoffeeIcon size={10} />
-          </a>
-          </div>
-          <p
-            className="text-[10px] uppercase tracking-[0.18em]"
-            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.20)" }}
-          >
-            © 2026 VectorDrop
-          </p>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }
