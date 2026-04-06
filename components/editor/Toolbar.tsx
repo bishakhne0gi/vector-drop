@@ -64,7 +64,7 @@ function Tooltip({ children, label }: { children: React.ReactNode; label: string
             color: "var(--text-secondary)",
             fontSize: "10px",
             padding: "3px 7px",
-            borderRadius: "6px",
+            borderRadius: 0,
             whiteSpace: "nowrap",
             pointerEvents: "none",
             zIndex: 100,
@@ -147,7 +147,19 @@ function ExportDropdown({
       <button
         onClick={() => setOpen((o) => !o)}
         disabled={disabled}
-        className="btn-accent flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="flex h-8 items-center gap-1.5 px-3 text-xs disabled:pointer-events-none disabled:opacity-40"
+        style={{
+          background: "#ffffff",
+          color: "#161516",
+          fontFamily: "auxMono, monospace",
+          fontSize: 10,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          fontWeight: 700,
+          border: "none",
+          borderRadius: 0,
+          cursor: "pointer",
+        }}
         aria-haspopup="true"
         aria-expanded={open}
       >
@@ -165,7 +177,7 @@ function ExportDropdown({
             minWidth: "190px",
             background: "var(--bg-glass-strong)",
             border: "1px solid var(--border-glass)",
-            borderRadius: "12px",
+            borderRadius: 0,
             boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
             backdropFilter: "blur(16px)",
             padding: "6px",
@@ -314,7 +326,7 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
   const zoomPct = Math.round(zoom * 100);
 
   const iconBtn =
-    "flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
+    "flex h-7 w-7 items-center justify-center text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30";
 
   return (
     <header
@@ -325,7 +337,19 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href="/dashboard"
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-glass)] bg-[var(--bg-glass)] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          style={{
+            display: "flex",
+            width: 28,
+            height: 28,
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.40)",
+            borderRadius: 0,
+            textDecoration: "none",
+            transition: "color 0.15s",
+          }}
           aria-label="Back to dashboard"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -384,7 +408,7 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
               setZoom(1);
             }
           }}
-          className="flex h-7 min-w-[52px] items-center justify-center rounded-lg px-2 text-xs font-medium tabular-nums text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 min-w-[52px] items-center justify-center px-2 text-xs font-medium tabular-nums text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-glass)] hover:text-[var(--text-primary)]" style={{ fontFamily: "auxMono, monospace" }}
           aria-label="Zoom level — click to reset, shift+click to fit"
           title="Click to reset to 100%, Shift+click to fit to view"
         >
@@ -424,9 +448,9 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
         )}
 
         {/* Coming soon badge */}
-        <div className="hidden items-center gap-1.5 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] md:flex">
+        <div className="hidden items-center gap-1.5 border border-[var(--border-glass)] bg-[var(--bg-glass)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] md:flex" style={{ fontFamily: "auxMono, monospace", letterSpacing: "0.05em" }}>
           <span>✨ Icon Gen</span>
-          <span className="rounded-full bg-[var(--accent-glow)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--accent)]">
+          <span className="bg-[var(--accent-glow)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--accent)]">
             Soon
           </span>
         </div>
@@ -443,7 +467,24 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
         <Tooltip label="Coming soon">
           <button
             disabled
-            className="flex h-8 items-center gap-2 rounded-xl border border-[var(--border-glass)] bg-[var(--bg-glass)] px-4 text-xs font-medium text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-40"
+            style={{
+              display: "flex",
+              height: 32,
+              alignItems: "center",
+              gap: 8,
+              padding: "0 16px",
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              color: "rgba(255,255,255,0.40)",
+              fontSize: 10,
+              fontFamily: "auxMono, monospace",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontWeight: 600,
+              cursor: "not-allowed",
+              borderRadius: 0,
+              opacity: 0.5,
+            }}
             aria-label="Save project"
           >
             Save

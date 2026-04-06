@@ -6,8 +6,8 @@ interface LogoProps {
 }
 
 /**
- * VectorDrop logo — a bezier path with visible anchor points,
- * representing the core product: raster → vector.
+ * VectorDrop logo mark — the isometric "V" shape used on the landing page.
+ * Exact copy of VectorDropLogo from LandingPage.tsx.
  */
 export function LogoMark({ size = 28, className }: LogoProps) {
   return (
@@ -16,26 +16,19 @@ export function LogoMark({ size = 28, className }: LogoProps) {
       height={size}
       viewBox="0 0 28 28"
       fill="none"
-      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("flex-shrink-0", className)}
       aria-hidden="true"
     >
-      {/* Background square — rounded */}
-      <rect width="28" height="28" rx="7" fill="var(--accent)" />
-
-      {/* Bezier curve — S-curve representing vector path */}
       <path
-        d="M6 20 C6 20 10 7 14 14 C18 21 22 8 22 8"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.9"
+        d="M6 9.32256L8.08064 8.13363L10.1613 9.32256L10.018 21.5092L12.1924 22.6517L16.4032 20.3202V17.8433L18.5829 16.5553L18.3848 2.08986L20.5645 1L22.8433 2.08986V16.7534L20.7131 17.8433V20.3202L18.5829 21.4811V23.788L12.2419 27.5529L9.96313 26.1784L7.98156 24.9832L6 23.788V9.32256Z"
+        fill="currentColor"
       />
-
-      {/* Anchor points */}
-      <circle cx="6" cy="20" r="2" fill="white" />
-      <circle cx="14" cy="14" r="1.5" fill="white" opacity="0.6" />
-      <circle cx="22" cy="8" r="2" fill="white" />
+      <path
+        d="M6 9.32256L8.08064 8.13363L10.1613 9.32256M6 9.32256L8.08064 10.5115M6 9.32256V23.788L7.98156 24.9832M10.1613 9.32256L8.08064 10.5115M10.1613 9.32256L10.018 21.5092M8.08064 10.5115L7.98156 24.9832M12.2419 27.5529L18.5829 23.788V21.3606M12.2419 27.5529L9.96313 26.1784M12.2419 27.5529L12.1924 22.6517M18.5829 18.9331L20.7131 17.8433M18.5829 18.9331V21.3606M18.5829 18.9331L16.4032 17.8433M22.8433 2.08986V16.7534L20.7131 17.8433M22.8433 2.08986L20.5645 3.08064M22.8433 2.08986L20.5645 1L18.3848 2.08986M20.5645 3.08064L18.3848 2.08986M20.5645 3.08064L20.7131 17.8433M18.3848 2.08986L18.5829 16.5553M20.7131 17.8433V20.3202L9.96313 26.1784M20.7131 17.8433L18.5829 16.5553M18.5829 16.5553L16.4032 17.8433M9.96313 26.1784L7.98156 24.9832M9.96313 26.1784L10.018 21.5092M7.98156 24.9832L12.1924 22.6517M16.4032 20.3202L18.5829 21.3606M16.4032 20.3202L12.1924 22.6517M16.4032 20.3202V17.8433M10.018 21.5092L12.1924 22.6517"
+        stroke="rgba(0,0,0,0.28)"
+        strokeWidth="0.2"
+      />
     </svg>
   );
 }

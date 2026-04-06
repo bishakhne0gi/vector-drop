@@ -118,6 +118,15 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     };
   }, [svgUrl, setPaths, setSvgMeta]);
 
+  // Block native wheel on the canvas container (passive:false required for preventDefault)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    function onWheel(e: WheelEvent) { e.preventDefault(); }
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   // Listen for fit-to-view event from Toolbar
   useEffect(() => {
     function handleFit() {
@@ -138,6 +147,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
 
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
+    e.stopPropagation();
     const factor = e.deltaY < 0 ? 1.1 : 0.9;
     setZoom(zoom * factor);
   }
@@ -211,7 +221,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
           cursor: "grab",
           backgroundImage: "radial-gradient(circle, var(--border-default) 1px, transparent 1px)",
           backgroundSize: "20px 20px",
-          backgroundColor: "var(--bg-canvas, hsl(0,0%,94%))",
+          backgroundColor: "var(--bg-canvas, #1e1e1e)",
         }}
         aria-label="SVG editor canvas"
         role="application"
