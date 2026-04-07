@@ -18,6 +18,11 @@ import type {
   JobStatusResponse,
 } from "@/lib/types";
 
+const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const FONT_MONO = "auxMono, monospace";
+
+/* ─── Guest session helpers ─────────────────────────────────────────────────── */
+
 const GUEST_IDS_KEY = "vd_guest_project_ids";
 
 function getGuestIds(): string[] {
@@ -39,8 +44,10 @@ function clearGuestIds() {
   localStorage.removeItem(GUEST_IDS_KEY);
 }
 
+/* ─── Data fetching ─────────────────────────────────────────────────────────── */
+
 async function fetchProjects(userId: string | null | undefined): Promise<Project[]> {
-  if (userId === undefined) return []; // Still loading Clerk
+  if (userId === undefined) return [];
   if (userId) {
     const res = await fetch("/api/projects");
     if (!res.ok) throw new Error("Failed to load projects");
@@ -54,9 +61,7 @@ async function fetchProjects(userId: string | null | undefined): Promise<Project
   }
 }
 
-async function createAndConvert(
-  file: File,
-): Promise<{ jobId: string; projectId: string }> {
+async function createAndConvert(file: File): Promise<{ jobId: string; projectId: string }> {
   const body: CreateProjectRequest = {
     name: file.name
       .replace(/\.[^.]+$/, "")
@@ -81,11 +86,7 @@ async function createAndConvert(
     throw new Error(message);
   }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
-
-  // Track guest project IDs in localStorage
-  if (!project.user_id) {
-    addGuestId(project.id);
-  }
+  if (!project.user_id) addGuestId(project.id);
 
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
@@ -101,18 +102,72 @@ async function createAndConvert(
   });
   if (!convertRes.ok) throw new Error("Failed to start conversion");
   const { jobId } = (await convertRes.json()) as ConvertProjectResponse;
-
   return { jobId, projectId: project.id };
 }
+
+/* ─── Skeleton card ─────────────────────────────────────────────────────────── */
+
+function SkeletonCard({ delay }: { delay: number }) {
+  return (
+    <div
+      className="animate-stagger-in overflow-hidden"
+      style={{
+        background: "#131313",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 0,
+        animationDelay: `${delay}ms`,
+      }}
+    >
+      <div className="skeleton aspect-4/3 w-full" style={{ borderRadius: 0 }} />
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "16px 18px" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="skeleton" style={{ height: 12, width: "65%", borderRadius: 0 }} />
+          <div className="skeleton" style={{ height: 10, width: "35%", borderRadius: 0 }} />
+        </div>
+        <div className="skeleton" style={{ height: 18, width: 48, borderRadius: 0 }} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Empty state ───────────────────────────────────────────────────────────── */
+
+function EmptyState() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "96px 0", textAlign: "center", fontFamily: FONT_BODY }}>
+      <div style={{ marginBottom: 24, position: "relative" }}>
+        <div style={{
+          width: 72,
+          height: 72,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.30)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 15 C3 15 6 6 12 12 C18 18 21 9 21 9" />
+            <circle cx="3" cy="15" r="1.8" fill="rgba(255,255,255,0.30)" stroke="none" />
+            <circle cx="12" cy="12" r="1.4" fill="rgba(255,255,255,0.20)" stroke="none" />
+            <circle cx="21" cy="9" r="1.8" fill="rgba(255,255,255,0.30)" stroke="none" />
+          </svg>
+        </div>
+      </div>
+      <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.70)", margin: 0 }}>No projects yet</p>
+      <p style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.28)", maxWidth: 220, lineHeight: 1.6 }}>
+        Drop an image above to trace your first vector
+      </p>
+    </div>
+  );
+}
+
+/* ─── Dashboard page ────────────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const ph = usePostHog();
   const queryClient = useQueryClient();
-  const [activeJob, setActiveJob] = useState<{
-    jobId: string;
-    projectId: string;
-  } | null>(null);
+  const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
 
   // Claim guest projects after login
@@ -120,7 +175,6 @@ export default function DashboardPage() {
     if (!isLoaded || !user) return;
     const guestIds = getGuestIds();
     if (guestIds.length === 0) return;
-
     void fetch("/api/projects/claim", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -158,10 +212,7 @@ export default function DashboardPage() {
     },
   });
 
-  const onFile = useCallback(
-    (file: File) => mutation.mutate(file),
-    [mutation],
-  );
+  const onFile = useCallback((file: File) => mutation.mutate(file), [mutation]);
 
   const onConversionDone = useCallback(
     (_job: JobStatusResponse) => {
@@ -181,29 +232,71 @@ export default function DashboardPage() {
     ph.capture("conversion_error");
   }, [queryClient, ph]);
 
+  const firstName = user?.firstName ?? user?.username ?? null;
+
   return (
-    <>
-      <div className="page-bg" aria-hidden="true" />
+    <div style={{ minHeight: "100vh", background: "#161516", fontFamily: FONT_BODY }}>
       <Navbar />
 
-      <main className="mx-auto w-full max-w-5xl px-6 pb-16 pt-8">
-        {/* Welcome header */}
-        <header className="mb-12 animate-fade-up">
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            {user ? "Welcome back" : "Convert your image"}
-          </h1>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            {user
-              ? "Upload an image below to convert it to a perfect SVG"
-              : "Upload an image to convert — sign in to save and export your vectors"}
-          </p>
+      <main style={{ maxWidth: 1024, margin: "0 auto", padding: "48px 24px 80px" }}>
+
+        {/* ── Welcome header ─────────────────────────────────────────────── */}
+        <header className="animate-fade-up" style={{ marginBottom: 40 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+            <div>
+              <h1 style={{
+                fontSize: 30,
+                fontWeight: 500,
+                letterSpacing: "-0.025em",
+                color: "#ffffff",
+                margin: 0,
+                lineHeight: 1.15,
+                fontFamily: FONT_BODY,
+              }}>
+                {user
+                  ? firstName
+                    ? `Hey, ${firstName}`
+                    : "Welcome back"
+                  : "Convert your image"}
+              </h1>
+              <p style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.40)", fontFamily: FONT_BODY }}>
+                {user
+                  ? "Upload an image below to convert it to a perfect SVG"
+                  : "Upload an image to convert — sign in to save and export your vectors"}
+              </p>
+            </div>
+
+            {/* Stats pill */}
+            {projects && projects.length > 0 && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "6px 14px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                flexShrink: 0,
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.40)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.50)", fontFamily: FONT_MONO, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  {projects.filter(p => p.status === "ready").length} / {projects.length} ready
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            marginTop: 28,
+            height: 1,
+            background: "linear-gradient(90deg, rgba(255,255,255,0.10), transparent 60%)",
+          }} />
         </header>
 
-        {/* Upload / Progress */}
-        <div
-          className="mb-12 animate-fade-up"
-          style={{ animationDelay: "80ms" }}
-        >
+        {/* ── Upload / Progress zone ──────────────────────────────────────── */}
+        <section className="animate-fade-up" style={{ marginBottom: 48, animationDelay: "80ms" }}>
           {activeJob ? (
             <ConversionProgress
               jobId={activeJob.jobId}
@@ -215,75 +308,66 @@ export default function DashboardPage() {
           )}
 
           {mutation.isError && (
-            <p className="mt-3 text-sm text-[var(--destructive)]">
+            <div style={{
+              marginTop: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 14px",
+              background: "rgba(220,38,38,0.08)",
+              border: "1px solid rgba(220,38,38,0.20)",
+              color: "#f87171",
+              fontSize: 12,
+              fontFamily: FONT_BODY,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
               {(mutation.error as Error).message}
-            </p>
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* Loading state — shimmer skeleton cards */}
+        {/* ── Projects section ─────────────────────────────────────────────── */}
         {isLoading && (
           <section>
-            <div className="mb-6 skeleton h-3 w-24 rounded-full" />
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="skeleton" style={{ height: 10, width: 72, marginBottom: 20, borderRadius: 0 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="glass-card overflow-hidden"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                >
-                  <div className="skeleton aspect-video w-full rounded-none" style={{ borderRadius: 0 }} />
-                  <div className="flex items-start justify-between gap-3 p-5">
-                    <div className="flex flex-1 flex-col gap-2">
-                      <div className="skeleton h-3.5 w-3/4" />
-                      <div className="skeleton h-2.5 w-1/2" />
-                    </div>
-                    <div className="skeleton h-5 w-16 rounded-full" />
-                  </div>
-                </div>
+                <SkeletonCard key={i} delay={i * 70} />
               ))}
             </div>
           </section>
         )}
 
-        {/* Error state */}
         {error && (
-          <p className="text-sm text-[var(--destructive)]">
-            Failed to load projects
-          </p>
+          <p style={{ fontSize: 12, color: "#f87171" }}>Failed to load projects</p>
         )}
 
-        {/* Empty state */}
-        {projects && projects.length === 0 && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div
-              className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ background: "var(--accent-glow)" }}
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="12" y1="18" x2="12" y2="12" />
-                <line x1="9" y1="15" x2="15" y2="15" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-[var(--text-primary)]">No projects yet</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Upload an image above to get started
-            </p>
-          </div>
-        )}
+        {projects && projects.length === 0 && !isLoading && <EmptyState />}
 
-        {/* Projects grid */}
         {projects && projects.length > 0 && (
-          <section
-            className="animate-fade-up"
-            style={{ animationDelay: "160ms" }}
-          >
-            <h2 className="mb-6 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              {user ? "All Projects" : "Your Conversions"}
-            </h2>
-            <div className="stagger-children grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="animate-fade-up" style={{ animationDelay: "160ms" }}>
+            {/* Section header */}
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h2 style={{
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.10em",
+                color: "rgba(255,255,255,0.28)",
+                margin: 0,
+                fontFamily: FONT_MONO,
+              }}>
+                {user ? "All Projects" : "Your Conversions"}
+              </h2>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontFamily: FONT_MONO }}>
+                {projects.length} {projects.length === 1 ? "file" : "files"}
+              </span>
+            </div>
+
+            {/* Grid */}
+            <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {projects.map((p) => (
                 <ProjectCard key={p.id} project={p} isGuest={!user} />
               ))}
@@ -294,6 +378,6 @@ export default function DashboardPage() {
 
       <FloatingStatusHint phase={hintPhase} />
       <FeedbackButton page="dashboard" />
-    </>
+    </div>
   );
 }

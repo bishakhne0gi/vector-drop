@@ -179,7 +179,7 @@ export function LayerPanel() {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: "6px",
+    borderRadius: 0,
     cursor: "pointer",
     transition: "background 0.15s, color 0.15s",
     flexShrink: 0,
@@ -233,7 +233,7 @@ export function LayerPanel() {
             color: "var(--text-muted)",
             background: "var(--bg-glass)",
             border: "1px solid var(--border-default, var(--border-glass))",
-            borderRadius: "20px",
+            borderRadius: 0,
             padding: "1px 7px",
             minWidth: "20px",
             textAlign: "center",
@@ -311,7 +311,7 @@ export function LayerPanel() {
                   style={{
                     width: "12px",
                     height: "12px",
-                    borderRadius: "4px",
+                    borderRadius: 0,
                     flexShrink: 0,
                     border: "1px solid var(--border-default, var(--border-glass))",
                     background:
@@ -340,7 +340,7 @@ export function LayerPanel() {
                       minWidth: 0,
                       height: "22px",
                       fontSize: "11px",
-                      borderRadius: "6px",
+                      borderRadius: 0,
                       border: "1px solid var(--accent)",
                       background: "var(--bg-subtle, var(--bg-glass))",
                       color: "var(--text-primary)",
@@ -424,7 +424,7 @@ export function LayerPanel() {
           style={{
             flex: 1,
             height: "28px",
-            borderRadius: "8px",
+            borderRadius: 0,
             border: "1px solid var(--border-default, var(--border-glass))",
             background: "var(--bg-subtle, var(--bg-glass))",
             color: "var(--text-muted)",
@@ -444,7 +444,7 @@ export function LayerPanel() {
               fontSize: "9px",
               background: "var(--accent-glow)",
               color: "var(--accent)",
-              borderRadius: "20px",
+              borderRadius: 0,
               padding: "1px 5px",
               fontWeight: 600,
             }}
@@ -459,7 +459,7 @@ export function LayerPanel() {
           style={{
             flex: 1,
             height: "28px",
-            borderRadius: "8px",
+            borderRadius: 0,
             border: "1px solid var(--border-default, var(--border-glass))",
             background: "var(--bg-subtle, var(--bg-glass))",
             color: "var(--text-secondary)",

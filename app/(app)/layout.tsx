@@ -9,5 +9,11 @@ export default async function AppLayout({
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
-  return <>{children}</>;
+  return (
+    <>
+      {/* Force dark mode for all app pages — matches landing page aesthetic */}
+      <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add('dark');` }} />
+      {children}
+    </>
+  );
 }

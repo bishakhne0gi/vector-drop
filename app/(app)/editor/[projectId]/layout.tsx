@@ -4,6 +4,18 @@ export default function EditorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen flex-col overflow-hidden">{children}</div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100dvh",
+        overflow: "hidden",
+        position: "fixed",
+        inset: 0,
+        background: "var(--bg-primary)",
+      }}
+    >
+      {children}
+    </div>
   );
 }

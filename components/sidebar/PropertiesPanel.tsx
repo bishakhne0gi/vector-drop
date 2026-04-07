@@ -8,7 +8,7 @@ import { useEditorStore, type SVGPath } from "@/stores/editorStore";
 const inputStyle: React.CSSProperties = {
   height: "28px",
   padding: "0 8px",
-  borderRadius: "8px",
+  borderRadius: 0,
   background: "var(--bg-subtle, var(--bg-glass))",
   border: "1px solid var(--border-default, var(--border-glass))",
   color: "var(--text-primary)",
@@ -52,7 +52,7 @@ function iconBtnCls(active?: boolean): React.CSSProperties {
   return {
     width: "28px",
     height: "28px",
-    borderRadius: "8px",
+    borderRadius: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -104,7 +104,7 @@ function ColorRow({
         style={{
           width: "24px",
           height: "24px",
-          borderRadius: "6px",
+          borderRadius: 0,
           border: "1px solid var(--border-default, var(--border-glass))",
           background: isNone ? "transparent" : value,
           cursor: isNone ? "default" : "pointer",
