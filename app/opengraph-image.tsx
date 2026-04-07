@@ -21,58 +21,65 @@ export default function Image() {
           overflow: "hidden",
         }}
       >
-        {/* Background grid */}
+        {/* Subtle grid */}
         <div
           style={{
             display: "flex",
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "linear-gradient(rgba(13,148,136,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(13,148,136,0.08) 1px, transparent 1px)",
+              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
             backgroundSize: "60px 60px",
           }}
         />
 
-        {/* Glow */}
+        {/* Orange glow top-left */}
         <div
           style={{
             display: "flex",
             position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 600,
-            height: 600,
+            top: -100,
+            left: -100,
+            width: 500,
+            height: 500,
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(13,148,136,0.18) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* Purple glow bottom-right */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            bottom: -100,
+            right: -100,
+            width: 500,
+            height: 500,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)",
           }}
         />
 
         {/* Logo mark */}
         <div
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: 16,
-            background: "#0d9488",
+            width: 80,
+            height: 80,
+            borderRadius: 18,
+            background: "#161616",
+            border: "1px solid rgba(255,255,255,0.1)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 28,
+            marginBottom: 32,
           }}
         >
-          <svg width="48" height="48" viewBox="4 6 20 16" fill="none">
+          <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
             <path
-              d="M6 20 C6 20 10 7 14 14 C18 21 22 8 22 8"
-              stroke="white"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              fill="none"
+              d="M6 9.32256L8.08064 8.13363L10.1613 9.32256L10.018 21.5092L12.1924 22.6517L16.4032 20.3202V17.8433L18.5829 16.5553L18.3848 2.08986L20.5645 1L22.8433 2.08986V16.7534L20.7131 17.8433V20.3202L18.5829 21.4811V23.788L12.2419 27.5529L9.96313 26.1784L7.98156 24.9832L6 23.788V9.32256Z"
+              fill="white"
             />
-            <circle cx="6" cy="20" r="1.5" fill="white" />
-            <circle cx="14" cy="14" r="1.5" fill="white" />
-            <circle cx="22" cy="8" r="1.5" fill="white" />
           </svg>
         </div>
 
@@ -80,49 +87,49 @@ export default function Image() {
         <div
           style={{
             display: "flex",
-            fontSize: 64,
+            fontSize: 72,
             fontWeight: 700,
             color: "#ffffff",
-            letterSpacing: "-2px",
+            letterSpacing: "-3px",
             lineHeight: 1,
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
           Vector
-          <span style={{ color: "#0d9488" }}>Drop</span>
+          <span style={{ color: "#f97316" }}>Drop</span>
         </div>
 
         {/* Tagline */}
         <div
           style={{
-            fontSize: 26,
+            fontSize: 28,
             color: "#a1a1aa",
             fontWeight: 400,
             letterSpacing: "-0.5px",
             textAlign: "center",
             maxWidth: 700,
+            marginBottom: 40,
           }}
         >
-          Free Image to SVG Converter Online
+          Convert any image to clean, editable SVG — free &amp; instant
         </div>
 
         {/* Pills */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginTop: 36,
-          }}
-        >
-          {["PNG → SVG", "JPG → SVG", "Free & Fast"].map((label) => (
+        <div style={{ display: "flex", gap: 12 }}>
+          {[
+            { label: "PNG → SVG", color: "#f97316" },
+            { label: "JPG → SVG", color: "#a855f7" },
+            { label: "No login needed", color: "#38bdf8" },
+            { label: "Free forever", color: "#a3e635" },
+          ].map(({ label, color }) => (
             <div
               key={label}
               style={{
-                padding: "8px 20px",
+                padding: "10px 22px",
                 borderRadius: 999,
-                border: "1px solid rgba(13,148,136,0.4)",
-                background: "rgba(13,148,136,0.1)",
-                color: "#5eead4",
+                border: `1px solid ${color}40`,
+                background: `${color}18`,
+                color: color,
                 fontSize: 18,
                 fontWeight: 500,
               }}
@@ -137,8 +144,9 @@ export default function Image() {
           style={{
             position: "absolute",
             bottom: 36,
-            color: "#52525b",
+            color: "#3f3f46",
             fontSize: 18,
+            letterSpacing: "0.5px",
           }}
         >
           vectordrop.co.in
