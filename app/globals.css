@@ -43,41 +43,42 @@
   --border: rgba(0, 0, 0, 0.08);
   --ring: #0d9488;
   --destructive: #dc2626;
+  --bg-canvas: #f0f0f0;
 }
 
 .dark {
-  --bg-primary: #080d0c;
-  --bg-secondary: #111918;
-  --bg-card: #141f1d;
-  --bg-subtle: rgba(20, 184, 166, 0.05);
-  --bg-glass: rgba(20, 31, 29, 0.85);
-  --bg-glass-strong: rgba(20, 31, 29, 0.95);
+  --bg-primary: #161516;
+  --bg-secondary: #0d0d0d;
+  --bg-card: #131313;
+  --bg-subtle: rgba(255, 255, 255, 0.03);
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-strong: rgba(255, 255, 255, 0.06);
+  --bg-canvas: #1e1e1e;
 
-  --text-primary: #f0fdf9;
-  --text-secondary: #9ca3af;
-  --text-muted: #4b5563;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.50);
+  --text-muted: rgba(255, 255, 255, 0.28);
 
   --accent: #14b8a6;
   --accent-hover: #0d9488;
   --accent-light: #2dd4bf;
-  --accent-glow: rgba(20, 184, 166, 0.12);
-  --accent-border: rgba(20, 184, 166, 0.20);
-  --accent-bg: rgba(20, 184, 166, 0.08);
+  --accent-glow: rgba(20, 184, 166, 0.10);
+  --accent-border: rgba(20, 184, 166, 0.18);
+  --accent-bg: rgba(20, 184, 166, 0.06);
 
   --border-default: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-glass: rgba(255, 255, 255, 0.06);
+  --border-glass: rgba(255, 255, 255, 0.08);
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.25);
-  --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.3);
-  --shadow-nav: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-nav: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.5);
 
-  /* Section backgrounds */
-  --bg-invert: #050908;
-  --bg-panel: #111918;
+  --bg-invert: #000000;
+  --bg-panel: #0d0d0d;
 
-  --background: #080d0c;
-  --foreground: #f0fdf9;
+  --background: #161516;
+  --foreground: #ffffff;
   --border: rgba(255, 255, 255, 0.08);
   --ring: #14b8a6;
   --destructive: #f87171;
