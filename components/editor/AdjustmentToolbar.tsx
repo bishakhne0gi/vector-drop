@@ -234,7 +234,7 @@ export function AdjustmentToolbar({ state, onChange }: ToolbarProps) {
             style={{
               width: 140,
               margin: "0 10px",
-              accentColor: "var(--accent, #a7f55a)",
+              accentColor: "rgba(255, 255, 255, 0.7)",
             }}
           />
           <button

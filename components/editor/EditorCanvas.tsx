@@ -160,8 +160,27 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
-    const factor = e.deltaY < 0 ? 1.1 : 0.9;
-    setZoom(zoom * factor);
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Figma convention: ctrl/meta + wheel (and trackpad pinch, which browsers
+    // dispatch as a wheel event with ctrlKey=true) zooms about the cursor.
+    // Plain wheel / two-finger scroll pans in both axes.
+    if (e.ctrlKey || e.metaKey) {
+      const rect = container.getBoundingClientRect();
+      // Cursor position relative to container center — this is the coord
+      // system our transformed div lives in (transform-origin: center center).
+      const cx = e.clientX - (rect.left + rect.width / 2);
+      const cy = e.clientY - (rect.top + rect.height / 2);
+      const factor = Math.exp(-e.deltaY * 0.002);
+      const newZoom = Math.max(0.05, Math.min(64, zoom * factor));
+      const k = newZoom / zoom;
+      // Keep the point under the cursor fixed while the scale changes.
+      setZoom(newZoom);
+      setPan(cx - (cx - panX) * k, cy - (cy - panY) * k);
+    } else {
+      setPan(panX - e.deltaX, panY - e.deltaY);
+    }
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -319,7 +338,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
         <span>
           {pathCount} path{pathCount !== 1 ? "s" : ""}
           {selectedCount > 0 && (
-            <span style={{ color: "var(--accent)" }}>
+            <span style={{ color: "var(--text-primary)" }}>
               &nbsp;&nbsp;{selectedCount} selected
             </span>
           )}

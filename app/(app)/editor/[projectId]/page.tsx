@@ -100,13 +100,13 @@ function MobileTabBar({ active, onChange }: { active: MobileTab; onChange: (t: M
               justifyContent: "center",
               gap: "4px",
               padding: "10px 0",
-              color: isActive ? "var(--accent)" : "var(--text-muted)",
+              color: isActive ? "var(--text-primary)" : "var(--text-muted)",
               background: "none",
               border: "none",
               fontSize: "10px",
               fontWeight: isActive ? 600 : 400,
               transition: "color 0.15s ease",
-              borderTop: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+              borderTop: isActive ? "2px solid var(--text-primary)" : "2px solid transparent",
             }}
           >
             {tab.icon}

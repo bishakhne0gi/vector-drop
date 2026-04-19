@@ -268,12 +268,14 @@ export function LayerPanel() {
                 style={{
                   ...rowStyle,
                   background: isSelected
-                    ? "var(--accent-glow)"
+                    ? "var(--bg-glass)"
                     : isDragTarget
                     ? "var(--bg-glass)"
                     : "transparent",
-                  borderLeft: isSelected ? "3px solid var(--accent)" : "3px solid transparent",
-                  color: isSelected ? "var(--accent)" : "var(--text-secondary)",
+                  borderLeft: isSelected
+                    ? "3px solid var(--text-primary)"
+                    : "3px solid transparent",
+                  color: isSelected ? "var(--text-primary)" : "var(--text-secondary)",
                   outline: isDragTarget ? "1px dashed var(--border-default, var(--border-glass))" : "none",
                 }}
               >
@@ -298,7 +300,7 @@ export function LayerPanel() {
                   style={{
                     ...iconBtnStyle,
                     opacity: path.visible ? 1 : 0.35,
-                    color: isSelected ? "var(--accent)" : "var(--text-muted)",
+                    color: isSelected ? "var(--text-primary)" : "var(--text-muted)",
                   }}
                   aria-label={path.visible ? "Hide layer" : "Show layer"}
                   title={path.visible ? "Hide" : "Show"}
@@ -341,7 +343,7 @@ export function LayerPanel() {
                       height: "22px",
                       fontSize: "11px",
                       borderRadius: 0,
-                      border: "1px solid var(--accent)",
+                      border: "1px solid var(--text-secondary)",
                       background: "var(--bg-subtle, var(--bg-glass))",
                       color: "var(--text-primary)",
                       padding: "0 6px",

@@ -40,8 +40,11 @@ type DragKind =
       origClickPt: Point;
     };
 
-const ACCENT = "var(--accent, #a7f55a)";
-const ACCENT_STRONG = "#63d827";
+// Editor selection is drawn in neutral grays so the teal accent can be
+// reserved for the "Soon" / Icon Gen badge. Canvas background is always
+// white, so we pick dark-grays that stay readable against it.
+const ACCENT = "#6b7280";
+const ACCENT_STRONG = "#1f2937";
 
 // Custom scissors cursor so Cut mode reads unambiguously. Hotspot sits where
 // the blades cross (12, 12) — i.e. the cutting point of the scissors.

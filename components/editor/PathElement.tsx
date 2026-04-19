@@ -48,10 +48,11 @@ export function PathElement({ path }: PathElementProps) {
         <path
           d={path.d}
           fill="none"
-          stroke="var(--accent)"
+          // Canvas is always white; use a dark gray for selection contrast.
+          stroke="#1f2937"
           strokeWidth={2}
           strokeDasharray="4 2"
-          opacity={0.8}
+          opacity={0.85}
           style={{ pointerEvents: "none" }}
           aria-hidden="true"
         />
