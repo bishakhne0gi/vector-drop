@@ -9,6 +9,8 @@ import {
   DEFAULT_ADJUST,
   type AdjustState,
 } from "./AdjustmentToolbar";
+import { PathEditOverlay } from "./PathEditOverlay";
+import { EditModeToolbar } from "./EditModeToolbar";
 
 interface EditorCanvasProps {
   svgUrl: string;
@@ -91,6 +93,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
   const setSvgMeta = useEditorStore((s) => s.setSvgMeta);
   const storeMeta = useEditorStore((s) => s.svgMeta);
   const clearSelection = useEditorStore((s) => s.clearSelection);
+  const editingPathId = useEditorStore((s) => s.editingPathId);
   const zoom = useEditorStore((s) => s.zoom);
   const panX = useEditorStore((s) => s.panX);
   const panY = useEditorStore((s) => s.panY);
@@ -161,30 +164,31 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     setZoom(zoom * factor);
   }
 
-  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
+    // Only start panning when the press started on the background itself —
+    // not on a child (path, anchor, handle, toolbar). Without this the canvas
+    // would hijack drags meant for vector-edit anchors.
+    if (e.target !== e.currentTarget) return;
     isPanning.current = true;
     panStart.current = { x: e.clientX, y: e.clientY, tx: panX, ty: panY };
+    e.currentTarget.setPointerCapture(e.pointerId);
     e.currentTarget.style.cursor = "grabbing";
   }
 
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!isPanning.current) return;
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
     setPan(panStart.current.tx + dx, panStart.current.ty + dy);
   }
 
-  function handleMouseUp(e: React.MouseEvent<HTMLDivElement>) {
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (isPanning.current) {
       isPanning.current = false;
-      e.currentTarget.style.cursor = "grab";
-    }
-  }
-
-  function handleMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-    if (isPanning.current) {
-      isPanning.current = false;
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
       e.currentTarget.style.cursor = "grab";
     }
   }
@@ -220,12 +224,14 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
       <div
         ref={containerRef}
         className="relative flex-1 overflow-hidden"
-        onClick={() => clearSelection()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) clearSelection();
+        }}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
           cursor: "grab",
           backgroundImage: "radial-gradient(circle, var(--border-default) 1px, transparent 1px)",
@@ -251,30 +257,46 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
               transition: isPanning.current ? "none" : "transform 0.05s ease-out",
             }}
           >
-            <svg
-              viewBox={activeMeta.viewBox}
-              width={displayWidth}
-              height={displayHeight}
-              xmlns="http://www.w3.org/2000/svg"
-              style={{
-                display: "block",
-                maxWidth: "none",
-                boxShadow: "0 8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
-                background: "#fff",
-                borderRadius: "4px",
-              }}
-            >
-              <AdjustFilterDefs id={filterId} state={adjust} />
-              <g filter={adjust.mode === "none" ? undefined : `url(#${filterId})`}>
-                {paths.map((p) => (
-                  <PathElement key={p.id} path={p} />
-                ))}
-              </g>
-            </svg>
+            <div style={{ position: "relative" }}>
+              <svg
+                viewBox={activeMeta.viewBox}
+                width={displayWidth}
+                height={displayHeight}
+                xmlns="http://www.w3.org/2000/svg"
+                style={{
+                  display: "block",
+                  maxWidth: "none",
+                  boxShadow: "0 8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
+                  background: "#fff",
+                  borderRadius: "4px",
+                }}
+              >
+                <AdjustFilterDefs id={filterId} state={adjust} />
+                <g filter={adjust.mode === "none" ? undefined : `url(#${filterId})`}>
+                  {paths.map((p) => (
+                    <PathElement key={p.id} path={p} />
+                  ))}
+                </g>
+              </svg>
+              {editingPathId && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: displayWidth,
+                    height: displayHeight,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <PathEditOverlay zoom={zoom} viewBox={activeMeta.viewBox} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         <AdjustmentToolbar state={adjust} onChange={setAdjust} />
+        <EditModeToolbar />
       </div>
 
       {/* Bottom status bar */}

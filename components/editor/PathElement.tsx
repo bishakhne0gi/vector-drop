@@ -9,8 +9,11 @@ interface PathElementProps {
 export function PathElement({ path }: PathElementProps) {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectPath = useEditorStore((s) => s.selectPath);
+  const enterPathEdit = useEditorStore((s) => s.enterPathEdit);
+  const editingPathId = useEditorStore((s) => s.editingPathId);
 
   const isSelected = selectedIds.has(path.id);
+  const isEditing = editingPathId === path.id;
 
   if (!path.visible) return null;
 
@@ -18,6 +21,12 @@ export function PathElement({ path }: PathElementProps) {
     if (path.locked) return;
     e.stopPropagation();
     selectPath(path.id, e.metaKey || e.shiftKey);
+  }
+
+  function handleDoubleClick(e: React.MouseEvent<SVGPathElement>) {
+    if (path.locked) return;
+    e.stopPropagation();
+    enterPathEdit(path.id);
   }
 
   return (
@@ -30,11 +39,12 @@ export function PathElement({ path }: PathElementProps) {
         strokeWidth={path.strokeWidth}
         strokeLinecap={path.strokeLinecap}
         strokeLinejoin={path.strokeLinejoin}
-        opacity={path.opacity}
+        opacity={isEditing ? path.opacity * 0.5 : path.opacity}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         style={{ cursor: path.locked ? "default" : "pointer" }}
       />
-      {isSelected && (
+      {isSelected && !isEditing && (
         <path
           d={path.d}
           fill="none"

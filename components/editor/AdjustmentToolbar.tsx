@@ -146,11 +146,11 @@ export function AdjustmentToolbar({ state, onChange }: ToolbarProps) {
         display: "flex",
         alignItems: "center",
         gap: 0,
-        background: "var(--bg-glass-strong, rgba(22, 21, 22, 0.85))",
-        border: "1px solid var(--border-glass)",
+        background: "rgba(22, 21, 22, 0.95)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
         padding: 4,
         zIndex: 20,
         userSelect: "none",
@@ -193,7 +193,7 @@ export function AdjustmentToolbar({ state, onChange }: ToolbarProps) {
             style={{
               width: 1,
               height: 20,
-              background: "var(--border-glass)",
+              background: "rgba(255, 255, 255, 0.12)",
               margin: "0 8px",
             }}
           />
@@ -212,8 +212,8 @@ export function AdjustmentToolbar({ state, onChange }: ToolbarProps) {
               width: 52,
               height: 26,
               background: "transparent",
-              border: "1px solid var(--border-glass)",
-              color: "var(--text-primary)",
+              border: "1px solid rgba(255, 255, 255, 0.18)",
+              color: "#ffffff",
               fontFamily: "auxMono, monospace",
               fontSize: 11,
               textAlign: "center",
@@ -249,17 +249,17 @@ export function AdjustmentToolbar({ state, onChange }: ToolbarProps) {
               justifyContent: "center",
               background: "transparent",
               border: "none",
-              color: "var(--text-muted)",
+              color: "rgba(255, 255, 255, 0.6)",
               cursor: "pointer",
               borderRadius: 0,
               transition: "color 0.12s, background 0.12s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--text-primary)";
-              e.currentTarget.style.background = "var(--bg-glass)";
+              e.currentTarget.style.color = "#ffffff";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--text-muted)";
+              e.currentTarget.style.color = "rgba(255, 255, 255, 0.6)";
               e.currentTarget.style.background = "transparent";
             }}
           >
@@ -298,22 +298,22 @@ function ModeButton({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: active ? "var(--bg-glass)" : "transparent",
+        background: active ? "rgba(255, 255, 255, 0.14)" : "transparent",
         border: "none",
-        color: active ? "var(--text-primary)" : "var(--text-muted)",
+        color: active ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
         cursor: "pointer",
         borderRadius: 0,
         transition: "color 0.12s, background 0.12s",
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          e.currentTarget.style.color = "var(--text-primary)";
-          e.currentTarget.style.background = "var(--bg-glass)";
+          e.currentTarget.style.color = "#ffffff";
+          e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
         }
       }}
       onMouseLeave={(e) => {
         if (!active) {
-          e.currentTarget.style.color = "var(--text-muted)";
+          e.currentTarget.style.color = "rgba(255, 255, 255, 0.75)";
           e.currentTarget.style.background = "transparent";
         }
       }}
