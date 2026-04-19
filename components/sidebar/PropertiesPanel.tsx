@@ -57,10 +57,10 @@ function iconBtnCls(active?: boolean): React.CSSProperties {
     alignItems: "center",
     justifyContent: "center",
     border: active
-      ? "1px solid var(--accent)"
+      ? "1px solid var(--text-secondary)"
       : "1px solid var(--border-default, var(--border-glass))",
-    background: active ? "var(--accent-glow)" : "var(--bg-subtle, var(--bg-glass))",
-    color: active ? "var(--accent)" : "var(--text-muted)",
+    background: active ? "var(--bg-glass)" : "var(--bg-subtle, var(--bg-glass))",
+    color: active ? "var(--text-primary)" : "var(--text-muted)",
     cursor: "pointer",
     transition: "all 0.15s",
     flexShrink: 0,
@@ -241,7 +241,7 @@ function SinglePathProperties({ path }: { path: SVGPath }) {
           step={0.5}
           value={path.strokeWidth}
           onChange={(e) => updatePath(path.id, { strokeWidth: parseFloat(e.target.value) })}
-          style={{ width: "100%", accentColor: "var(--accent)" }}
+          style={{ width: "100%", accentColor: "var(--text-secondary)" }}
           aria-label="Stroke width slider"
         />
       </div>
@@ -258,7 +258,7 @@ function SinglePathProperties({ path }: { path: SVGPath }) {
           step={0.01}
           value={path.opacity}
           onChange={(e) => updatePath(path.id, { opacity: parseFloat(e.target.value) })}
-          style={{ flex: 1, accentColor: "var(--accent)" }}
+          style={{ flex: 1, accentColor: "var(--text-secondary)" }}
           aria-label="Opacity"
         />
         <span style={{ fontSize: "11px", color: "var(--text-muted)", minWidth: "34px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
@@ -373,7 +373,7 @@ function MultiPathProperties({ ids }: { ids: string[] }) {
           step={0.01}
           value={avgOpacity}
           onChange={(e) => handleOpacity(parseFloat(e.target.value))}
-          style={{ flex: 1, accentColor: "var(--accent)" }}
+          style={{ flex: 1, accentColor: "var(--text-secondary)" }}
           aria-label="Opacity"
         />
         <span style={{ fontSize: "11px", color: "var(--text-muted)", minWidth: "34px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>

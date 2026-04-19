@@ -24,6 +24,8 @@ interface HistoryEntry {
   paths: SVGPath[];
 }
 
+export type EditTool = "move" | "bend" | "cut" | "add";
+
 interface EditorState {
   paths: SVGPath[];
   selectedIds: Set<string>;
@@ -33,6 +35,11 @@ interface EditorState {
   zoom: number;
   panX: number;
   panY: number;
+
+  // Vector edit mode
+  editingPathId: string | null;
+  editTool: EditTool;
+  selectedAnchorKey: string | null; // "subpathIdx:anchorId"
 
   // Actions
   setPaths: (paths: SVGPath[]) => void;
@@ -50,6 +57,12 @@ interface EditorState {
   renamePath: (id: string, name: string) => void;
   toggleVisibility: (id: string) => void;
   toggleLock: (id: string) => void;
+
+  // Vector edit actions
+  enterPathEdit: (id: string) => void;
+  exitPathEdit: () => void;
+  setEditTool: (tool: EditTool) => void;
+  setSelectedAnchor: (key: string | null) => void;
 }
 
 function pushHistory(
@@ -70,6 +83,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   zoom: 1,
   panX: 0,
   panY: 0,
+
+  editingPathId: null,
+  editTool: "move",
+  selectedAnchorKey: null,
 
   setSvgMeta: (meta) => set({ svgMeta: meta }),
 
@@ -174,4 +191,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return { ...pushHistory(s, paths), selectedIds };
     });
   },
+
+  enterPathEdit: (id) =>
+    set({ editingPathId: id, editTool: "move", selectedAnchorKey: null, selectedIds: new Set([id]) }),
+
+  exitPathEdit: () =>
+    set({ editingPathId: null, selectedAnchorKey: null }),
+
+  setEditTool: (tool) => set({ editTool: tool }),
+
+  setSelectedAnchor: (key) => set({ selectedAnchorKey: key }),
 }));
