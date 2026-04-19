@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { FeedbackButton } from "@/components/shared/FeedbackButton";
 import { useQuery } from "@tanstack/react-query";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
@@ -125,6 +125,33 @@ export default function EditorPage({
 }) {
   const { projectId } = use(params);
   const [mobileTab, setMobileTab] = useState<MobileTab>("canvas");
+
+  // Block browser page zoom (trackpad pinch = ctrl+wheel, Safari gesture events,
+  // Cmd/Ctrl +/-/0) so that only the canvas's own zoom transform responds.
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
+    const onGesture = (e: Event) => e.preventDefault();
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "=" || e.key === "+" || e.key === "-" || e.key === "0") {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("wheel", onWheel, { passive: false });
+    document.addEventListener("gesturestart", onGesture);
+    document.addEventListener("gesturechange", onGesture);
+    document.addEventListener("gestureend", onGesture);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("wheel", onWheel);
+      document.removeEventListener("gesturestart", onGesture);
+      document.removeEventListener("gesturechange", onGesture);
+      document.removeEventListener("gestureend", onGesture);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   const { data: project, isLoading, error } = useQuery({
     queryKey: ["project", projectId],

@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useEditorStore, type SVGPath, type SVGMeta } from "@/stores/editorStore";
 import { PathElement } from "./PathElement";
+import {
+  AdjustFilterDefs,
+  AdjustmentToolbar,
+  DEFAULT_ADJUST,
+  type AdjustState,
+} from "./AdjustmentToolbar";
 
 interface EditorCanvasProps {
   svgUrl: string;
@@ -75,6 +81,9 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
 
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+
+  const [adjust, setAdjust] = useState<AdjustState>(DEFAULT_ADJUST);
+  const filterId = `adjust-${useId().replace(/:/g, "")}`;
 
   const paths = useEditorStore((s) => s.paths);
   const selectedIds = useEditorStore((s) => s.selectedIds);
@@ -255,12 +264,17 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
                 borderRadius: "4px",
               }}
             >
-              {paths.map((p) => (
-                <PathElement key={p.id} path={p} />
-              ))}
+              <AdjustFilterDefs id={filterId} state={adjust} />
+              <g filter={adjust.mode === "none" ? undefined : `url(#${filterId})`}>
+                {paths.map((p) => (
+                  <PathElement key={p.id} path={p} />
+                ))}
+              </g>
             </svg>
           </div>
         </div>
+
+        <AdjustmentToolbar state={adjust} onChange={setAdjust} />
       </div>
 
       {/* Bottom status bar */}
