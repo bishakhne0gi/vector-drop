@@ -10,7 +10,8 @@ import {
   CoffeeIcon,
 } from "@phosphor-icons/react";
 import { LegoStud } from "./LegoStud";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useMotionValue, useTransform, useInView, animate } from "motion/react";
 
 // ─── Color tokens ──────────────────────────────────────────────────────────────
 const C = {
@@ -59,45 +60,6 @@ const STEPS = [
   },
 ];
 
-
-const WHY_CARDS = [
-  {
-    title: "No Illustrator Required",
-    description: "Works entirely in your browser. No downloads, no app installs, no subscriptions.",
-    cta: "Start converting →",
-    href: "/dashboard",
-    bgFrom: "#1e0f03",
-    bgTo: "#2d1800",
-    accentColor: C.orange,
-  },
-  {
-    title: "No Login Needed",
-    description: "Just drop an image and go. Your files stay private — nothing stored on our servers.",
-    cta: "Try it now →",
-    href: "/dashboard",
-    bgFrom: "#130025",
-    bgTo: "#1e0038",
-    accentColor: C.purple,
-  },
-  {
-    title: "Free Means Free",
-    description: "No hidden charges, no credit card, no premium tier you'll hit on day one.",
-    cta: "See the product →",
-    href: "/dashboard",
-    bgFrom: "#031409",
-    bgTo: "#052212",
-    accentColor: C.green,
-  },
-  {
-    title: "Built for Speed",
-    description: "We are obsessed over every millisecond of performance.",
-    cta: "Start converting →",
-    href: "/dashboard",
-    bgFrom: "#021218",
-    bgTo: "#031e28",
-    accentColor: C.cyan,
-  },
-];
 
 // ─── Shared UI components ──────────────────────────────────────────────────────
 
@@ -1292,6 +1254,440 @@ function VectorDropLogo({ size = 18 }: { size?: number }) {
   );
 }
 
+// ─── Quality Comparison — VectorDrop vs Other Tools ──────────────────────────
+//
+// Same VectorDrop logo silhouette, two qualities.
+// Left half = VectorDrop (the 20 designed vertices, clean polygon).
+// Right half = Other tools (~50 subdivided vertices with edge wobble).
+// Desktop: drag the divider. Mobile: toggle the view.
+
+const COMPARE_VB = 400;
+
+// VectorDrop logo silhouette (from /public/vectordrop-logo.svg, viewBox 28×28)
+// scaled to a 400×400 canvas (×400/28 ≈ ×14.286).
+const LOGO_POINTS: ReadonlyArray<readonly [number, number]> = [
+  [85.71, 133.18],  [115.44, 116.19], [145.16, 133.18], [143.11, 307.27],
+  [174.18, 323.60], [234.33, 290.29], [234.33, 254.90], [265.47, 236.50],
+  [262.64, 29.85],  [293.78, 14.28],  [326.33, 29.85],  [326.33, 239.34],
+  [295.90, 254.90], [295.90, 290.29], [265.47, 306.87], [265.47, 339.83],
+  [174.88, 393.61], [142.33, 374.00], [114.02, 356.97], [85.71, 339.83],
+];
+
+const SMOOTH_PATH_D =
+  "M " + LOGO_POINTS.map(([x, y]) => `${x} ${y}`).join(" L ") + " Z";
+const SMOOTH_ANCHORS: ReadonlyArray<readonly [number, number]> = LOGO_POINTS;
+
+// Deterministic noisy outline — same silhouette, but each edge is subdivided
+// into 2–4 pieces with each new vertex pushed perpendicular to the line by a
+// small, stable "noise". Result: ~50 anchors with visibly jagged edges.
+function buildNoisyPoints(): [number, number][] {
+  const out: [number, number][] = [];
+  let k = 0;
+  for (let i = 0; i < LOGO_POINTS.length; i++) {
+    const a = LOGO_POINTS[i];
+    const b = LOGO_POINTS[(i + 1) % LOGO_POINTS.length];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const px = -dy / len;
+    const py =  dx / len;
+
+    // Original vertex with very small offset
+    const baseN = Math.sin(k * 1.93) * 1.2 + Math.cos(k * 0.71) * 0.7;
+    out.push([a[0] + baseN * px, a[1] + baseN * py]);
+    k++;
+
+    // 1–3 subdivisions per edge, proportional to length
+    const subs = Math.max(1, Math.min(3, Math.round(len / 36)));
+    for (let j = 1; j <= subs; j++) {
+      const t = j / (subs + 1);
+      const x = a[0] + dx * t;
+      const y = a[1] + dy * t;
+      const noise = Math.sin(k * 2.17) * 4.4 + Math.cos(k * 1.31) * 2.2;
+      out.push([x + noise * px, y + noise * py]);
+      k++;
+    }
+  }
+  return out;
+}
+
+function SmoothShape({ accentColor, idSuffix }: { accentColor: string; idSuffix: string }) {
+  return (
+    <svg viewBox={`0 0 ${COMPARE_VB} ${COMPARE_VB}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+      <path d={SMOOTH_PATH_D} fill={`${accentColor}10`} />
+      <motion.path
+        d={SMOOTH_PATH_D}
+        fill="none"
+        stroke="rgba(255,255,255,0.88)"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0, opacity: 0 }}
+        whileInView={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 1.6, ease: [0.4, 0, 0.2, 1] }}
+        viewport={{ once: true, margin: "-12%" }}
+      />
+      {SMOOTH_ANCHORS.map(([x, y], i) => (
+        <motion.rect
+          key={`smooth-${idSuffix}-${i}`}
+          x={x - 4}
+          y={y - 4}
+          width={8}
+          height={8}
+          fill="#0e0e0e"
+          stroke={accentColor}
+          strokeWidth={1.2}
+          initial={{ opacity: 0, scale: 0 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.45 + i * 0.09, duration: 0.34, ease: [0.4, 0, 0.2, 1] }}
+          viewport={{ once: true, margin: "-12%" }}
+          style={{ transformOrigin: `${x}px ${y}px`, transformBox: "fill-box" } as React.CSSProperties}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function NoisyShape({ idSuffix }: { idSuffix: string }) {
+  const points = useMemo(() => buildNoisyPoints(), []);
+  const pathD = useMemo(
+    () =>
+      `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)} ` +
+      points.slice(1).map(([x, y]) => `L ${x.toFixed(1)} ${y.toFixed(1)}`).join(" ") +
+      " Z",
+    [points],
+  );
+  return (
+    <svg viewBox={`0 0 ${COMPARE_VB} ${COMPARE_VB}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+      <path d={pathD} fill="rgba(255,255,255,0.025)" />
+      <motion.path
+        d={pathD}
+        fill="none"
+        stroke="rgba(255,255,255,0.55)"
+        strokeWidth={1.0}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0, opacity: 0 }}
+        whileInView={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 1.6, ease: [0.4, 0, 0.2, 1] }}
+        viewport={{ once: true, margin: "-12%" }}
+      />
+      {points.map(([x, y], i) => (
+        <motion.rect
+          key={`noisy-${idSuffix}-${i}`}
+          x={x - 3}
+          y={y - 3}
+          width={6}
+          height={6}
+          fill="rgba(255,255,255,0.08)"
+          stroke="rgba(255,255,255,0.55)"
+          strokeWidth={0.8}
+          initial={{ opacity: 0, scale: 0 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.45 + i * 0.025, duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+          viewport={{ once: true, margin: "-12%" }}
+          style={{ transformOrigin: `${x}px ${y}px`, transformBox: "fill-box" } as React.CSSProperties}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function CornerLabel({
+  position,
+  delay,
+  children,
+}: {
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  delay: number;
+  children: React.ReactNode;
+}) {
+  const cls = {
+    "top-left":     "top-4 left-5 md:top-5 md:left-6",
+    "top-right":    "top-4 right-5 md:top-5 md:right-6",
+    "bottom-left":  "bottom-4 left-5 md:bottom-5 md:left-6",
+    "bottom-right": "bottom-4 right-5 md:bottom-5 md:right-6",
+  }[position];
+  const fromY = position.startsWith("top") ? -4 : 4;
+  return (
+    <motion.div
+      className={`absolute ${cls} text-[9.5px] uppercase tracking-[0.22em] pointer-events-none z-10`}
+      style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
+      initial={{ opacity: 0, y: fromY }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      viewport={{ once: true, margin: "-12%" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function CaretMini({ dir }: { dir: "left" | "right" }) {
+  return dir === "left" ? (
+    <svg width={6} height={9} viewBox="0 0 6 9" fill="none" aria-hidden>
+      <path d="M5 1 L1 4.5 L5 8" stroke="rgba(255,255,255,0.62)" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ) : (
+    <svg width={6} height={9} viewBox="0 0 6 9" fill="none" aria-hidden>
+      <path d="M1 1 L5 4.5 L1 8" stroke="rgba(255,255,255,0.62)" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function QualityCompareDesktop({ accentColor }: { accentColor: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [draggingHandle, setDraggingHandle] = useState(false);
+
+  const splitPct = useMotionValue(0.5);
+  const dividerLeft = useTransform(splitPct, (p) => `${p * 100}%`);
+  const vdClip = useTransform(splitPct, (p) => `inset(0 ${(1 - p) * 100}% 0 0)`);
+  const accentLineWidth = useTransform(splitPct, (p) => `${p * 100}%`);
+
+  const inView = useInView(triggerRef, { once: true, amount: 0.35 });
+
+  // After paths/anchors land, slowly pan the divider to show both extremes
+  useEffect(() => {
+    if (!inView) return;
+    const t = setTimeout(() => {
+      animate(splitPct, [0.5, 0.74, 0.26, 0.5], {
+        duration: 4.6,
+        ease: [0.42, 0, 0.2, 1],
+        times: [0, 0.36, 0.72, 1],
+      });
+    }, 1900);
+    return () => clearTimeout(t);
+  }, [inView, splitPct]);
+
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setDraggingHandle(true);
+    const update = (clientX: number) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      splitPct.set(Math.max(0.06, Math.min(0.94, (clientX - rect.left) / rect.width)));
+    };
+    update(e.clientX);
+    const move = (ev: PointerEvent) => update(ev.clientX);
+    const up = () => {
+      setDraggingHandle(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
+  return (
+    <div ref={triggerRef}>
+      <div
+        ref={containerRef}
+        className="relative overflow-hidden select-none"
+        style={{
+          aspectRatio: "16 / 9",
+          background: "#0e0e0e",
+          border: "1px dashed rgba(255,255,255,0.10)",
+          touchAction: "none",
+          cursor: draggingHandle ? "grabbing" : "ew-resize",
+        }}
+        onPointerDown={startDrag}
+      >
+        {/* Top accent — green over VectorDrop side, neutral over Other side */}
+        <motion.div
+          className="absolute top-0 left-0 h-px pointer-events-none"
+          style={{ width: accentLineWidth, background: accentColor, opacity: 0.55 }}
+        />
+        <motion.div
+          className="absolute top-0 right-0 h-px pointer-events-none"
+          style={{ left: dividerLeft, background: "rgba(255,255,255,0.40)", opacity: 0.35 }}
+        />
+
+        {/* Dot grid (matches Vector Playground canvas) */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+
+        {/* Other shape — full canvas, underneath */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="aspect-square h-[78%] max-h-[440px]">
+            <NoisyShape idSuffix="d" />
+          </div>
+        </div>
+
+        {/* VectorDrop shape — clipped from the right by the divider */}
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ clipPath: vdClip, WebkitClipPath: vdClip as unknown as string }}
+        >
+          <div className="aspect-square h-[78%] max-h-[440px]">
+            <SmoothShape accentColor={accentColor} idSuffix="d" />
+          </div>
+        </motion.div>
+
+        {/* Annotations — max 2 per side */}
+        <CornerLabel position="top-left"     delay={2.3}>Refined paths</CornerLabel>
+        <CornerLabel position="bottom-left"  delay={2.45}>Fewer points</CornerLabel>
+        <CornerLabel position="top-right"    delay={2.3}>More points</CornerLabel>
+        <CornerLabel position="bottom-right" delay={2.45}>Irregular curves</CornerLabel>
+
+        {/* Divider line */}
+        <motion.div
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{
+            left: dividerLeft,
+            width: 1,
+            marginLeft: -0.5,
+            background: "rgba(255,255,255,0.18)",
+          }}
+        />
+
+        {/* Drag handle — minimal dashed pill with two carets */}
+        <motion.div
+          className="absolute top-1/2 z-20"
+          style={{ left: dividerLeft, x: "-50%", y: "-50%" }}
+          onPointerDown={(e) => { e.stopPropagation(); startDrag(e); }}
+        >
+          <div
+            className="flex items-center justify-center gap-[5px] backdrop-blur-sm"
+            style={{
+              width: 38,
+              height: 28,
+              background: "rgba(14,14,14,0.92)",
+              border: `1px dashed ${draggingHandle ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.30)"}`,
+              cursor: draggingHandle ? "grabbing" : "grab",
+              transition: "border-color 180ms ease",
+            }}
+          >
+            <CaretMini dir="left" />
+            <CaretMini dir="right" />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Hint */}
+      <div
+        className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.24em]"
+        style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.24)" }}
+      >
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: accentColor, opacity: 0.85 }} />
+        Drag to compare
+      </div>
+    </div>
+  );
+}
+
+function QualityCompareMobile({ accentColor }: { accentColor: string }) {
+  const [view, setView] = useState<"vd" | "other">("vd");
+  return (
+    <div>
+      {/* Toggle */}
+      <div
+        className="flex items-stretch mb-3"
+        style={{ border: "1px dashed rgba(255,255,255,0.12)" }}
+      >
+        {([
+          { key: "vd",    label: "VectorDrop", color: accentColor },
+          { key: "other", label: "Other",      color: "rgba(255,255,255,0.55)" },
+        ] as const).map((t, i) => {
+          const active = view === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setView(t.key)}
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-[10px] uppercase tracking-[0.18em] transition-all"
+              style={{
+                fontFamily: "auxMono, monospace",
+                color: active ? "#fff" : "rgba(255,255,255,0.32)",
+                background: active ? "rgba(255,255,255,0.04)" : "transparent",
+                borderLeft: i === 1 ? "1px dashed rgba(255,255,255,0.12)" : undefined,
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: active ? t.color : "rgba(255,255,255,0.18)",
+                  display: "inline-block",
+                }}
+              />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Single shape canvas */}
+      <div
+        className="relative overflow-hidden"
+        style={{
+          aspectRatio: "1 / 1",
+          background: "#0e0e0e",
+          border: "1px dashed rgba(255,255,255,0.10)",
+        }}
+      >
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{
+            background: view === "vd" ? accentColor : "rgba(255,255,255,0.40)",
+            opacity: view === "vd" ? 0.55 : 0.35,
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+        <motion.div
+          key={view}
+          className="absolute inset-0 flex items-center justify-center p-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <div className="w-full max-w-[300px] aspect-square">
+            {view === "vd"
+              ? <SmoothShape accentColor={accentColor} idSuffix="m" />
+              : <NoisyShape idSuffix="m" />}
+          </div>
+        </motion.div>
+
+        {/* Two annotations — swap with view */}
+        <div
+          className="absolute top-3 left-4 text-[9px] uppercase tracking-[0.22em] pointer-events-none"
+          style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
+        >
+          {view === "vd" ? "Refined paths" : "More points"}
+        </div>
+        <div
+          className="absolute bottom-3 right-4 text-[9px] uppercase tracking-[0.22em] pointer-events-none"
+          style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.42)" }}
+        >
+          {view === "vd" ? "Fewer points" : "Irregular curves"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QualityComparison({ accentColor }: { accentColor: string }) {
+  return (
+    <>
+      <div className="hidden md:block"><QualityCompareDesktop accentColor={accentColor} /></div>
+      <div className="block md:hidden"><QualityCompareMobile  accentColor={accentColor} /></div>
+    </>
+  );
+}
+
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
   return (
@@ -1714,82 +2110,52 @@ export function LandingPage() {
         style={{ borderTop: "1px dashed rgba(255,255,255,0.07)" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-[1280px] px-6">
-          <h2 className="text-[2.6rem] font-medium tracking-[-0.022em] text-white mb-5">
-            Why VectorDrop?
-          </h2>
-          <p className="text-[15px] leading-7 max-w-[480px] mb-14" style={{ color: "rgba(255,255,255,0.43)" }}>
-            We built VectorDrop because the tools that existed were either too heavy, too expensive, or simply didn't produce good output.
-          </p>
-
-          {/* 2×2 large colored card grid — direct reference match */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {WHY_CARDS.map((card) => (
-              <div
-                key={card.title}
-                className="why-card relative overflow-hidden p-10 border"
-                style={{
-                  background: `linear-gradient(135deg,${card.bgFrom} 0%,${card.bgTo} 100%)`,
-                  borderStyle: "dashed",
-                  borderColor: `${card.accentColor}40`,
-                }}
-              >
-                {/* Right-side glow */}
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none"
-                  style={{ background: `radial-gradient(ellipse at right,${card.accentColor}1a,transparent 70%)` }}
-                />
-                {/* Wireframe geometric decoration — matching reference 3D wireframe aesthetic */}
-                <svg
-                  className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ opacity: 0.16 }}
-                  width="116"
-                  height="116"
-                  viewBox="0 0 120 120"
-                  fill="none"
-                >
-                  <rect x="18" y="18" width="60" height="60" stroke={card.accentColor} strokeWidth="1" />
-                  <rect x="34" y="34" width="60" height="60" stroke={card.accentColor} strokeWidth="1" />
-                  <line x1="18" y1="18" x2="34" y2="34" stroke={card.accentColor} strokeWidth="1" />
-                  <line x1="78" y1="18" x2="94" y2="34" stroke={card.accentColor} strokeWidth="1" />
-                  <line x1="18" y1="78" x2="34" y2="94" stroke={card.accentColor} strokeWidth="1" />
-                  <line x1="78" y1="78" x2="94" y2="94" stroke={card.accentColor} strokeWidth="1" />
-                  {([
-                    [18,18],[78,18],[18,78],[78,78],
-                    [34,34],[94,34],[34,94],[94,94],
-                  ] as [number,number][]).map(([x,y],i) => (
-                    <circle key={i} cx={x} cy={y} r="3" fill={card.accentColor} />
-                  ))}
-                </svg>
-
-                <div className="relative z-10">
-                  <h3 className="text-[1.45rem] font-bold text-white leading-tight max-w-[260px] mb-4">
-                    {card.title}
-                  </h3>
-                  <p className="text-[14px] leading-6 mb-8 max-w-[280px]" style={{ color: "rgba(255,255,255,0.50)" }}>
-                    {card.description}
-                  </p>
-                  <Link
-                    href={card.href}
-                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] px-4 py-2 transition-all hover:opacity-75"
-                    style={{
-                      fontFamily: "auxMono, monospace",
-                      color: card.accentColor,
-                      border: `1px dashed ${card.accentColor}70`,
-                    }}
-                  >
-                    {card.cta}
-                  </Link>
-                </div>
-              </div>
-            ))}
+          <div className="mb-4">
+            <SectionLabel text="Output quality" color={C.green} />
+          </div>
+          <div className="grid lg:grid-cols-3 gap-8 mb-14 items-end">
+            <h2 className="col-span-2 text-[2.6rem] font-medium tracking-[-0.022em] text-white leading-[1.08]">
+              Why choose VectorDrop
+            </h2>
+            <p className="text-[15px] leading-7" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Precision in every path, smoother curves, fewer anchor points,
+              cleaner output. The difference is in the detail.
+            </p>
           </div>
 
-          <p
-            className="mt-10 text-sm border-l-2 pl-4"
-            style={{ color: "rgba(255,255,255,0.25)", borderColor: C.green }}
+          <QualityComparison accentColor={C.green} />
+
+          {/* Pricing strip — very low emphasis, editorial caption */}
+          <div
+            className="mt-12 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.20em]"
+            style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.22)" }}
           >
-            "Built for speed and simplicity — not complexity."
-          </p>
+            <span>Vector Magic $30/mo</span>
+            <span aria-hidden style={{ color: "rgba(255,255,255,0.14)" }}>·</span>
+            <span>Adobe $60/mo</span>
+            <span aria-hidden style={{ color: "rgba(255,255,255,0.14)" }}>·</span>
+            <span>Vectorizer.ai $14/mo</span>
+            <span aria-hidden style={{ color: "rgba(255,255,255,0.14)" }}>·</span>
+            <span style={{ color: "rgba(163,230,53,0.78)" }}>VectorDrop Free*</span>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-8 flex flex-wrap items-center gap-5">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
+              style={{ fontFamily: "auxMono, monospace" }}
+            >
+              Try VectorDrop
+              <CaretRightIcon size={12} />
+            </Link>
+            <span
+              className="text-[10px] uppercase tracking-[0.20em]"
+              style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.32)" }}
+            >
+              Free to start
+            </span>
+          </div>
         </div>
       </RailedSection>
 
