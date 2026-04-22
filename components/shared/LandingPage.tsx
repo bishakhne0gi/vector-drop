@@ -10,6 +10,7 @@ import {
   CoffeeIcon,
 } from "@phosphor-icons/react";
 import { LegoStud } from "./LegoStud";
+import { SiteLinks } from "@/components/pseo/SiteLinks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, useInView, animate } from "motion/react";
 
@@ -2285,6 +2286,9 @@ export function LandingPage() {
             </div>
           </div>
         </div>
+
+        {/* ── 1b. Site links — pSEO hubs ── */}
+        <SiteLinks />
 
         {/* ── 2. Footer content row ── */}
         <div
