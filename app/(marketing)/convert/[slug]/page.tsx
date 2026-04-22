@@ -41,14 +41,26 @@ export default async function ConvertPage({ params }: Props) {
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: `Convert ${entry.from} to ${entry.to}`,
-    description: entry.tagline,
-    step: entry.steps.map((s) => ({
-      "@type": "HowToStep",
-      name: s.title,
-      text: s.body,
-    })),
+    "@graph": [
+      {
+        "@type": "HowTo",
+        name: `Convert ${entry.from} to ${entry.to}`,
+        description: entry.tagline,
+        step: entry.steps.map((s) => ({
+          "@type": "HowToStep",
+          name: s.title,
+          text: s.body,
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: entry.faq.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      },
+    ],
   };
 
   return (

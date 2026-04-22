@@ -83,23 +83,39 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "VectorDrop",
-  url: "https://vectordrop.co.in",
-  description:
-    "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. Free, fast, and browser-based.",
-  applicationCategory: "DesignApplication",
-  operatingSystem: "Any",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.9",
-    ratingCount: "120",
-  },
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://vectordrop.co.in/#org",
+      name: "VectorDrop",
+      url: "https://vectordrop.co.in",
+      logo: "https://vectordrop.co.in/icon",
+      sameAs: ["https://x.com/vectordrop"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://vectordrop.co.in/#website",
+      url: "https://vectordrop.co.in",
+      name: "VectorDrop",
+      publisher: { "@id": "https://vectordrop.co.in/#org" },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://vectordrop.co.in/search?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://vectordrop.co.in/#app",
+      name: "VectorDrop",
+      url: "https://vectordrop.co.in",
+      description:
+        "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. Free, fast, and browser-based.",
+      applicationCategory: "DesignApplication",
+      operatingSystem: "Any",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+  ],
 };
 
 export default function RootLayout({
