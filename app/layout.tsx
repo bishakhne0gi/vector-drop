@@ -22,11 +22,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://vectordrop.co.in"),
   title: {
-    default: "VectorDrop — Free Image to SVG Converter Online",
+    default: "Free Image to SVG Converter — Vectorize PNG & JPG in Seconds",
     template: "%s | VectorDrop",
   },
   description:
-    "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. Better than Adobe Illustrator Image Trace, Vectorizer.AI, and SVGtrace — free, fast, and browser-based.",
+    "Turn any PNG or JPG into a clean, editable SVG in seconds. Free and browser-based. A faster alternative to Illustrator Image Trace and Vectorizer.AI.",
   keywords: [
     "image to svg",
     "png to svg",
@@ -57,16 +57,16 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://vectordrop.co.in",
     siteName: "VectorDrop",
-    title: "VectorDrop — Free Image to SVG Converter Online",
+    title: "Free Image to SVG Converter — Vectorize PNG & JPG in Seconds",
     description:
-      "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. No Illustrator needed.",
+      "Turn any PNG or JPG into a clean, editable SVG in seconds. Free and browser-based.",
     images: ["https://vectordrop.co.in/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VectorDrop — Free Image to SVG Converter Online",
+    title: "Free Image to SVG Converter — Vectorize PNG & JPG in Seconds",
     description:
-      "Convert PNG & JPG images to clean SVG vectors instantly. Better than Vectorizer.AI & Illustrator Image Trace — free.",
+      "Turn any PNG or JPG into a clean SVG in seconds. Free and browser-based. Illustrator Image Trace & Vectorizer.AI alternative.",
     site: "@vectordrop",
     creator: "@vectordrop",
     images: ["https://vectordrop.co.in/opengraph-image"],

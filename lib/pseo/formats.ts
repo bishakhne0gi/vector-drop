@@ -6,7 +6,7 @@ export const formats: FormatEntry[] = [
     from: "PNG",
     to: "SVG",
     tagline: "Convert PNG to SVG — free, online, pixel-perfect.",
-    lead: "Turn any PNG image into a clean, editable SVG vector in seconds. VectorDrop traces your PNG into crisp vector paths that scale to any size without pixelation. Free, browser-native, and no signup required for the playground.",
+    lead: "Turn any PNG image into a clean, editable SVG vector in seconds. VectorDrop traces your PNG into crisp vector paths that scale to any size without pixelation. Free and browser-native.",
     whyConvert: [
       "SVG scales infinitely — a single file works for tiny icons and huge billboards",
       "SVG is hand-editable — tweak colours and paths in Figma, Illustrator, or code",

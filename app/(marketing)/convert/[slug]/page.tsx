@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const entry = formatBySlug.get(slug);
   if (!entry) return {};
-  const title = `Convert ${entry.from} to ${entry.to} — Free Online Vectoriser`;
-  const description = entry.tagline;
+  const title = `${entry.from} to ${entry.to} Converter — Free & Instant`;
+  const description = `${entry.tagline} Convert ${entry.from} to editable ${entry.to} in seconds — free and browser-based.`.slice(0, 158);
   const url = `https://vectordrop.co.in/convert/${entry.slug}`;
   return {
     title,

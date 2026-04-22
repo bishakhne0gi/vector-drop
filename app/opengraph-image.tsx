@@ -119,8 +119,8 @@ export default function Image() {
           {[
             { label: "PNG → SVG", color: "#f97316" },
             { label: "JPG → SVG", color: "#a855f7" },
-            { label: "No login needed", color: "#38bdf8" },
-            { label: "Free forever", color: "#a3e635" },
+            { label: "Browser-based", color: "#38bdf8" },
+            { label: "Free to try", color: "#a3e635" },
           ].map(({ label, color }) => (
             <div
               key={label}

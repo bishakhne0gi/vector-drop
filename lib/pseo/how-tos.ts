@@ -5,14 +5,14 @@ export const howTos: HowToEntry[] = [
     slug: "convert-png-to-svg",
     title: "How to convert PNG to SVG",
     tagline: "Turn any PNG into an editable SVG vector in under a minute.",
-    lead: "This guide walks through converting a PNG image into a clean, scalable SVG using VectorDrop's free browser-based vectoriser. No design software, no install, no signup needed for the playground.",
+    lead: "This guide walks through converting a PNG image into a clean, scalable SVG using VectorDrop's free browser-based vectoriser. No design software and no install needed.",
     prerequisites: [
       "A PNG image on your device (logo, icon, illustration, or sketch)",
       "A modern browser (Chrome, Edge, Safari, Firefox, Arc)",
       "Optional: a vector editor like Figma or Illustrator for post-tweaks",
     ],
     steps: [
-      { title: "Open the VectorDrop playground", body: "Visit vectordrop.co.in and drop into the live playground — no signup required." },
+      { title: "Open the VectorDrop playground", body: "Visit vectordrop.co.in and drop into the live playground." },
       { title: "Upload your PNG", body: "Drag and drop your PNG onto the upload area, or click to browse and select it." },
       { title: "Let VectorDrop trace the image", body: "The vectoriser converts the PNG into SVG paths in seconds. A live preview appears." },
       { title: "Tune the output", body: "Adjust detail, smoothing, and colour handling in the playground until the SVG matches your intent." },
@@ -27,8 +27,8 @@ export const howTos: HowToEntry[] = [
     ],
     faq: [
       {
-        q: "Do I need an account to convert PNG to SVG?",
-        a: "No. The VectorDrop playground is free to try without signup.",
+        q: "Is VectorDrop free to use?",
+        a: "Yes. VectorDrop is free to use for converting PNG to SVG.",
       },
       {
         q: "How long does conversion take?",
@@ -52,7 +52,7 @@ export const howTos: HowToEntry[] = [
     ],
     steps: [
       { title: "Get the cleanest source you can", body: "A 1024 px or larger PNG is ideal. Avoid low-resolution screenshots if possible." },
-      { title: "Open VectorDrop's playground", body: "Go to vectordrop.co.in — no signup required for the playground." },
+      { title: "Open VectorDrop's playground", body: "Go to vectordrop.co.in and open the playground." },
       { title: "Upload the logo", body: "Drop the raster file onto the upload area. VectorDrop reads it immediately." },
       { title: "Review the auto-trace", body: "Check the live preview. Zoom in to verify curves and edges look sharp." },
       { title: "Tune parameters", body: "Reduce colours for flatter output. Adjust smoothing until curves feel right." },

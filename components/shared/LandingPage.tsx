@@ -2006,8 +2006,8 @@ export function LandingPage() {
         >
           <div className="flex anim-marquee gap-14 whitespace-nowrap">
             {[...Array(2)].flatMap((_, ri) =>
-              ["Lightning Fast","Clean SVG Output","No Login Required","Export to Figma",
-               "Illustrator Ready","Free Forever","Pixel-perfect Tracing","WebP Support"].map((f, i) => (
+              ["Lightning Fast","Clean SVG Output","Browser-Based","Export to Figma",
+               "Illustrator Ready","Free to Try","Pixel-perfect Tracing","WebP Support"].map((f, i) => (
                 <div key={`${ri}-${i}`} className="flex items-center gap-4">
                   <span className="w-1 h-1 rounded-full bg-white/20" />
                   <span

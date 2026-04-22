@@ -219,7 +219,7 @@ export function PseoFaq({ items }: { items: FaqItem[] }) {
 
 export function PseoCta({
   heading = "Ready to vectorise your image?",
-  body = "Upload a PNG, JPG, or WebP in the VectorDrop playground and get a clean SVG in seconds. Free, no signup, no watermark.",
+  body = "Upload a PNG, JPG, or WebP and get a clean SVG in seconds. Free and browser-based.",
 }: {
   heading?: string;
   body?: string;

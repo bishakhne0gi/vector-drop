@@ -61,7 +61,7 @@ export const comparisons: ComparisonEntry[] = [
       { feature: "Modern UI", vectordrop: "Yes", competitor: "Dated" },
     ],
     vectordropPros: [
-      "Free forever for standard use",
+      "Free to use for standard conversions",
       "Modern browser-native UI — no install",
       "Interactive vector playground",
       "Clean SVG output ready for Figma and the web",

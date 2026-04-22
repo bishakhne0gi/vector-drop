@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { competitor } = await params;
   const entry = comparisonBySlug.get(competitor);
   if (!entry) return {};
-  const title = `VectorDrop vs ${entry.competitor} — Free Image to SVG Alternative`;
-  const description = entry.tagline;
+  const title = `Free ${entry.competitor} Alternative (2026)`;
+  const description = `${entry.tagline} Side-by-side features, pricing, and when to pick each.`.slice(0, 158);
   const url = `https://vectordrop.co.in/vs/${entry.slug}`;
   return {
     title,
