@@ -2310,21 +2310,20 @@ export function LandingPage() {
               </span>
             </div>
 
-            {/* Center: nav links */}
+            {/* Center: Better Launch badge */}
             <div className="flex items-center gap-8">
-              {[
-                // { label: "Sign in", href: "/login" },
-                { label: "Dashboard", href: "/dashboard" },
-              ].map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="text-[11px] uppercase tracking-[0.18em] transition-opacity hover:opacity-100"
-                  style={{ fontFamily: "auxMono, monospace", color: "rgba(255,255,255,0.28)" }}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              <a
+                href="https://www.betterlaunch.co"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://www.betterlaunch.co/badge-light.svg"
+                  alt="Featured on Better Launch"
+                  style={{ width: 200, height: "auto" }}
+                />
+              </a>
             </div>
 
             {/* Right: buy coffee + actions */}
