@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/shared/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { PostHogProvider } from "@/components/shared/PostHogProvider";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -129,6 +130,7 @@ export default function RootLayout({
             </ThemeProvider>
           </PostHogProvider>
         </ClerkProvider>
+        <Analytics />
       </body>
     </html>
   );
