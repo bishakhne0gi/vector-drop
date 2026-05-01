@@ -35,7 +35,27 @@ export async function quantizeColors(
   const sharp = (await import("sharp")).default;
 
   // ── 1. Pre-process ──────────────────────────────────────────────────────────
-  const { data, info } = await sharp(imageBuffer)
+  // If the source has an alpha channel (e.g. background-removed cutouts from
+  // Photoroom), the soft anti-aliased edge would flatten onto white as a halo
+  // of intermediate colors. Those cluster into many thin layers and explode
+  // the SVG size. Threshold the alpha to binary first so the edge is hard.
+  const meta = await sharp(imageBuffer).metadata();
+  let preprocessed: Buffer = imageBuffer;
+  if (meta.hasAlpha) {
+    const hardAlpha = await sharp(imageBuffer)
+      .ensureAlpha()
+      .extractChannel("alpha")
+      .threshold(128)
+      .toBuffer();
+    preprocessed = await sharp(imageBuffer)
+      .ensureAlpha()
+      .removeAlpha()
+      .joinChannel(hardAlpha)
+      .png()
+      .toBuffer();
+  }
+
+  const { data, info } = await sharp(preprocessed)
     .flatten({ background: { r: 255, g: 255, b: 255 } })
     .resize(2048, 2048, { fit: "inside", withoutEnlargement: true })
     .raw()
