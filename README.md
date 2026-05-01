@@ -1,5 +1,5 @@
 
-### Getting Started
+### Getting Startedf
 
 First, run the development server:
 
