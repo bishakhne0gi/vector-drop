@@ -199,21 +199,45 @@ export async function POST(
     const cached = await cacheGet<ConversionCacheValue>(cacheKey);
 
     if (cached) {
-      await svc
-        .from("projects")
-        .update({ status: "ready", svg_path: cached.svgStoragePath, source_image_hash: imageHash })
-        .eq("id", projectId);
-      await setJobStep(svc, job.id, "assemble", "done");
+      // Copy the cached SVG to a path owned by *this* project so its lifecycle
+      // (deletion, etc.) is independent from the original project that produced
+      // the cache entry. If the source is missing, fall through to a full
+      // re-run and overwrite the stale cache entry.
+      const destPath = `projects/${projectId}/output.svg`;
+      // Remove any pre-existing file at the destination — copy() does not overwrite.
+      await svc.storage.from("images").remove([destPath]);
+      const { error: copyErr } = await svc.storage
+        .from("images")
+        .copy(cached.svgStoragePath, destPath);
 
-      const response: ConvertProjectResponse = {
-        jobId: job.id,
-        projectId,
-        status: "done",
-        cacheHit: true,
-      };
-      return Response.json(response, {
-        headers: { "X-RateLimit-Remaining": String(remaining) },
-      });
+      if (!copyErr) {
+        await svc
+          .from("projects")
+          .update({ status: "ready", svg_path: destPath, source_image_hash: imageHash })
+          .eq("id", projectId);
+        await setJobStep(svc, job.id, "assemble", "done");
+
+        const response: ConvertProjectResponse = {
+          jobId: job.id,
+          projectId,
+          status: "done",
+          cacheHit: true,
+        };
+        return Response.json(response, {
+          headers: { "X-RateLimit-Remaining": String(remaining) },
+        });
+      }
+
+      console.warn(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "warn",
+          route: ROUTE,
+          userId,
+          message: "Stale conversion cache — source SVG missing, re-running pipeline",
+          context: { cacheKey, cachedPath: cached.svgStoragePath, error: copyErr.message },
+        }),
+      );
     }
 
     // Step 3: quantize + trace (full pipeline)
