@@ -57,7 +57,7 @@ export async function quantizeColors(
 
   const { data, info } = await sharp(preprocessed)
     .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .resize(2048, 2048, { fit: "inside", withoutEnlargement: true })
+    .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
     .raw()
     .toBuffer({ resolveWithObject: true });
 
