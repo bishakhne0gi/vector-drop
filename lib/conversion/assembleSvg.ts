@@ -8,7 +8,36 @@
  * shape-rendering="geometricPrecision" is set on the root element for
  * crisper edges at all zoom levels. fill-rule="evenodd" matches potrace's
  * even-odd winding convention.
+ *
+ * Output is minified via SVGO (path-data precision reduction + path merging),
+ * which typically shrinks raw potrace output by 5–15× without visible quality
+ * loss. This keeps high-detail/high-color-count conversions under the storage
+ * bucket's file size limit.
  */
+
+import { optimize } from "svgo";
+
+function minify(svg: string): string {
+  const result = optimize(svg, {
+    multipass: true,
+    floatPrecision: 1,
+    plugins: [
+      {
+        name: "preset-default",
+        params: {
+          overrides: {
+            // Keep viewBox — width/height attrs are explicitly set and useful.
+            removeViewBox: false,
+            // Reduce coordinate precision aggressively; potrace emits 7+ decimals.
+            cleanupNumericValues: { floatPrecision: 1 },
+            convertPathData: { floatPrecision: 1, transformPrecision: 1 },
+          },
+        },
+      },
+    ],
+  });
+  return result.data;
+}
 
 export function assembleSvg(
   layers: Array<{ pathD: string; color: [number, number, number] }>,
@@ -38,10 +67,12 @@ export function assembleSvg(
     )
     .join("\n");
 
-  return [
+  const raw = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" shape-rendering="geometricPrecision">`,
     `  <rect width="${width}" height="${height}" fill="${bgFill}"/>`,
     pathElements,
     `</svg>`,
   ].join("\n");
+
+  return minify(raw);
 }

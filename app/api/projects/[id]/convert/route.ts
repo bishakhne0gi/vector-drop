@@ -248,6 +248,20 @@ export async function POST(
 
     // Step 5: upload SVG
     await setJobStep(svc, job.id, "assemble", "running");
+    const svgBytes = Buffer.byteLength(svgContent, "utf8");
+    console.log(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: "info",
+        route: ROUTE,
+        userId,
+        projectId,
+        jobId: job.id,
+        message: "svg_built",
+        svgBytes,
+        colorCount,
+      }),
+    );
     const svgPath = await uploadSvg(projectId, svgContent);
     await setJobStep(svc, job.id, "assemble", "done");
 
