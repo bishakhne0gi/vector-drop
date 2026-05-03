@@ -59,10 +59,14 @@ export async function traceColorMask(
       pngBuffer,
       {
         threshold: 128,
-        turdSize: 0,        // keep all regions, no matter how small
+        // turdSize=0 keeps every speck of noise (anti-aliasing artifacts,
+        // JPEG residue, isolated pixels) as its own path, which on large/noisy
+        // images explodes the SVG into tens of MB. 4 px² is small enough to
+        // preserve genuine fine detail while dropping noise.
+        turdSize: 4,
         alphaMax: 0.75,
         optCurve: true,
-        optTolerance: 0.05, // tighter curve fitting (was 0.1)
+        optTolerance: 0.2,  // looser curve fitting → fewer Bézier segments per path
       },
       (err: Error | null, result: string) => {
         if (err) reject(err);
