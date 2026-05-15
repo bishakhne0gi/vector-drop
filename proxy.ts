@@ -12,6 +12,7 @@ function applySecurityHeaders(response: NextResponse): void {
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us-assets.i.posthog.com`,
     `style-src 'self' 'unsafe-inline' https://*.clerk.com https://clerk.vectordrop.co.in`,
     `img-src 'self' blob: data: https:`,
+    `media-src 'self' blob: data:${supabaseHost ? ` https://${supabaseHost}` : ''}`,
     `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}`,
     "font-src 'self' data: https://*.clerk.com https://clerk.vectordrop.co.in",
     "object-src 'none'",
