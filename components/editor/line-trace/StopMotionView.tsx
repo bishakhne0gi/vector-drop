@@ -5,6 +5,7 @@ import { parseSvg } from '@/lib/line-trace/parse-svg'
 import { buildSchedule } from '@/lib/line-trace/schedule'
 import { exportAnimatedSvg } from '@/lib/line-trace/export-animated-svg'
 import { exportWebm } from '@/lib/line-trace/export-webm'
+import { renderFrame } from '@/lib/line-trace/render-frame'
 import {
   DEFAULT_PARAMS,
   type AspectRatio,
@@ -65,14 +66,14 @@ export function StopMotionView({ projectName, svgString }: Props) {
     setWebmProgress(0)
     try {
       const dims = ASPECT_DIMS[aspect]
+      const renderAt = (tSec: number) =>
+        renderFrame(paths, schedule, tSec, params.totalDurationSec, viewBox)
       const blob = await exportWebm(
-        paths,
-        schedule,
+        renderAt,
         {
           totalDurationSec: params.totalDurationSec,
           width: dims.w,
           height: dims.h,
-          viewBox,
         },
         (p) => setWebmProgress(p),
       )

@@ -1,17 +1,14 @@
-import type { Path, Schedule } from './types'
-import { renderFrame } from './render-frame'
-
 export type WebmOptions = {
   totalDurationSec: number
   width: number
   height: number
-  viewBox: string
 }
 
-// Records `totalDurationSec` of the stop-motion animation as a WebM blob.
+// Records a stop-motion animation as a WebM blob. The caller supplies
+// `renderAt(t) => svgString` so this function serves both line-trace and
+// video-stopmotion use cases.
 export async function exportWebm(
-  paths: Path[],
-  sched: Schedule[],
+  renderAt: (tSec: number) => string,
   opts: WebmOptions,
   onProgress?: (frac: number) => void,
 ): Promise<Blob> {
@@ -41,10 +38,9 @@ export async function exportWebm(
     function step() {
       const elapsed = performance.now() - startMs
       const frac = Math.min(elapsed / totalMs, 1)
-      const t = frac * opts.totalDurationSec
       drawSvgToCanvas(
         ctx,
-        renderFrame(paths, sched, t, opts.totalDurationSec, opts.viewBox),
+        renderAt(frac * opts.totalDurationSec),
         opts.width,
         opts.height,
       )
