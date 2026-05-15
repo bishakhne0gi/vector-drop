@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useEditorStore } from "@/stores/editorStore";
 import { serializeSvg } from "./EditorCanvas";
-import { StopMotionButton } from "./StopMotionButton";
+import { LineTraceButton } from "./LineTraceButton";
 
 interface ToolbarProps {
   projectId: string;
@@ -456,7 +456,7 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
           </span>
         </div>
 
-        <StopMotionButton projectId={projectId} />
+        <LineTraceButton projectId={projectId} />
 
         <ExportDropdown
           onDownloadSvg={handleDownload}

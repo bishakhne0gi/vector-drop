@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { StopMotionView } from '@/components/editor/stopmotion/StopMotionView'
+import { StopMotionView } from '@/components/editor/line-trace/StopMotionView'
 
 type ProjectResponse = { id: string; name: string; svg_url: string | null }
 

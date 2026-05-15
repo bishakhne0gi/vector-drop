@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { parseSvg } from '@/lib/stopmotion/parse-svg'
+import { parseSvg } from '@/lib/line-trace/parse-svg'
 
 const TWO_PATH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <path d="M0 0 H 100 V 100 H 0 Z" fill="#222"/>

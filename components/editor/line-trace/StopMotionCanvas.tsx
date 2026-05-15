@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Path, Schedule } from '@/lib/stopmotion/types'
-import { renderFrame } from '@/lib/stopmotion/render-frame'
+import type { Path, Schedule } from '@/lib/line-trace/types'
+import { renderFrame } from '@/lib/line-trace/render-frame'
 
 type Props = {
   paths: Path[]

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { renderFrame } from '@/lib/stopmotion/render-frame'
-import type { Path, Schedule } from '@/lib/stopmotion/types'
+import { renderFrame } from '@/lib/line-trace/render-frame'
+import type { Path, Schedule } from '@/lib/line-trace/types'
 
 const paths: Path[] = [
   {

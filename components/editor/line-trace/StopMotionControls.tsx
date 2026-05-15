@@ -1,6 +1,6 @@
 'use client'
 
-import type { Params, AspectRatio } from '@/lib/stopmotion/types'
+import type { Params, AspectRatio } from '@/lib/line-trace/types'
 
 type Props = {
   params: Params

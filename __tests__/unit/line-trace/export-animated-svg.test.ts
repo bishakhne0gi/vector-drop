@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { exportAnimatedSvg } from '@/lib/stopmotion/export-animated-svg'
-import type { Path, Schedule } from '@/lib/stopmotion/types'
+import { exportAnimatedSvg } from '@/lib/line-trace/export-animated-svg'
+import type { Path, Schedule } from '@/lib/line-trace/types'
 
 const paths: Path[] = [
   {

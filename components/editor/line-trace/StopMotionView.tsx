@@ -1,16 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { parseSvg } from '@/lib/stopmotion/parse-svg'
-import { buildSchedule } from '@/lib/stopmotion/schedule'
-import { exportAnimatedSvg } from '@/lib/stopmotion/export-animated-svg'
-import { exportWebm } from '@/lib/stopmotion/export-webm'
+import { parseSvg } from '@/lib/line-trace/parse-svg'
+import { buildSchedule } from '@/lib/line-trace/schedule'
+import { exportAnimatedSvg } from '@/lib/line-trace/export-animated-svg'
+import { exportWebm } from '@/lib/line-trace/export-webm'
 import {
   DEFAULT_PARAMS,
   type AspectRatio,
   type Params,
   type Path,
-} from '@/lib/stopmotion/types'
+} from '@/lib/line-trace/types'
 import { StopMotionCanvas } from './StopMotionCanvas'
 import { StopMotionControls } from './StopMotionControls'
 import { StopMotionScrubber } from './StopMotionScrubber'

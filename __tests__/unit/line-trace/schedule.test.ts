@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildSchedule, sortPaths } from '@/lib/stopmotion/schedule'
-import { DEFAULT_PARAMS, type Path } from '@/lib/stopmotion/types'
+import { buildSchedule, sortPaths } from '@/lib/line-trace/schedule'
+import { DEFAULT_PARAMS, type Path } from '@/lib/line-trace/types'
 
 function makePath(i: number, area: number): Path {
   return {
