@@ -34,6 +34,16 @@ export async function GET(
       if (signed?.signedUrl) project.svg_url = signed.signedUrl;
     }
 
+    // For video projects, sign the source path too so the processing page can play it.
+    if (project.kind === "video" && project.source_image_path) {
+      const { data: signed } = await svc.storage
+        .from("images")
+        .createSignedUrl(project.source_image_path, 3600);
+      if (signed?.signedUrl) {
+        (project as { source_url?: string }).source_url = signed.signedUrl;
+      }
+    }
+
     return Response.json(project);
   } catch (err) {
     return handleError(err, "GET /api/projects/[id]", userId, Date.now() - start);
