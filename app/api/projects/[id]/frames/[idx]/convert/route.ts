@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
-import { convertRatelimit, enforceRateLimit } from "@/lib/cache/redis";
+import { framesRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError } from "@/lib/types";
 import { runConversionPipeline } from "@/lib/conversion/runPipeline";
 
@@ -29,7 +29,7 @@ export async function POST(
 
     const rateLimitKey =
       userId ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon");
-    await enforceRateLimit(convertRatelimit, rateLimitKey);
+    await enforceRateLimit(framesRatelimit, rateLimitKey);
 
     const svc = createServiceClient();
 

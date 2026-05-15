@@ -32,6 +32,17 @@ export const convertRatelimit = new Ratelimit({
   prefix: "ratelimit:convert",
 });
 
+/**
+ * Per-frame conversions for video stop-motion. A single 5-second video at
+ * 8 fps produces 40 sequential conversions, so the cap must be generous.
+ * 200 req / 60 s = up to ~5 concurrent video projects per IP/user.
+ */
+export const framesRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(200, "60 s"),
+  prefix: "ratelimit:frames",
+});
+
 /** 10 AI calls / 60s sliding window per user */
 export const aiRatelimit = new Ratelimit({
   redis,
