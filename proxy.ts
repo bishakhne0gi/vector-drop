@@ -41,7 +41,19 @@ const isProtectedPath = createRouteMatcher([
 const isAuthPath = createRouteMatcher(['/login(.*)'])
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
+
+  // Safety net for the dev→prod Clerk cutover. If a returning user has not
+  // yet been remapped (because the webhook never fired or failed), do it now.
+  // Fire-and-forget — failures are logged but do not block the request.
+  if (userId && typeof sessionClaims?.email === 'string') {
+    const email = sessionClaims.email.toLowerCase()
+    void import('@/lib/auth/remap-legacy-user').then(({ remapLegacyUser }) =>
+      remapLegacyUser({ email, prodClerkId: userId }).catch((err) =>
+        console.error('[legacy-remap]', err),
+      ),
+    )
+  }
 
   // Unauthenticated users must not reach protected routes.
   if (!userId && isProtectedPath(req)) {
