@@ -102,17 +102,31 @@ async function attachSignedUrls(svc: ReturnType<typeof createServiceClient>, lis
 }
 
 const ROUTE = "POST /api/projects";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (images)
+const MAX_VIDEO_SIZE = 25 * 1024 * 1024; // 25 MB (videos)
+const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"] as const;
+const ALLOWED_MIME = [...ALLOWED_IMAGE_MIME, ...ALLOWED_VIDEO_MIME] as const;
 
-const createProjectSchema = z.object({
-  name: z.string().min(1).max(200),
-  fileName: z.string().min(1).max(500),
-  mimeType: z.enum(ALLOWED_MIME),
-  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE, {
-    message: "File is too large. Please upload an image smaller than 10 MB and try again.",
-  }),
-});
+const createProjectSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    fileName: z.string().min(1).max(500),
+    mimeType: z.enum(ALLOWED_MIME),
+    fileSizeBytes: z.number().int().positive(),
+    kind: z.enum(["image", "video"]).optional(),
+  })
+  .refine(
+    (d) => {
+      const isVideo = (ALLOWED_VIDEO_MIME as readonly string[]).includes(d.mimeType);
+      const cap = isVideo ? MAX_VIDEO_SIZE : MAX_FILE_SIZE;
+      return d.fileSizeBytes <= cap;
+    },
+    {
+      message: "File is too large.",
+      path: ["fileSizeBytes"],
+    },
+  );
 
 export async function POST(req: Request): Promise<Response> {
   const start = Date.now();
@@ -148,7 +162,8 @@ export async function POST(req: Request): Promise<Response> {
         issues: parsed.error.issues,
       });
     }
-    const { name, fileName, mimeType, fileSizeBytes } = parsed.data;
+    const { name, fileName, mimeType, fileSizeBytes, kind: requestedKind } = parsed.data;
+    const kind = requestedKind ?? ((ALLOWED_VIDEO_MIME as readonly string[]).includes(mimeType) ? "video" : "image");
 
     // Create project record — user_id is null for guests
     const storagePath = `projects/${userId ?? "guest"}/${crypto.randomUUID()}/${fileName}`;
@@ -161,6 +176,7 @@ export async function POST(req: Request): Promise<Response> {
         name,
         source_image_path: storagePath,
         status: "pending",
+        kind,
       })
       .select()
       .single();
