@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useEditorStore } from "@/stores/editorStore";
 import { serializeSvg } from "./EditorCanvas";
+import { StopMotionButton } from "./StopMotionButton";
 
 interface ToolbarProps {
   projectId: string;
@@ -454,6 +455,8 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
             Soon
           </span>
         </div>
+
+        <StopMotionButton projectId={projectId} />
 
         <ExportDropdown
           onDownloadSvg={handleDownload}
