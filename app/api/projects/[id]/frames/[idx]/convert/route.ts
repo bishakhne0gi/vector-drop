@@ -79,6 +79,11 @@ export async function POST(
     );
     if (insErr) throw AppError.internal(`Frame insert failed: ${insErr.message}`);
 
+    // Flip the project to "ready" on the first frame so the dashboard card becomes clickable.
+    if (idx === 0) {
+      await svc.from("projects").update({ status: "ready" }).eq("id", projectId);
+    }
+
     console.log(
       JSON.stringify({
         timestamp: new Date().toISOString(),

@@ -89,7 +89,20 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
           backgroundSize: "24px 24px",
         }}
       >
-        {project.svg_url ? (
+        {project.kind === "video" ? (
+          <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="1" />
+              <line x1="6" y1="6" x2="6" y2="18" />
+              <line x1="10" y1="6" x2="10" y2="18" />
+              <line x1="14" y1="6" x2="14" y2="18" />
+              <line x1="18" y1="6" x2="18" y2="18" />
+            </svg>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: FONT_MONO, letterSpacing: "0.08em" }}>
+              STOP MOTION
+            </span>
+          </div>
+        ) : project.svg_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={project.svg_url}
@@ -170,8 +183,12 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
 
 export function ProjectCard({ project, isGuest }: ProjectCardProps) {
   if (project.status === "ready" && !isGuest) {
+    const href =
+      project.kind === "video"
+        ? `/editor/${project.id}/stopmotion`
+        : `/editor/${project.id}`;
     return (
-      <Link href={`/editor/${project.id}`} aria-label={`Open ${project.name}`} style={{ textDecoration: "none", display: "block" }}>
+      <Link href={href} aria-label={`Open ${project.name}`} style={{ textDecoration: "none", display: "block" }}>
         <CardContent project={project} isGuest={isGuest} />
       </Link>
     );

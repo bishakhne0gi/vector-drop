@@ -79,6 +79,7 @@ export interface Project {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  kind?: "image" | "video";
 }
 
 export type ConversionStep = "upload" | "normalize" | "trace" | "assemble";
