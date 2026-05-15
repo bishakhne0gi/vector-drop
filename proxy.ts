@@ -9,16 +9,16 @@ function applySecurityHeaders(response: NextResponse): void {
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com https://us-assets.i.posthog.com`,
-    `style-src 'self' 'unsafe-inline' https://*.clerk.com`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us-assets.i.posthog.com`,
+    `style-src 'self' 'unsafe-inline' https://*.clerk.com https://clerk.vectordrop.co.in`,
     `img-src 'self' blob: data: https:`,
-    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}`,
-    "font-src 'self' data: https://*.clerk.com",
+    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}`,
+    "font-src 'self' data: https://*.clerk.com https://clerk.vectordrop.co.in",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self' https://*.clerk.com https://*.clerk.accounts.dev",
+    "form-action 'self' https://*.clerk.com https://*.clerk.accounts.dev https://clerk.vectordrop.co.in",
     "frame-ancestors 'none'",
-    "frame-src https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+    "frame-src https://*.clerk.com https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com",
     "worker-src blob:",
   ].join('; ')
 
