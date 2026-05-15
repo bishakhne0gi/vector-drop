@@ -2,9 +2,12 @@
 
 import { useCallback, useState } from "react";
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
+const ACCEPTED_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES] as const;
 type AcceptedMime = (typeof ACCEPTED_TYPES)[number];
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_VIDEO_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const FONT_MONO = "auxMono, monospace";
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -14,12 +17,19 @@ interface DropZoneProps {
   disabled?: boolean;
 }
 
+function isVideo(file: File): boolean {
+  return (VIDEO_TYPES as readonly string[]).includes(file.type);
+}
+
 function validate(file: File): string | null {
   if (!ACCEPTED_TYPES.includes(file.type as AcceptedMime)) {
-    return "Only JPEG, PNG, and WebP images are supported.";
+    return "Supported formats: JPEG, PNG, WebP images, or MP4/WebM/MOV videos.";
   }
-  if (file.size > MAX_BYTES) {
-    return "File must be 10 MB or smaller.";
+  const cap = isVideo(file) ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size > cap) {
+    return isVideo(file)
+      ? "Video must be 25 MB or smaller."
+      : "Image must be 10 MB or smaller.";
   }
   return null;
 }

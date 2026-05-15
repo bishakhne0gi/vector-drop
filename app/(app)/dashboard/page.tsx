@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { usePostHog } from "posthog-js/react";
@@ -61,7 +62,14 @@ async function fetchProjects(userId: string | null | undefined): Promise<Project
   }
 }
 
-async function createAndConvert(file: File): Promise<{ jobId: string; projectId: string }> {
+const VIDEO_MIMES = ["video/mp4", "video/webm", "video/quicktime"] as const;
+
+type CreateResult =
+  | { kind: "image"; jobId: string; projectId: string }
+  | { kind: "video"; projectId: string };
+
+async function createAndConvert(file: File): Promise<CreateResult> {
+  const isVideo = (VIDEO_MIMES as readonly string[]).includes(file.type);
   const body: CreateProjectRequest = {
     name: file.name
       .replace(/\.[^.]+$/, "")
@@ -71,6 +79,7 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
       .replace(/[^a-zA-Z0-9.]/g, ""),
     mimeType: file.type as CreateProjectRequest["mimeType"],
     fileSizeBytes: file.size,
+    ...(isVideo ? { kind: "video" as const } : {}),
   };
   const createRes = await fetch("/api/projects", {
     method: "POST",
@@ -93,7 +102,12 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
     headers: { "Content-Type": file.type },
     body: file,
   });
-  if (!uploadRes.ok) throw new Error("Failed to upload image");
+  if (!uploadRes.ok) throw new Error(isVideo ? "Failed to upload video" : "Failed to upload image");
+
+  if (isVideo) {
+    // Video flow: skip the convert step here — the processing page does it client-side.
+    return { kind: "video", projectId: project.id };
+  }
 
   const convertRes = await fetch(`/api/projects/${project.id}/convert`, {
     method: "POST",
@@ -102,7 +116,7 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
   });
   if (!convertRes.ok) throw new Error("Failed to start conversion");
   const { jobId } = (await convertRes.json()) as ConvertProjectResponse;
-  return { jobId, projectId: project.id };
+  return { kind: "image", jobId, projectId: project.id };
 }
 
 /* ─── Skeleton card ─────────────────────────────────────────────────────────── */
@@ -167,6 +181,7 @@ export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const ph = usePostHog();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
 
@@ -203,7 +218,12 @@ export default function DashboardPage() {
       ph.capture("conversion_started");
     },
     onSuccess: (data) => {
-      setActiveJob(data);
+      if (data.kind === "video") {
+        setHintPhase(null);
+        router.push(`/processing/video/${data.projectId}`);
+        return;
+      }
+      setActiveJob({ jobId: data.jobId, projectId: data.projectId });
       setHintPhase("converting");
     },
     onError: (err) => {

@@ -113,8 +113,15 @@ export interface AISuggestionCache {
 export interface CreateProjectRequest {
   name: string;
   fileName: string;
-  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  mimeType:
+    | "image/jpeg"
+    | "image/png"
+    | "image/webp"
+    | "video/mp4"
+    | "video/webm"
+    | "video/quicktime";
   fileSizeBytes: number;
+  kind?: "image" | "video";
 }
 
 export interface CreateProjectResponse {
