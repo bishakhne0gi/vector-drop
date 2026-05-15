@@ -12,9 +12,7 @@ import {
   enforceRateLimit,
 } from "@/lib/cache/redis";
 import { computeImageHash } from "@/lib/conversion/hash";
-import { quantizeColors } from "@/lib/conversion/quantize";
-import { traceColorMask } from "@/lib/conversion/maskTrace";
-import { assembleSvg } from "@/lib/conversion/assembleSvg";
+import { runConversionPipeline } from "@/lib/conversion/runPipeline";
 import {
   AppError,
   ConversionCacheValue,
@@ -46,34 +44,6 @@ async function downloadImage(storagePath: string): Promise<Buffer> {
   }
 
   return Buffer.from(await data.arrayBuffer());
-}
-
-async function runConversionPipeline(
-  rawBuffer: Buffer,
-  colorCount: number,
-): Promise<string> {
-  // 1. Quantize: resize, blur, extract color clusters
-  const { clusters, width, height } = await quantizeColors(rawBuffer, colorCount);
-
-  // 2. Trace each color mask — capped at 4 concurrent potrace calls
-  const totalPixels = width * height;
-  const layers: Array<{ pathD: string; color: [number, number, number] }> = [];
-
-  for (let i = 0; i < clusters.length; i += 4) {
-    const batch = clusters.slice(i, i + 4);
-    const results = await Promise.all(
-      batch.map((cluster) =>
-        traceColorMask(width, height, cluster.indices, totalPixels),
-      ),
-    );
-    for (let j = 0; j < batch.length; j++) {
-      const pathD = results[j];
-      if (pathD) layers.push({ pathD, color: batch[j].color });
-    }
-  }
-
-  // 3. Assemble
-  return assembleSvg(layers, width, height);
 }
 
 async function uploadSvg(
