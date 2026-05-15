@@ -35,10 +35,11 @@ export async function GET(
     }
 
     // For video projects, sign the source path too so the processing page can play it.
+    // 24h TTL — processing can take minutes and users may leave the tab open.
     if (project.kind === "video" && project.source_image_path) {
       const { data: signed } = await svc.storage
         .from("images")
-        .createSignedUrl(project.source_image_path, 3600);
+        .createSignedUrl(project.source_image_path, 24 * 3600);
       if (signed?.signedUrl) {
         (project as { source_url?: string }).source_url = signed.signedUrl;
       }

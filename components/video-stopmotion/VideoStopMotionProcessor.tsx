@@ -30,9 +30,24 @@ export function VideoStopMotionProcessor({ projectId, videoUrl }: Props) {
       const canvas = canvasRef.current
       if (!video || !canvas) return
       if (video.readyState < 2) {
-        await new Promise<void>((resolve) =>
-          video.addEventListener('canplay', () => resolve(), { once: true }),
-        )
+        await new Promise<void>((resolve, reject) => {
+          const onReady = () => { cleanup(); resolve() }
+          const onErr = () => {
+            cleanup()
+            const code = video.error?.code
+            const msg =
+              code === 4
+                ? 'Video format not supported by your browser. Try an H.264 .mp4 (iPhone: Settings → Camera → Formats → "Most Compatible").'
+                : 'Failed to load the uploaded video. Try reloading the page — the signed URL may have expired.'
+            reject(new Error(msg))
+          }
+          const cleanup = () => {
+            video.removeEventListener('canplay', onReady)
+            video.removeEventListener('error', onErr)
+          }
+          video.addEventListener('canplay', onReady, { once: true })
+          video.addEventListener('error', onErr, { once: true })
+        })
       }
       if (cancelled) return
 
