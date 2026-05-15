@@ -29,30 +29,52 @@ export function VideoStopMotionProcessor({ projectId, videoUrl }: Props) {
       const video = videoRef.current
       const canvas = canvasRef.current
       if (!video || !canvas) return
-      if (video.readyState < 2) {
-        await new Promise<void>((resolve, reject) => {
-          const onReady = () => { cleanup(); resolve() }
+
+      // Wait until duration is reliably known: loadedmetadata fired AND duration is a finite positive number.
+      // Chrome's `canplay` can fire before duration is finalised for some encodings.
+      async function waitForKnownDuration(): Promise<number> {
+        const isUsable = () =>
+          video.readyState >= 1 &&
+          Number.isFinite(video.duration) &&
+          video.duration > 0
+        if (isUsable()) return video.duration
+
+        return new Promise<number>((resolve, reject) => {
+          const onUpdate = () => {
+            if (isUsable()) {
+              cleanup()
+              resolve(video.duration)
+            }
+          }
           const onErr = () => {
             cleanup()
             const code = video.error?.code
-            const msg =
-              code === 4
-                ? 'Video format not supported by your browser. Try an H.264 .mp4 (iPhone: Settings → Camera → Formats → "Most Compatible").'
-                : 'Failed to load the uploaded video. Try reloading the page — the signed URL may have expired.'
-            reject(new Error(msg))
+            reject(
+              new Error(
+                code === 4
+                  ? 'Video could not be decoded. Use an H.264 .mp4 (iPhone: Settings → Camera → Formats → "Most Compatible").'
+                  : 'Failed to load the uploaded video. Try reloading the page — the signed URL may have expired.',
+              ),
+            )
           }
           const cleanup = () => {
-            video.removeEventListener('canplay', onReady)
+            video.removeEventListener('loadedmetadata', onUpdate)
+            video.removeEventListener('durationchange', onUpdate)
+            video.removeEventListener('canplay', onUpdate)
             video.removeEventListener('error', onErr)
           }
-          video.addEventListener('canplay', onReady, { once: true })
+          video.addEventListener('loadedmetadata', onUpdate)
+          video.addEventListener('durationchange', onUpdate)
+          video.addEventListener('canplay', onUpdate)
           video.addEventListener('error', onErr, { once: true })
         })
       }
+
+      const durationSec = await waitForKnownDuration()
       if (cancelled) return
 
       const stamps = samplePlan({
-        durationSec: video.duration,
+        durationSec,
         samplingFps: 8,
         maxFrames: 40,
       })
@@ -116,8 +138,7 @@ export function VideoStopMotionProcessor({ projectId, videoUrl }: Props) {
           src={videoUrl}
           muted
           playsInline
-          autoPlay
-          loop
+          preload="auto"
           className="max-h-full max-w-full"
           crossOrigin="anonymous"
         />
