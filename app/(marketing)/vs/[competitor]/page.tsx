@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SITE_URL } from "@/lib/seo/site";
 import { comparisons, comparisonBySlug } from "@/lib/pseo/comparisons";
 import {
   JsonLd,
@@ -21,9 +22,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { competitor } = await params;
   const entry = comparisonBySlug.get(competitor);
   if (!entry) return {};
-  const title = `Free ${entry.competitor} Alternative (2026)`;
-  const description = `${entry.tagline} Side-by-side features, pricing, and when to pick each.`.slice(0, 158);
-  const url = `https://vectordrop.co.in/vs/${entry.slug}`;
+  const title = entry.metaTitle ?? `Free ${entry.competitor} Alternative (2026)`;
+  const description = (
+    entry.metaDescription ??
+    `${entry.tagline} Side-by-side features, pricing, and when to pick each.`
+  ).slice(0, 158);
+  const url = `${SITE_URL}/vs/${entry.slug}`;
   return {
     title,
     description,

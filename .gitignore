@@ -46,3 +46,11 @@ skills-lock.json
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# google oauth client secrets + cached tokens
+client_secret*.json
+client_secrets*.json
+.gsc-token.json
+
+# local mcp server config (machine-specific absolute paths)
+.mcp.json

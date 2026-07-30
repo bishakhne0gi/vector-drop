@@ -5,6 +5,7 @@ import { QueryProvider } from "@/components/shared/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { PostHogProvider } from "@/components/shared/PostHogProvider";
 import { Analytics } from "@vercel/analytics/next";
+import { SITE_URL } from "@/lib/seo/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vectordrop.co.in"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Free Image to SVG Converter — Vectorize PNG & JPG in Seconds",
     template: "%s | VectorDrop",
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     "bitmap to vector",
     "online svg converter",
   ],
-  authors: [{ name: "VectorDrop", url: "https://vectordrop.co.in" }],
+  authors: [{ name: "VectorDrop", url: SITE_URL }],
   creator: "VectorDrop",
   publisher: "VectorDrop",
   robots: {
@@ -55,12 +56,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://vectordrop.co.in",
+    url: SITE_URL,
     siteName: "VectorDrop",
     title: "Free Image to SVG Converter — Vectorize PNG & JPG in Seconds",
     description:
       "Turn any PNG or JPG into a clean, editable SVG in seconds. Free and browser-based.",
-    images: ["https://vectordrop.co.in/opengraph-image"],
+    images: [`${SITE_URL}/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",
@@ -69,10 +70,10 @@ export const metadata: Metadata = {
       "Turn any PNG or JPG into a clean SVG in seconds. Free and browser-based. Illustrator Image Trace & Vectorizer.AI alternative.",
     site: "@vectordrop",
     creator: "@vectordrop",
-    images: ["https://vectordrop.co.in/opengraph-image"],
+    images: [`${SITE_URL}/opengraph-image`],
   },
   alternates: {
-    canonical: "https://vectordrop.co.in",
+    canonical: `${SITE_URL}/`,
   },
   icons: {
     icon: "/icon",
@@ -86,29 +87,24 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://vectordrop.co.in/#org",
+      "@id": `${SITE_URL}/#org`,
       name: "VectorDrop",
-      url: "https://vectordrop.co.in",
-      logo: "https://vectordrop.co.in/icon",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon`,
       sameAs: ["https://x.com/vectordrop"],
     },
     {
       "@type": "WebSite",
-      "@id": "https://vectordrop.co.in/#website",
-      url: "https://vectordrop.co.in",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
       name: "VectorDrop",
-      publisher: { "@id": "https://vectordrop.co.in/#org" },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: "https://vectordrop.co.in/search?q={search_term_string}",
-        "query-input": "required name=search_term_string",
-      },
+      publisher: { "@id": `${SITE_URL}/#org` },
     },
     {
       "@type": "SoftwareApplication",
-      "@id": "https://vectordrop.co.in/#app",
+      "@id": `${SITE_URL}/#app`,
       name: "VectorDrop",
-      url: "https://vectordrop.co.in",
+      url: SITE_URL,
       description:
         "Convert PNG, JPG, and raster images to clean, editable SVG vectors instantly. Free, fast, and browser-based.",
       applicationCategory: "DesignApplication",

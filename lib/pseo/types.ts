@@ -4,6 +4,13 @@ export type ComparisonEntry = {
   slug: string;
   competitor: string;
   competitorUrl?: string;
+  /**
+   * Override the generated `Free <competitor> Alternative` title/description.
+   * Use when GSC shows the page earns its impressions from generic tool intent
+   * rather than "<competitor> alternative" intent.
+   */
+  metaTitle?: string;
+  metaDescription?: string;
   tagline: string;
   lead: string;
   verdict: string;

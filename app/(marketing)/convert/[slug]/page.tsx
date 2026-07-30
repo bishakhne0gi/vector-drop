@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SITE_URL } from "@/lib/seo/site";
 import { formats, formatBySlug } from "@/lib/pseo/formats";
 import {
   JsonLd,
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!entry) return {};
   const title = `${entry.from} to ${entry.to} Converter — Free & Instant`;
   const description = `${entry.tagline} Convert ${entry.from} to editable ${entry.to} in seconds — free and browser-based.`.slice(0, 158);
-  const url = `https://vectordrop.co.in/convert/${entry.slug}`;
+  const url = `${SITE_URL}/convert/${entry.slug}`;
   return {
     title,
     description,

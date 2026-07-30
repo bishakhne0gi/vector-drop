@@ -10,6 +10,7 @@ const FONT_MONO = "auxMono, monospace";
 const COLS = [
   {
     label: "Convert",
+    href: "/convert",
     color: "#f97316",
     items: formats.map((f) => ({
       href: `/convert/${f.slug}`,
@@ -18,6 +19,7 @@ const COLS = [
   },
   {
     label: "Compare",
+    href: "/vs",
     color: "#a855f7",
     items: comparisons.map((c) => ({
       href: `/vs/${c.slug}`,
@@ -26,6 +28,7 @@ const COLS = [
   },
   {
     label: "Guides",
+    href: "/how-to",
     color: "#a3e635",
     items: howTos.map((h) => ({
       href: `/how-to/${h.slug}`,
@@ -34,6 +37,7 @@ const COLS = [
   },
   {
     label: "For",
+    href: "/for",
     color: "#22d3ee",
     items: useCases.map((u) => ({
       href: `/for/${u.slug}`,
@@ -83,7 +87,9 @@ export function SiteLinks() {
                   display: "inline-block",
                 }}
               />
-              <span
+              <Link
+                href={col.href}
+                className="no-underline hover:underline"
                 style={{
                   fontFamily: FONT_MONO,
                   fontSize: 10,
@@ -93,7 +99,7 @@ export function SiteLinks() {
                 }}
               >
                 {col.label}
-              </span>
+              </Link>
             </div>
             <ul className="space-y-3 list-none p-0 m-0">
               {col.items.map((item) => (

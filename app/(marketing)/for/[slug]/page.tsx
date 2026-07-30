@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SITE_URL } from "@/lib/seo/site";
 import { useCases, useCaseBySlug } from "@/lib/pseo/use-cases";
 import {
   JsonLd,
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!entry) return {};
   const title = `${entry.title} — Free SVG Tool for ${entry.audience}`;
   const description = `${entry.tagline} Tips, real examples, and FAQs for ${entry.audience}.`.slice(0, 158);
-  const url = `https://vectordrop.co.in/for/${entry.slug}`;
+  const url = `${SITE_URL}/for/${entry.slug}`;
   return {
     title,
     description,

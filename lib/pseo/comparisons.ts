@@ -92,6 +92,11 @@ export const comparisons: ComparisonEntry[] = [
     slug: "illustrator-image-trace",
     competitor: "Adobe Illustrator Image Trace",
     competitorUrl: "https://helpx.adobe.com/illustrator/using/image-trace.html",
+    // GSC: this page's impressions come from generic "image trace" / "image trace ai"
+    // queries, not "illustrator alternative" queries — the meta targets that intent.
+    metaTitle: "Free Image Trace Online — No Illustrator Needed",
+    metaDescription:
+      "Trace any image to clean vector paths free in your browser. A no-subscription replacement for Adobe Illustrator's Image Trace — compared side by side.",
     tagline: "Free browser replacement for Adobe Illustrator's Image Trace.",
     lead: "Illustrator's Image Trace is powerful but locked behind a Creative Cloud subscription and a desktop install. VectorDrop gives you comparable raster-to-vector tracing for free, in any modern browser, on any OS.",
     verdict: "If Image Trace is the only Illustrator feature you use, VectorDrop can replace it entirely — for free, with a faster workflow.",
@@ -128,6 +133,22 @@ export const comparisons: ComparisonEntry[] = [
       {
         q: "Does VectorDrop work on Linux or ChromeOS?",
         a: "Yes. VectorDrop runs in any modern browser, so it works on Linux, ChromeOS, and older hardware that can't run Illustrator.",
+      },
+      {
+        q: "What is image tracing?",
+        a: "Image tracing is the process of converting a raster image — one made of pixels, like a PNG or JPG — into vector paths made of mathematical curves. The result scales to any size without blurring and can be edited shape by shape, which pixels cannot.",
+      },
+      {
+        q: "Is image trace AI-powered?",
+        a: "Mostly no, and this is a common misconception. Classic image tracing — including Illustrator's Image Trace and VectorDrop — uses deterministic edge-detection and curve-fitting algorithms rather than a neural network. That is an advantage for this task: the output is predictable and repeatable, and it reproduces your actual artwork instead of generating a new interpretation of it.",
+      },
+      {
+        q: "Can I use Image Trace online without Illustrator?",
+        a: "Yes. Illustrator itself is desktop-only and requires a Creative Cloud subscription, but VectorDrop does the equivalent trace in the browser for free, on any operating system.",
+      },
+      {
+        q: "What is the best image tracing software?",
+        a: "It depends on the job. For quick logo, icon, and line-art tracing, a free browser tool like VectorDrop is the fastest route. For heavy post-trace vector editing, Illustrator remains the most capable. For a free desktop option with fine-grained manual control, Inkscape's Trace Bitmap is strong.",
       },
     ],
   },

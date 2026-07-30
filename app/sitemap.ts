@@ -1,21 +1,32 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo/site";
 import { comparisons } from "@/lib/pseo/comparisons";
 import { formats } from "@/lib/pseo/formats";
 import { useCases } from "@/lib/pseo/use-cases";
 import { howTos } from "@/lib/pseo/how-tos";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://vectordrop.co.in";
+  const base = SITE_URL;
   const now = new Date();
 
   const entries: MetadataRoute.Sitemap = [
     {
-      url: base,
+      url: `${base}/`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 1,
     },
   ];
+
+  // Cluster hubs — crawl entry points for each pSEO section.
+  for (const hub of ["convert", "vs", "how-to", "for"]) {
+    entries.push({
+      url: `${base}/${hub}`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    });
+  }
 
   for (const c of comparisons) {
     entries.push({
