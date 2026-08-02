@@ -40,6 +40,19 @@ const isProtectedPath = createRouteMatcher([
 
 const isAuthPath = createRouteMatcher(['/login(.*)'])
 
+// The admin portal. Never indexed, never reachable by a non-allowlisted account.
+// Deliberately NOT in isProtectedPath: a redirect to /login would confirm the
+// route exists. Rejections rewrite to an unmatched path so the response is
+// byte-for-byte the same 404 any random URL produces.
+const isAdminPath = createRouteMatcher(['/hades(.*)'])
+
+const NOT_FOUND_REWRITE = '/_hades_absent'
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bneogi102002@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean)
+
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { userId, sessionClaims } = await auth()
 
@@ -53,6 +66,21 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
         console.error('[legacy-remap]', err),
       ),
     )
+  }
+
+  // Defence in depth for /hades. The authoritative check is requireAdmin() in
+  // every admin page — it re-reads the *verified* primary email from the Clerk
+  // API. This layer rejects earlier, before any page code runs, when the
+  // request is plainly not the admin's. A session whose token carries no email
+  // claim falls through to requireAdmin rather than risk locking the owner out.
+  if (isAdminPath(req)) {
+    const claimEmail =
+      typeof sessionClaims?.email === 'string'
+        ? sessionClaims.email.toLowerCase()
+        : null
+    if (!userId || (claimEmail && !ADMIN_EMAILS.includes(claimEmail))) {
+      return NextResponse.rewrite(new URL(NOT_FOUND_REWRITE, req.url))
+    }
   }
 
   // Unauthenticated users must not reach protected routes.
@@ -69,6 +97,17 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   const response = NextResponse.next()
   applySecurityHeaders(response)
+
+  // Belt and braces on top of the route's `robots` metadata: this covers every
+  // response under /hades, HTML or not, and every crawler that honours it.
+  if (isAdminPath(req)) {
+    response.headers.set(
+      'X-Robots-Tag',
+      'noindex, nofollow, noarchive, nosnippet, noimageindex',
+    )
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+  }
+
   return response
 })
 
