@@ -56,6 +56,23 @@ surfaces each user's 2FA state on their detail page.
 | `/hades/conversions` | Every upload with its source thumbnail and generated SVG side by side. Filter by day and status, 50 per page. |
 | `/hades/users` | Clerk directory joined with per-user conversion/icon/feedback counts. Search by email, name or id; sort by activity, volume or signup date. |
 | `/hades/users/[id]` | One user: totals, account state, conversions grouped by day with previews, icons, feedback. |
+| `/hades/feedback` | Every rating and comment with the account that left it. Rating distribution, average, filters by rating / source page / day / has-a-comment / single user. |
+
+## How feedback is attributed
+
+`feedback.user_id` is a nullable Clerk id. Clerk owns the emails, Supabase owns
+the rows, so the portal joins them in memory (`userById`) and every row lands in
+one of three states, rendered consistently by `<UserCell>`:
+
+| `user_id` | Renders as | Meaning |
+| --- | --- | --- |
+| matches a Clerk user | their email, linked to `/hades/users/<id>` | Signed-in user |
+| `null` | `guest` | Left while logged out — genuinely unattributable |
+| set, but unknown to Clerk | `unknown account`, still linked | Deleted account, or a legacy dev-instance id (see `remap-legacy-user.ts`) |
+
+The third case is never silently dropped — a 1★ review from an account you can
+no longer name still has to be visible. `/hades/feedback?user=<id>` filters to
+one account, and `?user=guest` to anonymous submissions only.
 
 ## Implementation notes
 

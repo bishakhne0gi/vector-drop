@@ -66,6 +66,7 @@ const NAV = [
   { href: "/hades", label: "Overview" },
   { href: "/hades/conversions", label: "Conversions" },
   { href: "/hades/users", label: "Users" },
+  { href: "/hades/feedback", label: "Feedback" },
 ] as const;
 
 export function AdminShell({
@@ -283,6 +284,45 @@ export function StatusBadge({ status }: { status: string }) {
     >
       {status}
     </span>
+  );
+}
+
+export function Stars({ rating }: { rating: number | null }) {
+  if (!rating) return <span style={{ color: T.textMut }}>—</span>;
+  const tone = rating >= 4 ? T.ok : rating === 3 ? T.warn : T.bad;
+  return (
+    <span style={{ whiteSpace: "nowrap" }} title={`${rating} out of 5`}>
+      <span style={{ color: tone }}>{"★".repeat(rating)}</span>
+      <span style={{ color: T.textMut }}>{"★".repeat(5 - rating)}</span>
+    </span>
+  );
+}
+
+/**
+ * Attributes a row to a user. Feedback and projects both allow a null user_id
+ * (guests), and both can carry an id Clerk no longer knows — render all three
+ * cases the same way everywhere.
+ */
+export function UserCell({
+  userId,
+  email,
+}: {
+  userId: string | null;
+  email?: string | null;
+}) {
+  if (!userId) return <span style={{ color: T.textMut }}>guest</span>;
+  return (
+    <Link
+      href={`/hades/users/${userId}`}
+      style={{
+        color: email ? T.text : T.textSec,
+        textDecoration: "none",
+        borderBottom: `1px solid ${T.borderStrong}`,
+      }}
+      title={userId}
+    >
+      {email ?? "unknown account"}
+    </Link>
   );
 }
 

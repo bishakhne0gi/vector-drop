@@ -21,6 +21,7 @@ import {
   Td,
   Th,
   Thumb,
+  UserCell,
   fmtDateTime,
 } from "@/components/admin/ui";
 
@@ -177,16 +178,7 @@ export default async function ConversionsPage({
                   </span>
                 </Td>
                 <Td mono>
-                  {p.user_id ? (
-                    <Link
-                      href={`/hades/users/${p.user_id}`}
-                      style={{ color: T.text, textDecoration: "none", borderBottom: `1px solid ${T.borderStrong}` }}
-                    >
-                      {user?.email ?? p.user_id}
-                    </Link>
-                  ) : (
-                    <span style={{ color: T.textMut }}>guest</span>
-                  )}
+                  <UserCell userId={p.user_id} email={user?.email} />
                 </Td>
                 <Td>
                   <StatusBadge status={p.status} />

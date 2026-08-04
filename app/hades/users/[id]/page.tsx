@@ -18,6 +18,7 @@ import {
   PageTitle,
   StatCard,
   StatGrid,
+  Stars,
   StatusBadge,
   T,
   Table,
@@ -246,9 +247,29 @@ export default async function UserDetailPage({
         </tbody>
       </Table>
 
-      <h2 style={{ fontSize: 15, fontWeight: 500, margin: "28px 0 12px" }}>
-        Feedback
-      </h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          margin: "28px 0 12px",
+        }}
+      >
+        <h2 style={{ fontSize: 15, fontWeight: 500, margin: 0 }}>Feedback</h2>
+        {feedback.length > 0 ? (
+          <Link
+            href={`/hades/feedback?user=${encodeURIComponent(id)}`}
+            style={{
+              fontFamily: T.fontMono,
+              fontSize: 11,
+              color: T.textSec,
+              textDecoration: "none",
+            }}
+          >
+            in feedback view →
+          </Link>
+        ) : null}
+      </div>
       <Table>
         <thead>
           <tr>
@@ -261,7 +282,9 @@ export default async function UserDetailPage({
         <tbody>
           {feedback.map((f) => (
             <tr key={f.id}>
-              <Td mono>{f.rating ? "★".repeat(f.rating) : "—"}</Td>
+              <Td>
+                <Stars rating={f.rating} />
+              </Td>
               <Td mono>{f.page}</Td>
               <Td>{f.message ?? <span style={{ color: T.textMut }}>—</span>}</Td>
               <Td mono>{fmtDateTime(f.created_at)}</Td>

@@ -19,10 +19,12 @@ import {
   PageTitle,
   StatCard,
   StatGrid,
+  Stars,
   T,
   Table,
   Td,
   Th,
+  UserCell,
   fmtDay,
   fmtRelative,
 } from "@/components/admin/ui";
@@ -263,13 +265,13 @@ export default async function HadesOverviewPage() {
                       style={{
                         fontFamily: T.fontMono,
                         fontSize: 11,
-                        color: T.textMut,
                         marginTop: 3,
                       }}
                     >
-                      {p.user_id
-                        ? (emailById.get(p.user_id) ?? p.user_id)
-                        : "guest"}
+                      <UserCell
+                        userId={p.user_id}
+                        email={p.user_id ? emailById.get(p.user_id) : null}
+                      />
                     </div>
                   </div>
                   <div
@@ -289,9 +291,29 @@ export default async function HadesOverviewPage() {
         </div>
 
         <div>
-          <h2 style={{ fontSize: 15, fontWeight: 500, margin: "0 0 12px" }}>
-            Latest feedback
-          </h2>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              margin: "0 0 12px",
+            }}
+          >
+            <h2 style={{ fontSize: 15, fontWeight: 500, margin: 0 }}>
+              Latest feedback
+            </h2>
+            <Link
+              href="/hades/feedback"
+              style={{
+                fontFamily: T.fontMono,
+                fontSize: 11,
+                color: T.textSec,
+                textDecoration: "none",
+              }}
+            >
+              all {feedback.length} →
+            </Link>
+          </div>
           <Card style={{ padding: 0 }}>
             {recentFeedback.length === 0 ? (
               <div
@@ -325,11 +347,23 @@ export default async function HadesOverviewPage() {
                     }}
                   >
                     <span>
-                      {f.rating ? "★".repeat(f.rating) : "—"} · {f.page}
+                      <Stars rating={f.rating} /> · {f.page}
                     </span>
                     <span>{fmtRelative(f.created_at)}</span>
                   </div>
-                  {f.message ? (
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontFamily: T.fontMono,
+                      fontSize: 11,
+                    }}
+                  >
+                    <UserCell
+                      userId={f.user_id}
+                      email={f.user_id ? emailById.get(f.user_id) : null}
+                    />
+                  </div>
+                  {f.message?.trim() ? (
                     <div style={{ marginTop: 6, fontSize: 13, color: T.textSec }}>
                       {f.message}
                     </div>

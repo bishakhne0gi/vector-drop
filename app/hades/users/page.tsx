@@ -183,6 +183,7 @@ export default async function UsersPage({
             <Th align="right">Ready</Th>
             <Th align="right">Failed</Th>
             <Th align="right">Icons</Th>
+            <Th align="right">Feedback</Th>
             <Th>Joined</Th>
             <Th>Last activity</Th>
             <Th />
@@ -232,6 +233,18 @@ export default async function UsersPage({
               <Td align="right" mono>
                 {act.icons}
               </Td>
+              <Td align="right" mono>
+                {act.feedback > 0 ? (
+                  <Link
+                    href={`/hades/feedback?user=${encodeURIComponent(user.id)}`}
+                    style={{ color: T.text, textDecoration: "none" }}
+                  >
+                    {act.feedback}
+                  </Link>
+                ) : (
+                  <span style={{ color: T.textMut }}>0</span>
+                )}
+              </Td>
               <Td mono>{fmtDateTime(user.createdAt)}</Td>
               <Td mono>
                 {fmtRelative(act.lastActivity ?? user.lastSignInAt)}
@@ -253,7 +266,7 @@ export default async function UsersPage({
             </tr>
           ))}
           {slice.length === 0 ? (
-            <EmptyRow colSpan={8} label="No users match this search" />
+            <EmptyRow colSpan={9} label="No users match this search" />
           ) : null}
         </tbody>
       </Table>
