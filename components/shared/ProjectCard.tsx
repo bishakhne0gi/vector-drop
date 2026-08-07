@@ -15,7 +15,6 @@ const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: s
 
 interface ProjectCardProps {
   project: Project;
-  isGuest?: boolean;
 }
 
 function StatusBadge({ status, pulse }: { status: ProjectStatus; pulse: boolean }) {
@@ -52,7 +51,7 @@ function StatusBadge({ status, pulse }: { status: ProjectStatus; pulse: boolean 
   );
 }
 
-function CardContent({ project, isGuest }: ProjectCardProps) {
+function CardContent({ project }: ProjectCardProps) {
   const isReady = project.status === "ready";
 
   return (
@@ -153,9 +152,6 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
           <StatusBadge status={project.status} pulse={STATUS_CONFIG[project.status].pulse} />
-          {isGuest && project.status === "ready" && (
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: FONT_MONO }}>Sign in to export</span>
-          )}
         </div>
       </div>
 
@@ -168,14 +164,14 @@ function CardContent({ project, isGuest }: ProjectCardProps) {
   );
 }
 
-export function ProjectCard({ project, isGuest }: ProjectCardProps) {
-  if (project.status === "ready" && !isGuest) {
+export function ProjectCard({ project }: ProjectCardProps) {
+  if (project.status === "ready") {
     return (
       <Link href={`/editor/${project.id}`} aria-label={`Open ${project.name}`} style={{ textDecoration: "none", display: "block" }}>
-        <CardContent project={project} isGuest={isGuest} />
+        <CardContent project={project} />
       </Link>
     );
   }
 
-  return <CardContent project={project} isGuest={isGuest} />;
+  return <CardContent project={project} />;
 }

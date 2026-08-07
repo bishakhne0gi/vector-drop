@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEditorStore } from "@/stores/editorStore";
 import { serializeSvg } from "./EditorCanvas";
+import { BuyCreditsModal } from "@/components/shared/BuyCreditsModal";
 
 interface ToolbarProps {
   projectId: string;
@@ -229,8 +231,11 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
   const canRedo = historyIndex < history.length - 1;
 
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [exportState, setExportState] = useState<"idle" | "exporting" | "error">("idle");
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -268,6 +273,10 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message ?? `Save failed (${res.status})`);
       }
+      // The saved version must appear in the panel immediately — otherwise the
+      // user cannot tell whether their edit was captured.
+      void queryClient.invalidateQueries({ queryKey: ["versions", projectId] });
+
       setSaveState("success");
       successTimerRef.current = setTimeout(() => setSaveState("idle"), 2500);
     } catch (err) {
@@ -285,24 +294,83 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
     return serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
   }
 
-  function handleDownload() {
-    const svgContent = getSvgContent();
-    if (!svgContent) return;
-    const blob = new Blob([svgContent], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${projectName}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  /**
+   * Exports through the metered API rather than serialising in the browser.
+   *
+   * The old client-side Blob download bypassed the server entirely, so edited
+   * versions could be taken for free. Everything now goes: save (which creates
+   * or finds the version) -> export that exact version id -> charge if it is an
+   * edit and not already unlocked.
+   *
+   * Saving first is not overhead — it is what makes the export identifiable and
+   * therefore free to re-download later.
+   */
+  async function exportViaApi(format: "svg" | "png") {
+    if (!svgMeta || exportState === "exporting") return;
+    setExportState("exporting");
+    setErrorMsg(null);
+
+    try {
+      const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
+
+      const saveRes = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ svg_content: svgContent }),
+      });
+      if (!saveRes.ok) {
+        const body = (await saveRes.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? `Save failed (${saveRes.status})`);
+      }
+      const { version } = (await saveRes.json()) as { version: { id: string } | null };
+      if (!version) throw new Error("No version was produced for this export");
+
+      const params = new URLSearchParams({ format, versionId: version.id, download: "1" });
+      const res = await fetch(`/api/projects/${projectId}/export?${params}`);
+
+      if (res.status === 402) {
+        setExportState("idle");
+        setShowBuyModal(true);
+        return;
+      }
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? `Export failed (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${projectName}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // The badge must move when something is spent.
+      void queryClient.invalidateQueries({ queryKey: ["credits"] });
+      void queryClient.invalidateQueries({ queryKey: ["versions", projectId] });
+
+      setExportState("idle");
+    } catch (err) {
+      setErrorMsg((err as Error).message);
+      setExportState("error");
+      setTimeout(() => {
+        setExportState("idle");
+        setErrorMsg(null);
+      }, 4000);
+    }
   }
 
-  function handleExportPng(scale: number) {
-    const svgContent = getSvgContent();
-    if (!svgContent || !svgMeta) return;
-    exportPng(svgContent, svgMeta.width, svgMeta.height, scale, projectName);
+  function handleDownload() {
+    void exportViaApi("svg");
+  }
+
+  function handleExportPng(_scale: number) {
+    // Scale is handled server-side by sharp; the API renders from the stored
+    // version so the output matches what was actually saved.
+    void exportViaApi("png");
   }
 
   function handleCopySvg() {
@@ -446,6 +514,16 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
             Saved
           </span>
         )}
+        {exportState === "exporting" && (
+          <span className="text-xs text-[var(--text-muted)]" role="status">
+            Exporting…
+          </span>
+        )}
+        {exportState === "error" && errorMsg && (
+          <span className="text-xs text-[var(--destructive)]" role="alert">
+            {errorMsg}
+          </span>
+        )}
 
         {/* Coming soon badge */}
         <div className="hidden items-center gap-1.5 border border-[var(--border-glass)] bg-[var(--bg-glass)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] md:flex" style={{ fontFamily: "auxMono, monospace", letterSpacing: "0.05em" }}>
@@ -461,33 +539,45 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
           onExportPng2x={() => handleExportPng(2)}
           onCopySvg={handleCopySvg}
           onCopyDataUrl={handleCopyDataUrl}
-          disabled={!svgMeta}
+          disabled={!svgMeta || exportState === "exporting"}
         />
 
-        <Tooltip label="Coming soon">
+        <BuyCreditsModal
+          open={showBuyModal}
+          onClose={() => setShowBuyModal(false)}
+          blockedAction="export this version"
+        />
+
+        {/* Saving is free and is what creates a version. It was previously
+            disabled behind a "Coming soon" tooltip, so edits could never be
+            saved — and therefore never exported. */}
+        <Tooltip label="⌘S">
           <button
-            disabled
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={!svgMeta || saveState === "saving"}
             style={{
               display: "flex",
               height: 32,
               alignItems: "center",
               gap: 8,
               padding: "0 16px",
-              background: "rgba(255,255,255,0.05)",
+              background: saveState === "saving" ? "rgba(255,255,255,0.10)" : "#ffffff",
               border: "1px solid rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.40)",
+              color: saveState === "saving" ? "rgba(255,255,255,0.70)" : "#161516",
               fontSize: 10,
               fontFamily: "auxMono, monospace",
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              fontWeight: 600,
-              cursor: "not-allowed",
+              fontWeight: 700,
+              cursor: !svgMeta || saveState === "saving" ? "wait" : "pointer",
               borderRadius: 0,
-              opacity: 0.5,
+              opacity: !svgMeta ? 0.5 : 1,
+              transition: "background 0.15s, color 0.15s",
             }}
             aria-label="Save project"
           >
-            Save
+            {saveState === "saving" ? "Saving…" : "Save"}
           </button>
         </Tooltip>
       </div>

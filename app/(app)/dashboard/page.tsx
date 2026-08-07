@@ -10,6 +10,8 @@ import { ProjectCard } from "@/components/shared/ProjectCard";
 import { Navbar } from "@/components/shared/Navbar";
 import { FloatingStatusHint } from "@/components/shared/FloatingStatusHint";
 import { FeedbackButton } from "@/components/shared/FeedbackButton";
+import { CreditToast } from "@/components/shared/CreditToast";
+import { PURCHASE_GRANT_UNITS, UNITS_PER_CREDIT } from "@/lib/credits/constants";
 import type {
   Project,
   CreateProjectRequest,
@@ -21,43 +23,16 @@ import type {
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const FONT_MONO = "auxMono, monospace";
 
-/* ─── Guest session helpers ─────────────────────────────────────────────────── */
-
-const GUEST_IDS_KEY = "vd_guest_project_ids";
-
-function getGuestIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(GUEST_IDS_KEY) ?? "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-
-function addGuestId(id: string) {
-  const ids = getGuestIds();
-  if (!ids.includes(id)) {
-    localStorage.setItem(GUEST_IDS_KEY, JSON.stringify([...ids, id]));
-  }
-}
-
-function clearGuestIds() {
-  localStorage.removeItem(GUEST_IDS_KEY);
-}
-
 /* ─── Data fetching ─────────────────────────────────────────────────────────── */
 
 async function fetchProjects(userId: string | null | undefined): Promise<Project[]> {
-  if (userId === undefined) return [];
-  if (userId) {
+  // undefined = Clerk still loading; null = signed out (the app layout redirects,
+  // so this only happens mid-transition).
+  if (!userId) return [];
+  {
     const res = await fetch("/api/projects");
     if (!res.ok) throw new Error("Failed to load projects");
-    return res.json() as Promise<Project[]>;
-  } else {
-    const ids = getGuestIds();
-    if (ids.length === 0) return [];
-    const res = await fetch(`/api/projects?ids=${ids.join(",")}`);
-    if (!res.ok) throw new Error("Failed to load projects");
-    return res.json() as Promise<Project[]>;
+    return res.json() as Promise<Project[]>
   }
 }
 
@@ -86,7 +61,6 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
     throw new Error(message);
   }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
-  if (!project.user_id) addGuestId(project.id);
 
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
@@ -169,26 +143,37 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
-
-  // Claim guest projects after login
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-    const guestIds = getGuestIds();
-    if (guestIds.length === 0) return;
-    void fetch("/api/projects/claim", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectIds: guestIds }),
-    }).then((res) => {
-      if (res.ok) {
-        clearGuestIds();
-        void queryClient.invalidateQueries({ queryKey: ["projects"] });
-        ph.capture("guest_projects_claimed", { count: guestIds.length });
-      }
-    });
-  }, [user, isLoaded, queryClient, ph]);
+  const [creditsAdded, setCreditsAdded] = useState<string | null>(null);
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
+
+  // Returning from Dodo checkout. The webhook is the primary way credits are
+  // granted, but it can be delayed or dropped — and a user staring at an
+  // unchanged balance after paying will not wait patiently. Ask Dodo directly
+  // what was paid; the grant is idempotent, so this and the webhook cannot
+  // double-credit.
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("purchase") !== "success") return;
+
+    void fetch("/api/payments/reconcile", { method: "POST" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { granted: number } | null) => {
+        void queryClient.invalidateQueries({ queryKey: ["credits"] });
+        if (body?.granted) {
+          // Confirm the money did something. The payment happened on Dodo's
+          // site, so without this the user returns to an apparently unchanged
+          // page and has to go hunting for a number.
+          setCreditsAdded(String(body.granted * (PURCHASE_GRANT_UNITS / UNITS_PER_CREDIT)));
+          ph.capture("purchase_reconciled", { granted: body.granted });
+        }
+      })
+      .finally(() => {
+        // Drop the query param so a refresh does not look like a fresh purchase.
+        window.history.replaceState({}, "", window.location.pathname);
+      });
+  }, [isLoaded, user, queryClient, ph]);
 
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ["projects", userId],
@@ -297,14 +282,16 @@ export default function DashboardPage() {
 
         {/* ── Upload / Progress zone ──────────────────────────────────────── */}
         <section className="animate-fade-up" style={{ marginBottom: 48, animationDelay: "80ms" }}>
-          {activeJob ? (
+          {/* The drop zone stays put while converting — replacing it hid the
+              thing the user just interacted with. Progress appears beneath it. */}
+          <DropZone onFile={onFile} disabled={mutation.isPending || !!activeJob} />
+
+          {activeJob && (
             <ConversionProgress
               jobId={activeJob.jobId}
               onDone={onConversionDone}
               onError={onConversionError}
             />
-          ) : (
-            <DropZone onFile={onFile} disabled={mutation.isPending} />
           )}
 
           {mutation.isError && (
@@ -369,7 +356,7 @@ export default function DashboardPage() {
             {/* Grid */}
             <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} isGuest={!user} />
+                <ProjectCard key={p.id} project={p} />
               ))}
             </div>
           </section>
@@ -378,6 +365,10 @@ export default function DashboardPage() {
 
       <FloatingStatusHint phase={hintPhase} />
       <FeedbackButton page="dashboard" />
+
+      {creditsAdded && (
+        <CreditToast credits={creditsAdded} onDismiss={() => setCreditsAdded(null)} />
+      )}
     </div>
   );
 }

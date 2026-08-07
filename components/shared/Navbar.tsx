@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { Logo } from "./Logo";
+import { CreditBadge } from "./CreditBadge";
 
 const FONT_MONO = "auxMono, monospace";
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -53,6 +54,7 @@ export function Navbar({ userName }: NavbarProps) {
 
         {isLoaded && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {user && <CreditBadge />}
             {user ? (
               <button
                 type="button"

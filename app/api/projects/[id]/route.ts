@@ -3,7 +3,8 @@ import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
-import { AppError } from "@/lib/types";
+import { createVersion } from "@/lib/versions/service";
+import { AppError, type ProjectVersion } from "@/lib/types";
 
 export async function GET(
   _req: Request,
@@ -96,6 +97,10 @@ export async function PATCH(
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) update.name = name;
 
+    // Returned to the client so the editor can export exactly what it just
+    // saved, by id, instead of re-resolving "latest" and risking a race.
+    let savedVersion: ProjectVersion | null = null;
+
     // If SVG content provided, sanitize then upload to storage and update path
     if (svg_content) {
       if (project.status !== "ready") {
@@ -104,22 +109,22 @@ export async function PATCH(
         );
       }
 
+      // Saves APPEND a version — they no longer overwrite output.svg, which
+      // used to destroy the previous SVG (including the original conversion).
+      //
+      // Saving is free. createVersion returns the existing row when the
+      // canonical content is unchanged, so saving twice without edits creates
+      // nothing and therefore cannot become chargeable later.
       const sanitized = sanitizeSvg(svg_content);
-      const svgPath = project.svg_path ?? `projects/${projectId}/output.svg`;
-      const blob = new Blob([sanitized], { type: "image/svg+xml" });
+      const { version } = await createVersion({
+        projectId,
+        userId,
+        svg: sanitized,
+        source: "edit",
+      });
 
-      const { error: uploadErr } = await svc.storage
-        .from("images")
-        .upload(svgPath, blob, { upsert: true, contentType: "image/svg+xml" });
-
-      if (uploadErr) {
-        throw AppError.storage(
-          `Failed to save SVG: ${uploadErr.message}`,
-          { svgPath },
-        );
-      }
-
-      update.svg_path = svgPath;
+      savedVersion = version;
+      update.svg_path = version.storage_path;
     }
 
     const { data: updated, error: updateErr } = await svc
@@ -146,7 +151,7 @@ export async function PATCH(
       }),
     );
 
-    return Response.json({ project: updated });
+    return Response.json({ project: updated, version: savedVersion });
   } catch (err) {
     return handleError(err, ROUTE, userId, Date.now() - start);
   }

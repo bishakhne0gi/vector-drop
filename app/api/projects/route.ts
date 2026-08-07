@@ -1,71 +1,40 @@
 import { z } from "zod";
-import { auth } from "@clerk/nextjs/server";
+
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { readRatelimit, writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { AppError, CreateProjectResponse } from "@/lib/types";
 
-const MAX_GUEST_IDS = 20;
 
-export async function GET(req: Request): Promise<Response> {
+
+export async function GET(): Promise<Response> {
   const start = Date.now();
   let userId: string | null = null;
   try {
-    const url = new URL(req.url);
-    const { userId: clerkUserId } = await auth();
-    userId = clerkUserId;
+    // Auth required — the guest listing path was removed with the POC cutover.
+    const authResult = await requireAuth();
+    userId = authResult.userId;
 
     const svc = createServiceClient();
 
-    if (userId) {
-      // Authenticated: return the user's own projects
-      const { remaining: readRemaining } = await enforceRateLimit(readRatelimit, userId);
+    const { remaining: readRemaining } = await enforceRateLimit(readRatelimit, userId);
 
-      const { data: projects, error } = await svc
-        .from("projects")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+    const { data: projects, error } = await svc
+      .from("projects")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        throw AppError.internal(`Failed to fetch projects: ${error.message}`);
-      }
-
-      const list = projects ?? [];
-      await attachSignedUrls(svc, list);
-
-      return Response.json(list, {
-        headers: { "X-RateLimit-Remaining": String(readRemaining) },
-      });
-    } else {
-      // Guest: return projects by IDs stored in localStorage (sent as ?ids=)
-      const rawIds = url.searchParams.get("ids") ?? "";
-      const ids = rawIds
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .slice(0, MAX_GUEST_IDS);
-
-      if (ids.length === 0) {
-        return Response.json([]);
-      }
-
-      const { data: projects, error } = await svc
-        .from("projects")
-        .select("*")
-        .in("id", ids)
-        .is("user_id", null) // Only guest-owned (unclaimed) projects
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        throw AppError.internal(`Failed to fetch projects: ${error.message}`);
-      }
-
-      const list = projects ?? [];
-      await attachSignedUrls(svc, list);
-
-      return Response.json(list);
+    if (error) {
+      throw AppError.internal(`Failed to fetch projects: ${error.message}`);
     }
+
+    const list = projects ?? [];
+    await attachSignedUrls(svc, list);
+
+    return Response.json(list, {
+      headers: { "X-RateLimit-Remaining": String(readRemaining) },
+    });
   } catch (err) {
     return handleError(err, "GET /api/projects", userId, Date.now() - start);
   }
@@ -119,12 +88,10 @@ export async function POST(req: Request): Promise<Response> {
   let userId: string | null = null;
 
   try {
-    const { userId: clerkUserId } = await auth();
-    userId = clerkUserId;
+    const authResult = await requireAuth();
+    userId = authResult.userId;
 
-    // Rate limit by user ID or IP for guests
-    const rateLimitKey = userId ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon");
-    await enforceRateLimit(writeRatelimit, rateLimitKey);
+    await enforceRateLimit(writeRatelimit, userId);
 
     // Parse + validate body
     let raw: unknown;
@@ -150,14 +117,13 @@ export async function POST(req: Request): Promise<Response> {
     }
     const { name, fileName, mimeType, fileSizeBytes } = parsed.data;
 
-    // Create project record — user_id is null for guests
-    const storagePath = `projects/${userId ?? "guest"}/${crypto.randomUUID()}/${fileName}`;
+    const storagePath = `projects/${userId}/${crypto.randomUUID()}/${fileName}`;
 
     const svc = createServiceClient();
     const { data: project, error: insertError } = await svc
       .from("projects")
       .insert({
-        user_id: userId ?? null,
+        user_id: userId,
         name,
         source_image_path: storagePath,
         status: "pending",
@@ -193,7 +159,6 @@ export async function POST(req: Request): Promise<Response> {
         projectId: project.id,
         fileSizeBytes,
         mimeType,
-        isGuest: !userId,
       }),
     );
 

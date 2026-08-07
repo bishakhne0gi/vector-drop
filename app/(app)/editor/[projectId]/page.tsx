@@ -7,6 +7,7 @@ import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { Toolbar } from "@/components/editor/Toolbar";
 import { LayerPanel } from "@/components/sidebar/LayerPanel";
 import { PropertiesPanel } from "@/components/sidebar/PropertiesPanel";
+import { VersionPanel } from "@/components/editor/VersionPanel";
 import type { Project } from "@/lib/types";
 
 async function fetchProject(id: string): Promise<Project> {
@@ -193,7 +194,12 @@ export default function EditorPage({
         <main className="flex-1 overflow-hidden">
           <EditorCanvas svgUrl={svgUrl} />
         </main>
-        <PropertiesPanel />
+        <div className="flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <PropertiesPanel />
+          </div>
+          <VersionPanel projectId={projectId} />
+        </div>
       </div>
 
       {/* Mobile layout — tab-switched panels */}
@@ -210,6 +216,7 @@ export default function EditorPage({
           {mobileTab === "properties" && (
             <div className="h-full overflow-y-auto" style={{ background: "var(--bg-card)" }}>
               <PropertiesPanel />
+              <VersionPanel projectId={projectId} />
             </div>
           )}
         </div>

@@ -18,6 +18,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  entries.push({
+    url: `${base}/pricing`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.9,
+  });
+
   // Cluster hubs — crawl entry points for each pSEO section.
   for (const hub of ["convert", "vs", "how-to", "for"]) {
     entries.push({
