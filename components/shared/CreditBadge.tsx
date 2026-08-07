@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { SIGNUP_GRANT_UNITS, CONVERSION_UNITS } from "@/lib/credits/constants";
+import { CONVERSION_UNITS } from "@/lib/credits/constants";
 import type { CreditBalanceResponse } from "@/lib/types";
 
 const FONT_MONO = "auxMono, monospace";
@@ -14,9 +14,9 @@ const FONT_MONO = "auxMono, monospace";
  * cannot see is a balance they cannot reason about, and learning the number for
  * the first time at a paywall reads as a trap.
  *
- * While the signup grant is untouched it shows what the grant BUYS rather than
- * a bare number — "3" means nothing to someone who has never priced a
- * conversion.
+ * Polls every 30s and on window focus so a purchase completed on Dodo's hosted
+ * checkout — which credits the account via webhook, out of band from this tab —
+ * shows up without a manual reload.
  */
 export function CreditBadge() {
   const { data, isLoading, isError } = useQuery<CreditBalanceResponse>({
@@ -26,19 +26,22 @@ export function CreditBadge() {
       if (!res.ok) throw new Error(`Failed to load credits (${res.status})`);
       return res.json();
     },
+    // Credits can change outside this tab — a purchase completes on Dodo's
+    // checkout page and lands via webhook, so the balance must catch up on its
+    // own rather than waiting for a manual reload.
     staleTime: 10_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Render nothing rather than flashing a zero — a momentary "0 credits"
   // reads as "you're broke" and is worse than a brief absence.
   if (isLoading || isError || !data) return null;
 
-  const untouchedGrant = data.balanceUnits === SIGNUP_GRANT_UNITS;
   const cannotConvert = data.balanceUnits < CONVERSION_UNITS;
 
-  const label = untouchedGrant
-    ? "2 projects, on us"
-    : `${data.credits} credit${data.credits === "1" ? "" : "s"}`;
+  const label = `${data.credits} credit${data.credits === "1" ? "" : "s"}`;
 
   const palette = cannotConvert
     ? {
