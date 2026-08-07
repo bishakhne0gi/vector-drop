@@ -10,6 +10,8 @@ import { ProjectCard } from "@/components/shared/ProjectCard";
 import { Navbar } from "@/components/shared/Navbar";
 import { FloatingStatusHint } from "@/components/shared/FloatingStatusHint";
 import { FeedbackButton } from "@/components/shared/FeedbackButton";
+import { CreditToast } from "@/components/shared/CreditToast";
+import { PURCHASE_GRANT_UNITS, UNITS_PER_CREDIT } from "@/lib/credits/constants";
 import type {
   Project,
   CreateProjectRequest,
@@ -141,6 +143,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
+  const [creditsAdded, setCreditsAdded] = useState<string | null>(null);
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
 
@@ -158,7 +161,13 @@ export default function DashboardPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((body: { granted: number } | null) => {
         void queryClient.invalidateQueries({ queryKey: ["credits"] });
-        if (body?.granted) ph.capture("purchase_reconciled", { granted: body.granted });
+        if (body?.granted) {
+          // Confirm the money did something. The payment happened on Dodo's
+          // site, so without this the user returns to an apparently unchanged
+          // page and has to go hunting for a number.
+          setCreditsAdded(String(body.granted * (PURCHASE_GRANT_UNITS / UNITS_PER_CREDIT)));
+          ph.capture("purchase_reconciled", { granted: body.granted });
+        }
       })
       .finally(() => {
         // Drop the query param so a refresh does not look like a fresh purchase.
@@ -273,14 +282,16 @@ export default function DashboardPage() {
 
         {/* ── Upload / Progress zone ──────────────────────────────────────── */}
         <section className="animate-fade-up" style={{ marginBottom: 48, animationDelay: "80ms" }}>
-          {activeJob ? (
+          {/* The drop zone stays put while converting — replacing it hid the
+              thing the user just interacted with. Progress appears beneath it. */}
+          <DropZone onFile={onFile} disabled={mutation.isPending || !!activeJob} />
+
+          {activeJob && (
             <ConversionProgress
               jobId={activeJob.jobId}
               onDone={onConversionDone}
               onError={onConversionError}
             />
-          ) : (
-            <DropZone onFile={onFile} disabled={mutation.isPending} />
           )}
 
           {mutation.isError && (
@@ -354,6 +365,10 @@ export default function DashboardPage() {
 
       <FloatingStatusHint phase={hintPhase} />
       <FeedbackButton page="dashboard" />
+
+      {creditsAdded && (
+        <CreditToast credits={creditsAdded} onDismiss={() => setCreditsAdded(null)} />
+      )}
     </div>
   );
 }

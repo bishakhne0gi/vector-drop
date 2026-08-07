@@ -59,3 +59,22 @@ describe("creditsToUnits", () => {
     expect(Number.isInteger(creditsToUnits(1.9))).toBe(true);
   });
 });
+
+describe("LOW_BALANCE_UNITS", () => {
+  it("warns at 1.5 credits", async () => {
+    const { LOW_BALANCE_UNITS } = await import("@/lib/credits/constants");
+    expect(LOW_BALANCE_UNITS).toBe(15);
+  });
+
+  it("leaves room for one more conversion plus a few exports", async () => {
+    // The warning must arrive while the user can still finish something, not
+    // at zero in the middle of a task.
+    const { LOW_BALANCE_UNITS, CONVERSION_UNITS, VERSION_EXPORT_UNITS } = await import(
+      "@/lib/credits/constants"
+    );
+    expect(LOW_BALANCE_UNITS).toBeGreaterThan(CONVERSION_UNITS);
+    expect(LOW_BALANCE_UNITS - CONVERSION_UNITS).toBeGreaterThanOrEqual(
+      5 * VERSION_EXPORT_UNITS,
+    );
+  });
+});

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { CONVERSION_UNITS } from "@/lib/credits/constants";
+import { LOW_BALANCE_UNITS } from "@/lib/credits/constants";
 import type { CreditBalanceResponse } from "@/lib/types";
 
 const FONT_MONO = "auxMono, monospace";
@@ -39,20 +39,23 @@ export function CreditBadge() {
   // reads as "you're broke" and is worse than a brief absence.
   if (isLoading || isError || !data) return null;
 
-  const cannotConvert = data.balanceUnits < CONVERSION_UNITS;
-
   const label = `${data.credits} credit${data.credits === "1" ? "" : "s"}`;
 
-  const palette = cannotConvert
+  // Red below 1.5 credits: at that point one more conversion plus a few exports
+  // is all that is left, so the warning arrives while the user can still act on
+  // it rather than at zero, mid-task.
+  const isLow = data.balanceUnits < LOW_BALANCE_UNITS;
+
+  const palette = isLow
     ? {
-        background: "rgba(255,159,67,0.10)",
-        border: "1px solid rgba(255,159,67,0.35)",
-        color: "rgba(255,183,110,0.95)",
+        background: "rgba(248,113,113,0.10)",
+        border: "1px solid rgba(248,113,113,0.40)",
+        color: "rgba(252,165,165,0.95)",
       }
     : {
-        background: "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.70)",
+        background: "rgba(120,255,180,0.08)",
+        border: "1px solid rgba(120,255,180,0.30)",
+        color: "rgba(150,255,200,0.92)",
       };
 
   return (
@@ -61,8 +64,8 @@ export function CreditBadge() {
       style={{ textDecoration: "none" }}
       aria-label={`${data.credits} credits remaining. Buy more.`}
       title={
-        cannotConvert
-          ? "Not enough credits to convert — click to top up"
+        isLow
+          ? "Running low — click to top up"
           : `${data.credits} credits remaining`
       }
     >

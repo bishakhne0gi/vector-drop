@@ -19,6 +19,13 @@ export const CONVERSION_UNITS = 10;
 export const VERSION_EXPORT_UNITS = 1;
 
 /**
+ * Balance at which the UI switches to a warning state. 1.5 credits — one more
+ * conversion plus a few exports — so the warning lands while the user can still
+ * act on it, rather than at zero in the middle of a task.
+ */
+export const LOW_BALANCE_UNITS = 15;
+
+/**
  * Signup grant. 3 credits = two conversions (20 units) plus ten edited-version
  * exports (10 units). Sized so a new user can finish two real projects — a free
  * tier that cannot complete anything is worse than none.
