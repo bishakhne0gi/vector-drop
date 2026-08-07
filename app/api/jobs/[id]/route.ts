@@ -1,5 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
-import { createServiceClient } from "@/lib/api/supabase";
+import { createServiceClient, requireAuth } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { AppError, JobStatusResponse, ConversionStep, JobStatus } from "@/lib/types";
 
@@ -29,8 +28,8 @@ export async function GET(
   try {
     const { id: jobId } = await params;
 
-    const { userId: clerkUserId } = await auth();
-    userId = clerkUserId;
+    const authResult = await requireAuth();
+    userId = authResult.userId;
 
     const svc = createServiceClient();
 
@@ -45,14 +44,10 @@ export async function GET(
       throw AppError.notFound("Job");
     }
 
-    // Enforce ownership: authenticated users must own the project,
-    // guests can only access jobs for unclaimed (null user_id) projects
+    // Enforce ownership. The guest branch was removed with the auth-only
+    // cutover — every project now has an owner.
     const projectUserId = (job.projects as { user_id: string | null }).user_id;
-    if (userId) {
-      if (projectUserId !== userId) throw AppError.forbidden();
-    } else {
-      if (projectUserId !== null) throw AppError.forbidden();
-    }
+    if (projectUserId !== userId) throw AppError.forbidden();
 
     const step = job.step as ConversionStep;
     const status = job.status as JobStatus;

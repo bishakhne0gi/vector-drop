@@ -32,10 +32,12 @@ function applySecurityHeaders(response: NextResponse): void {
   )
 }
 
-// Editor and my-icons require full auth; dashboard is open to guests
+// Every app route requires auth. The guest path was removed after the POC —
+// app/(app)/layout.tsx already redirects anonymous users; this rejects earlier.
 const isProtectedPath = createRouteMatcher([
+  '/dashboard(.*)',
   '/editor(.*)',
-  '/icons/my(.*)',
+  '/icons(.*)',
 ])
 
 const isAuthPath = createRouteMatcher(['/login(.*)'])

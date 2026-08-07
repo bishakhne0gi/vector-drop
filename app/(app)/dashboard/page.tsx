@@ -21,43 +21,16 @@ import type {
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const FONT_MONO = "auxMono, monospace";
 
-/* ─── Guest session helpers ─────────────────────────────────────────────────── */
-
-const GUEST_IDS_KEY = "vd_guest_project_ids";
-
-function getGuestIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(GUEST_IDS_KEY) ?? "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-
-function addGuestId(id: string) {
-  const ids = getGuestIds();
-  if (!ids.includes(id)) {
-    localStorage.setItem(GUEST_IDS_KEY, JSON.stringify([...ids, id]));
-  }
-}
-
-function clearGuestIds() {
-  localStorage.removeItem(GUEST_IDS_KEY);
-}
-
 /* ─── Data fetching ─────────────────────────────────────────────────────────── */
 
 async function fetchProjects(userId: string | null | undefined): Promise<Project[]> {
-  if (userId === undefined) return [];
-  if (userId) {
+  // undefined = Clerk still loading; null = signed out (the app layout redirects,
+  // so this only happens mid-transition).
+  if (!userId) return [];
+  {
     const res = await fetch("/api/projects");
     if (!res.ok) throw new Error("Failed to load projects");
-    return res.json() as Promise<Project[]>;
-  } else {
-    const ids = getGuestIds();
-    if (ids.length === 0) return [];
-    const res = await fetch(`/api/projects?ids=${ids.join(",")}`);
-    if (!res.ok) throw new Error("Failed to load projects");
-    return res.json() as Promise<Project[]>;
+    return res.json() as Promise<Project[]>
   }
 }
 
@@ -86,7 +59,6 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
     throw new Error(message);
   }
   const { project, uploadUrl } = (await createRes.json()) as CreateProjectResponse;
-  if (!project.user_id) addGuestId(project.id);
 
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
@@ -169,24 +141,6 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
-
-  // Claim guest projects after login
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-    const guestIds = getGuestIds();
-    if (guestIds.length === 0) return;
-    void fetch("/api/projects/claim", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectIds: guestIds }),
-    }).then((res) => {
-      if (res.ok) {
-        clearGuestIds();
-        void queryClient.invalidateQueries({ queryKey: ["projects"] });
-        ph.capture("guest_projects_claimed", { count: guestIds.length });
-      }
-    });
-  }, [user, isLoaded, queryClient, ph]);
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
 
@@ -369,7 +323,7 @@ export default function DashboardPage() {
             {/* Grid */}
             <div className="stagger-children" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} isGuest={!user} />
+                <ProjectCard key={p.id} project={p} />
               ))}
             </div>
           </section>
