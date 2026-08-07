@@ -7,7 +7,6 @@ import {
   DownloadSimple,
   BezierCurveIcon,
   CaretRightIcon,
-  CoffeeIcon,
 } from "@phosphor-icons/react";
 import { LegoStud } from "./LegoStud";
 import { SiteLinks } from "@/components/pseo/SiteLinks";
@@ -1719,20 +1718,17 @@ function Navbar() {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href="https://buymeacoffee.com/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/pricing"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
             style={{
               fontFamily: "auxMono, monospace",
-              color: "#FBBF24",
-              border: "1px dashed rgba(251,191,36,0.40)",
+              color: "rgba(255,255,255,0.62)",
+              border: "1px dashed rgba(255,255,255,0.22)",
             }}
           >
-            Buy me a coffee 
-            <CoffeeIcon size={10} />
-          </a>
+            Pricing
+          </Link>
           <Link
             href="/dashboard"
             className="inline-flex items-center justify-center bg-white gap-6 px-7 py-2 text-[11px] font-normal uppercase tracking-[0.02em] text-black transition-all hover:opacity-88"
@@ -2326,22 +2322,19 @@ export function LandingPage() {
               </a>
             </div>
 
-            {/* Right: buy coffee + actions */}
+            {/* Right: pricing + actions */}
             <div className="flex items-center gap-3">
-              <a
-                href="https://buymeacoffee.com/"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/pricing"
                 className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-[10px] font-normal uppercase tracking-[0.04em] transition-all hover:opacity-75"
                 style={{
                   fontFamily: "auxMono, monospace",
-                  color: "#FBBF24",
-                  border: "1px dashed rgba(251,191,36,0.38)",
+                  color: "rgba(255,255,255,0.62)",
+                  border: "1px dashed rgba(255,255,255,0.22)",
                 }}
               >
-                Buy me a coffee
-                <CoffeeIcon size={10} />
-              </a>
+                Pricing
+              </Link>
             </div>
           </div>
         </div>
