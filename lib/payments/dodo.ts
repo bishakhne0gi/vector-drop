@@ -39,6 +39,48 @@ export interface CheckoutSession {
   url: string;
 }
 
+export interface DodoPayment {
+  paymentId: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  clerkUserId: string | null;
+  createdAt: string;
+}
+
+/**
+ * Recent payments, newest first.
+ *
+ * Used to reconcile purchases whose webhook never arrived. Webhooks are not a
+ * guarantee — they get delayed, dropped, or fire while the server is down — and
+ * a user who paid and received nothing is the worst possible failure. Polling
+ * the authoritative payment list closes that hole.
+ */
+export async function listRecentPayments(limit = 20): Promise<DodoPayment[]> {
+  const apiKey = requireEnv("DODO_PAYMENTS_API_KEY");
+
+  const res = await fetch(`${baseUrl()}/payments?page_size=${limit}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  if (!res.ok) {
+    throw AppError.internal(`Dodo payment list failed (${res.status})`);
+  }
+
+  const body = (await res.json()) as { items?: unknown[] } | unknown[];
+  const items = Array.isArray(body) ? body : (body.items ?? []);
+
+  return (items as Array<Record<string, unknown>>).map((p) => ({
+    paymentId: String(p.payment_id ?? ""),
+    status: String(p.status ?? ""),
+    totalAmount: typeof p.total_amount === "number" ? p.total_amount : 0,
+    currency: String(p.currency ?? "USD"),
+    clerkUserId:
+      ((p.metadata as Record<string, unknown> | undefined)?.clerk_user_id as string) ?? null,
+    createdAt: String(p.created_at ?? ""),
+  }));
+}
+
 /**
  * Creates a hosted checkout session for the 20-credit pack.
  *

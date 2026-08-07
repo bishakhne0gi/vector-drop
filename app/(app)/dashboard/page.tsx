@@ -144,6 +144,28 @@ export default function DashboardPage() {
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
 
+  // Returning from Dodo checkout. The webhook is the primary way credits are
+  // granted, but it can be delayed or dropped — and a user staring at an
+  // unchanged balance after paying will not wait patiently. Ask Dodo directly
+  // what was paid; the grant is idempotent, so this and the webhook cannot
+  // double-credit.
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("purchase") !== "success") return;
+
+    void fetch("/api/payments/reconcile", { method: "POST" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { granted: number } | null) => {
+        void queryClient.invalidateQueries({ queryKey: ["credits"] });
+        if (body?.granted) ph.capture("purchase_reconciled", { granted: body.granted });
+      })
+      .finally(() => {
+        // Drop the query param so a refresh does not look like a fresh purchase.
+        window.history.replaceState({}, "", window.location.pathname);
+      });
+  }, [isLoaded, user, queryClient, ph]);
+
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ["projects", userId],
     queryFn: () => fetchProjects(userId),
