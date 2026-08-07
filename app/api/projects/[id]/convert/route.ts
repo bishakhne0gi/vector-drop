@@ -15,7 +15,7 @@ import { createVersion } from "@/lib/versions/service";
 import {
   spendUnits,
   isUnlocked,
-  getBalance,
+  ensureSignupGrant,
   InsufficientCreditsError,
 } from "@/lib/credits/service";
 import { CONVERSION_UNITS } from "@/lib/credits/constants";
@@ -215,7 +215,10 @@ export async function POST(
     // real charge happens once the SVG exists.
     const conversionPaid = await isUnlocked(userId, "conversion", projectId);
     if (!conversionPaid) {
-      const balance = await getBalance(userId);
+      // ensureSignupGrant rather than getBalance: a user whose Clerk webhook
+      // never fired would otherwise be blocked from their first ever
+      // conversion, which is the worst possible first impression.
+      const balance = await ensureSignupGrant(userId);
       if (balance < CONVERSION_UNITS) {
         throw AppError.paymentRequired("Not enough credits to convert", {
           requiredUnits: CONVERSION_UNITS,

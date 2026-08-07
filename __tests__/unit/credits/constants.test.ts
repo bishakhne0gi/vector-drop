@@ -39,6 +39,20 @@ describe("formatCredits", () => {
     expect(formatCredits(1)).toBe("0.1");
   });
 
+  it("keeps the minus sign on sub-credit debits", () => {
+    // Math.trunc(-1 / 10) is -0 and String(-0) is "0", so a naive
+    // implementation renders a 0.1-credit charge as "0.1" — indistinguishable
+    // from a refund in the admin ledger.
+    expect(formatCredits(-1)).toBe("-0.1");
+    expect(formatCredits(-9)).toBe("-0.9");
+  });
+
+  it("keeps the minus sign on whole-credit debits", () => {
+    expect(formatCredits(-10)).toBe("-1");
+    expect(formatCredits(-50)).toBe("-5");
+    expect(formatCredits(-19)).toBe("-1.9");
+  });
+
   it("never produces floating point noise", () => {
     // 0.1 + 0.2 !== 0.3 in IEEE 754. Integer units sidestep this entirely —
     // a rounding error in a balance is a billing bug.

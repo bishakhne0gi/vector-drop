@@ -1,4 +1,6 @@
 import { createServiceClient } from "@/lib/api/supabase";
+import { SIGNUP_GRANT_UNITS } from "@/lib/credits/constants";
+import { ledgerKeys } from "@/lib/credits/keys";
 import type { LedgerReason, UnlockKind } from "@/lib/types";
 
 /**
@@ -16,6 +18,43 @@ export class InsufficientCreditsError extends Error {
     super("insufficient_credits");
     this.name = "InsufficientCreditsError";
   }
+}
+
+/**
+ * Grants the signup allowance if this account has never received one.
+ *
+ * Clerk's user.created webhook is the primary path, but it is not a guarantee:
+ * the endpoint may not be configured, the secret may be missing, or the
+ * delivery may simply fail — and the result is a brand-new user staring at 0
+ * credits, unable to convert anything. The backfill script cannot rescue them
+ * either, because it only finds users who already own projects or icons.
+ *
+ * So the grant is also applied lazily, on first contact. Idempotent on
+ * `signup:{userId}`, so this and the webhook cannot both grant.
+ *
+ * Returns the balance in units.
+ */
+export async function ensureSignupGrant(userId: string): Promise<number> {
+  const svc = createServiceClient();
+
+  const { data: existing } = await svc
+    .from("user_credits")
+    .select("balance_units")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // A row means this account has already been through the grant path.
+  if (existing) return (existing.balance_units as number) ?? 0;
+
+  const result = await grantUnits({
+    userId,
+    units: SIGNUP_GRANT_UNITS,
+    reason: "signup_grant",
+    idempotencyKey: ledgerKeys.signup(userId),
+    metadata: { source: "lazy_grant" },
+  });
+
+  return result.balanceUnits;
 }
 
 /** Current balance in units (tenths of a credit). Missing row means zero. */

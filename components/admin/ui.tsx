@@ -47,6 +47,41 @@ export function fmtDay(day: string): string {
   }).format(d);
 }
 
+/**
+ * Formats a payment amount from its smallest unit.
+ *
+ * Dodo bills in the customer's local currency, so amounts arrive as paise for
+ * INR and cents for USD. Rendering them without dividing would show a ₹350
+ * purchase as 35078.
+ */
+export function fmtMoney(amountMinor: number, currency: string): string {
+  const major = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${currency}`;
+  }
+}
+
+/**
+ * Renders credit units (tenths) as credits: 200 -> "20", 19 -> "1.9", -1 -> "-0.1".
+ *
+ * Sign is applied to the whole string: Math.trunc(-1 / 10) is -0 and String(-0)
+ * is "0", which would hide the minus on sub-credit debits — exactly the values
+ * the ledger is full of.
+ */
+export function fmtCredits(units: number): string {
+  const sign = units < 0 ? "-" : "";
+  const abs = Math.abs(units);
+  const whole = Math.trunc(abs / 10);
+  const rest = abs % 10;
+  return rest === 0 ? `${sign}${whole}` : `${sign}${whole}.${rest}`;
+}
+
 export function fmtRelative(iso: string | null | undefined): string {
   if (!iso) return "never";
   const diff = Date.now() - new Date(iso).getTime();
@@ -65,6 +100,7 @@ export function fmtRelative(iso: string | null | undefined): string {
 const NAV = [
   { href: "/hades", label: "Overview" },
   { href: "/hades/conversions", label: "Conversions" },
+  { href: "/hades/payments", label: "Payments" },
   { href: "/hades/users", label: "Users" },
   { href: "/hades/feedback", label: "Feedback" },
 ] as const;

@@ -42,11 +42,20 @@ export const PURCHASE_GRANT_UNITS = 200;
  */
 export const PACK_PRICE_CENTS = 300;
 
-/** Renders units for humans: 30 -> "3", 19 -> "1.9", 1 -> "0.1". */
+/**
+ * Renders units for humans: 30 -> "3", 19 -> "1.9", 1 -> "0.1", -1 -> "-0.1".
+ *
+ * The sign is applied to the whole string rather than taken from the integer
+ * part: Math.trunc(-1 / 10) is -0, and String(-0) is "0", so a naive version
+ * silently drops the minus on any debit smaller than one credit — turning a
+ * 0.1-credit charge into what looks like a 0.1-credit refund.
+ */
 export function formatCredits(units: number): string {
-  const whole = Math.trunc(units / UNITS_PER_CREDIT);
-  const remainder = units % UNITS_PER_CREDIT;
-  return remainder === 0 ? String(whole) : `${whole}.${Math.abs(remainder)}`;
+  const sign = units < 0 ? "-" : "";
+  const abs = Math.abs(units);
+  const whole = Math.trunc(abs / UNITS_PER_CREDIT);
+  const remainder = abs % UNITS_PER_CREDIT;
+  return remainder === 0 ? `${sign}${whole}` : `${sign}${whole}.${remainder}`;
 }
 
 /** Converts a credit amount to integer units. */

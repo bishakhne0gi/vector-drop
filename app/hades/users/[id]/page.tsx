@@ -4,9 +4,12 @@ import { requireAdmin } from "@/lib/admin/auth";
 import {
   createServiceClient,
   fetchClerkUser,
+  fetchCreditsForUser,
   fetchFeedbackForUser,
   fetchIconsForUser,
+  fetchLedgerForUser,
   fetchProjectsForUser,
+  fetchPurchasesForUser,
   signPaths,
   toDay,
   type AdminProjectRow,
@@ -25,10 +28,21 @@ import {
   Td,
   Th,
   Thumb,
+  fmtCredits,
   fmtDateTime,
   fmtDay,
+  fmtMoney,
   fmtRelative,
 } from "@/components/admin/ui";
+
+const LEDGER_LABEL: Record<string, string> = {
+  signup_grant: "Signup grant",
+  purchase: "Purchase",
+  conversion: "Conversion",
+  version_export: "Version export",
+  refund: "Refund",
+  admin_adjust: "Admin adjustment",
+};
 
 /** Newest first, grouped into calendar days. */
 function groupByDay(projects: AdminProjectRow[]): Array<[string, AdminProjectRow[]]> {
@@ -51,12 +65,16 @@ export default async function UserDetailPage({
   const { id } = await params;
 
   const svc = createServiceClient();
-  const [user, projects, icons, feedback] = await Promise.all([
-    fetchClerkUser(id),
-    fetchProjectsForUser(svc, id),
-    fetchIconsForUser(svc, id),
-    fetchFeedbackForUser(svc, id),
-  ]);
+  const [user, projects, icons, feedback, creditRow, purchases, ledger] =
+    await Promise.all([
+      fetchClerkUser(id),
+      fetchProjectsForUser(svc, id),
+      fetchIconsForUser(svc, id),
+      fetchFeedbackForUser(svc, id),
+      fetchCreditsForUser(svc, id),
+      fetchPurchasesForUser(svc, id),
+      fetchLedgerForUser(svc, id),
+    ]);
 
   // Unknown to Clerk AND no rows anywhere — the id is made up.
   if (!user && projects.length === 0 && icons.length === 0 && feedback.length === 0) {
@@ -72,6 +90,14 @@ export default async function UserDetailPage({
   const errored = projects.filter((p) => p.status === "error").length;
   const byDay = groupByDay(projects);
   const lastActivity = projects[0]?.created_at ?? icons[0]?.created_at ?? null;
+
+  const succeededPurchases = purchases.filter((p) => p.status === "succeeded");
+  // Per currency — Dodo bills locally, so summing INR paise with USD cents
+  // would produce a number that means nothing.
+  const paidByCurrency = new Map<string, number>();
+  for (const p of succeededPurchases) {
+    paidByCurrency.set(p.currency, (paidByCurrency.get(p.currency) ?? 0) + p.amount_cents);
+  }
 
   return (
     <AdminShell adminEmail={admin.email} active="/hades/users">
@@ -116,7 +142,109 @@ export default async function UserDetailPage({
           value={user ? fmtRelative(user.lastSignInAt) : "—"}
         />
         <StatCard label="Last activity" value={fmtRelative(lastActivity)} />
+        <StatCard
+          label="Credits"
+          value={creditRow ? fmtCredits(creditRow.balance_units) : "—"}
+          tone={
+            creditRow && creditRow.balance_units < 15
+              ? "bad"
+              : creditRow
+                ? "ok"
+                : undefined
+          }
+          hint={
+            creditRow
+              ? `${fmtCredits(creditRow.lifetime_granted)} granted · ${fmtCredits(creditRow.lifetime_spent)} spent`
+              : "no credit row yet"
+          }
+        />
+        <StatCard
+          label="Paid"
+          value={
+            paidByCurrency.size === 0
+              ? "—"
+              : [...paidByCurrency.entries()]
+                  .map(([cur, amt]) => fmtMoney(amt, cur))
+                  .join(" · ")
+          }
+          hint={`${succeededPurchases.length} purchase${succeededPurchases.length === 1 ? "" : "s"}`}
+          tone={succeededPurchases.length > 0 ? "ok" : undefined}
+        />
       </StatGrid>
+
+      <Card style={{ marginTop: 24, marginBottom: 24 }}>
+        <h2
+          style={{
+            fontFamily: T.fontMono,
+            fontSize: 11,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: T.textSec,
+            margin: "0 0 14px",
+            fontWeight: 500,
+          }}
+        >
+          Payments &amp; credit history
+        </h2>
+
+        <Table>
+          <thead>
+            <tr>
+              <Th>When</Th>
+              <Th>Event</Th>
+              <Th align="right">Credits</Th>
+              <Th align="right">Balance after</Th>
+              <Th>Reference</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {ledger.length === 0 ? (
+              <EmptyRow colSpan={5} label="No credit activity" />
+            ) : (
+              ledger.map((row) => {
+                // Match a purchase row so the admin can see what was actually
+                // charged, not just how many credits landed.
+                const paymentId = row.idempotency_key.startsWith("dodo:")
+                  ? row.idempotency_key.slice(5)
+                  : null;
+                const purchase = paymentId
+                  ? purchases.find((p) => p.dodo_payment_id === paymentId)
+                  : undefined;
+
+                return (
+                  <tr key={row.id}>
+                    <Td>{fmtDateTime(row.created_at)}</Td>
+                    <Td>{LEDGER_LABEL[row.reason] ?? row.reason}</Td>
+                    <Td align="right">
+                      <span
+                        style={{
+                          fontFamily: T.fontMono,
+                          color: row.delta_units < 0 ? T.warn : T.ok,
+                        }}
+                      >
+                        {row.delta_units > 0 ? "+" : ""}
+                        {fmtCredits(row.delta_units)}
+                      </span>
+                    </Td>
+                    <Td align="right">
+                      <span style={{ fontFamily: T.fontMono, color: T.textSec }}>
+                        {fmtCredits(row.balance_after)}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.textMut }}>
+                        {purchase
+                          ? `${fmtMoney(purchase.amount_cents, purchase.currency)} · ${paymentId}`
+                          : row.idempotency_key}
+                      </span>
+                    </Td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </Table>
+      </Card>
 
       {user ? (
         <Card style={{ marginBottom: 28 }}>

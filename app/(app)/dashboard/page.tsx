@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { usePostHog } from "posthog-js/react";
@@ -34,6 +35,22 @@ async function fetchProjects(userId: string | null | undefined): Promise<Project
     if (!res.ok) throw new Error("Failed to load projects");
     return res.json() as Promise<Project[]>
   }
+}
+
+/** Carries the HTTP status so the UI can tell "out of credits" from a real failure. */
+class ConversionError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ConversionError";
+  }
+}
+
+/** True when the failure was "you have no credits", not a broken pipeline. */
+function isOutOfCredits(err: unknown): boolean {
+  return err instanceof ConversionError && err.status === 402;
 }
 
 async function createAndConvert(file: File): Promise<{ jobId: string; projectId: string }> {
@@ -74,7 +91,20 @@ async function createAndConvert(file: File): Promise<{ jobId: string; projectId:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
   });
-  if (!convertRes.ok) throw new Error("Failed to start conversion");
+  if (!convertRes.ok) {
+    // Surface the server's actual reason. This used to throw a flat
+    // "Failed to start conversion", which hid the 402 telling the user they
+    // were out of credits — leaving them with no idea what went wrong or what
+    // to do about it.
+    let message = "Failed to start conversion";
+    try {
+      const json = (await convertRes.json()) as { error?: { message?: string } };
+      if (json.error?.message) message = json.error.message;
+    } catch {
+      /* keep the fallback */
+    }
+    throw new ConversionError(message, convertRes.status);
+  }
   const { jobId } = (await convertRes.json()) as ConvertProjectResponse;
   return { jobId, projectId: project.id };
 }
@@ -294,7 +324,66 @@ export default function DashboardPage() {
             />
           )}
 
-          {mutation.isError && (
+          {mutation.isError && isOutOfCredits(mutation.error) && (
+            /* Out of credits is not an error the user can debug — it is a
+               transaction they need to complete. Say what happened, what it
+               costs, and give them the way out in the same box. */
+            <div
+              style={{
+                marginTop: 12,
+                padding: "16px 18px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,159,67,0.35)",
+                fontFamily: FONT_BODY,
+              }}
+              role="alert"
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: FONT_MONO,
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.09em",
+                  color: "rgba(255,183,110,0.95)",
+                }}
+              >
+                Out of credits
+              </p>
+              <p style={{ margin: "8px 0 4px", fontSize: 14, color: "rgba(255,255,255,0.88)" }}>
+                Converting an image costs 1 credit, and your balance is empty.
+              </p>
+              <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "rgba(255,255,255,0.50)" }}>
+                Your image was uploaded and is safe — top up and convert it whenever you like.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <Link href="/pricing" style={{ textDecoration: "none" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      height: 34,
+                      padding: "0 18px",
+                      background: "#ffffff",
+                      color: "#161516",
+                      fontSize: 10,
+                      fontFamily: FONT_MONO,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Get 20 credits for $3
+                  </span>
+                </Link>
+                <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)" }}>
+                  + tax · credits never expire
+                </span>
+              </div>
+            </div>
+          )}
+
+          {mutation.isError && !isOutOfCredits(mutation.error) && (
             <div style={{
               marginTop: 12,
               display: "flex",
