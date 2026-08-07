@@ -4,7 +4,7 @@ import { handleError } from "@/lib/api/handleError";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { createVersion } from "@/lib/versions/service";
-import { AppError } from "@/lib/types";
+import { AppError, type ProjectVersion } from "@/lib/types";
 
 export async function GET(
   _req: Request,
@@ -97,6 +97,10 @@ export async function PATCH(
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) update.name = name;
 
+    // Returned to the client so the editor can export exactly what it just
+    // saved, by id, instead of re-resolving "latest" and risking a race.
+    let savedVersion: ProjectVersion | null = null;
+
     // If SVG content provided, sanitize then upload to storage and update path
     if (svg_content) {
       if (project.status !== "ready") {
@@ -119,6 +123,7 @@ export async function PATCH(
         source: "edit",
       });
 
+      savedVersion = version;
       update.svg_path = version.storage_path;
     }
 
@@ -146,7 +151,7 @@ export async function PATCH(
       }),
     );
 
-    return Response.json({ project: updated });
+    return Response.json({ project: updated, version: savedVersion });
   } catch (err) {
     return handleError(err, ROUTE, userId, Date.now() - start);
   }
