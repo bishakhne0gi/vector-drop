@@ -27,14 +27,32 @@ export function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
   const height = parseUnit(heightAttr, vbH);
 
   const pathEls = doc.querySelectorAll("path");
+
+  // Ids must be deterministic: parsing the same SVG twice has to produce the
+  // same ids, because serializeSvg writes them back into the saved file and the
+  // file's content hash decides whether an export is a new (chargeable) version.
+  // A random suffix here would make byte-identical artwork hash differently on
+  // every editor session. Collisions with author-supplied ids are avoided by
+  // reserving those first and skipping them while numbering.
+  const takenIds = new Set(
+    Array.from(pathEls)
+      .map((el) => el.getAttribute("id"))
+      .filter((v): v is string => !!v && v.trim() !== ""),
+  );
+
   let counter = 0;
+  const nextGeneratedId = (): string => {
+    let candidate: string;
+    do {
+      candidate = `path-${++counter}`;
+    } while (takenIds.has(candidate));
+    takenIds.add(candidate);
+    return candidate;
+  };
 
   const paths: SVGPath[] = Array.from(pathEls).map((el) => {
     const rawId = el.getAttribute("id");
-    const id =
-      rawId && rawId.trim() !== ""
-        ? rawId
-        : `path-${++counter}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = rawId && rawId.trim() !== "" ? rawId : nextGeneratedId();
 
     const lc = el.getAttribute("stroke-linecap") ?? "round";
     const lj = el.getAttribute("stroke-linejoin") ?? "round";

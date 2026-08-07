@@ -3,6 +3,7 @@ import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
+import { createVersion } from "@/lib/versions/service";
 import { AppError } from "@/lib/types";
 
 export async function GET(
@@ -104,22 +105,21 @@ export async function PATCH(
         );
       }
 
+      // Saves APPEND a version — they no longer overwrite output.svg, which
+      // used to destroy the previous SVG (including the original conversion).
+      //
+      // Saving is free. createVersion returns the existing row when the
+      // canonical content is unchanged, so saving twice without edits creates
+      // nothing and therefore cannot become chargeable later.
       const sanitized = sanitizeSvg(svg_content);
-      const svgPath = project.svg_path ?? `projects/${projectId}/output.svg`;
-      const blob = new Blob([sanitized], { type: "image/svg+xml" });
+      const { version } = await createVersion({
+        projectId,
+        userId,
+        svg: sanitized,
+        source: "edit",
+      });
 
-      const { error: uploadErr } = await svc.storage
-        .from("images")
-        .upload(svgPath, blob, { upsert: true, contentType: "image/svg+xml" });
-
-      if (uploadErr) {
-        throw AppError.storage(
-          `Failed to save SVG: ${uploadErr.message}`,
-          { svgPath },
-        );
-      }
-
-      update.svg_path = svgPath;
+      update.svg_path = version.storage_path;
     }
 
     const { data: updated, error: updateErr } = await svc

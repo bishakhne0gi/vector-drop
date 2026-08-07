@@ -6,6 +6,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "RATE_LIMITED"
+  | "PAYMENT_REQUIRED"
   | "CONFLICT"
   | "PIPELINE_ERROR"
   | "STORAGE_ERROR"
@@ -43,6 +44,14 @@ export class AppError extends Error {
     return new AppError("RATE_LIMITED", "Rate limit exceeded", 429, {
       retryAfterSeconds,
     });
+  }
+
+  /** 402 — the action costs credits and the balance is short. */
+  static paymentRequired(
+    message = "Not enough credits",
+    context?: Record<string, unknown>,
+  ): AppError {
+    return new AppError("PAYMENT_REQUIRED", message, 402, context);
   }
 
   static conflict(message: string): AppError {
@@ -214,4 +223,42 @@ export interface LogEntry {
     context?: Record<string, unknown>;
   };
   [key: string]: unknown;
+}
+
+// ─── Credits & Versions ───────────────────────────────────────────────────────
+
+export type UnlockKind = "conversion" | "version_export";
+
+export type LedgerReason =
+  | "signup_grant"
+  | "purchase"
+  | "conversion"
+  | "version_export"
+  | "refund"
+  | "admin_adjust";
+
+export interface ProjectVersion {
+  id: string;
+  project_id: string;
+  user_id: string;
+  version_number: number;
+  content_hash: string;
+  storage_path: string;
+  source: "conversion" | "edit";
+  path_count: number | null;
+  byte_size: number | null;
+  created_at: string;
+}
+
+/** A version as returned to the UI, with its entitlement state resolved. */
+export interface ProjectVersionWithUnlock extends ProjectVersion {
+  /** True when exporting this version costs nothing. */
+  unlocked: boolean;
+}
+
+export interface CreditBalanceResponse {
+  /** Integer tenths of a credit. Never fractional. */
+  balanceUnits: number;
+  /** Display string, e.g. "1.9". */
+  credits: string;
 }

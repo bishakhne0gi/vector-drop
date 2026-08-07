@@ -1,6 +1,14 @@
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
+import { getVersion, getLatestVersion } from "@/lib/versions/service";
+import {
+  spendUnits,
+  isUnlocked,
+  getBalance,
+  InsufficientCreditsError,
+} from "@/lib/credits/service";
+import { VERSION_EXPORT_UNITS } from "@/lib/credits/constants";
 import { AppError } from "@/lib/types";
 
 const ROUTE = "GET /api/projects/[id]/export";
@@ -38,18 +46,44 @@ export async function GET(
     if (project.status !== "ready") {
       throw AppError.conflict("Project conversion is not complete yet");
     }
-    if (!project.svg_path) {
-      throw AppError.notFound("SVG output");
+
+    // Resolve the target version. Defaults to the latest so existing callers
+    // that pass no versionId keep working.
+    const versionIdParam = url.searchParams.get("versionId");
+    const version = versionIdParam
+      ? await getVersion(versionIdParam, userId)
+      : await getLatestVersion(projectId, userId);
+
+    if (version.project_id !== projectId) throw AppError.notFound("Version");
+
+    // The original traced version is included with the conversion credit.
+    // Edited versions cost VERSION_EXPORT_UNITS — once, for any format.
+    const cost = version.source === "conversion" ? 0 : VERSION_EXPORT_UNITS;
+
+    // Pre-check: fail fast, before doing any work. Not authoritative — the
+    // real charge happens after the bytes exist.
+    if (cost > 0) {
+      const unlocked = await isUnlocked(userId, "version_export", version.id);
+      if (!unlocked) {
+        const balance = await getBalance(userId);
+        if (balance < cost) {
+          throw AppError.paymentRequired("Not enough credits to export this version", {
+            requiredUnits: cost,
+            balanceUnits: balance,
+            versionId: version.id,
+          });
+        }
+      }
     }
 
     // Download SVG from storage using service client (private bucket)
     const { data: svgBlob, error: dlErr } = await svc.storage
       .from("images")
-      .download(project.svg_path);
+      .download(version.storage_path);
 
     if (dlErr || !svgBlob) {
       throw AppError.storage(`Failed to retrieve SVG: ${dlErr?.message ?? "unknown"}`, {
-        svgPath: project.svg_path,
+        storagePath: version.storage_path,
       });
     }
 
@@ -60,6 +94,16 @@ export async function GET(
     if (format === "svg") {
       const svgText = sanitizeSvg(await svgBlob.text());
 
+      // Debit only now that the deliverable exists. Idempotent per version, so
+      // a retry after a dropped response is free.
+      const spend = await spendUnits({
+        userId,
+        kind: "version_export",
+        refId: version.id,
+        units: cost,
+        reason: "version_export",
+      });
+
       console.log(
         JSON.stringify({
           timestamp: new Date().toISOString(),
@@ -69,6 +113,9 @@ export async function GET(
           durationMs: Date.now() - start,
           projectId,
           format,
+          versionId: version.id,
+          charged: spend.charged,
+          balanceUnits: spend.balanceUnits,
         }),
       );
 
@@ -83,6 +130,8 @@ export async function GET(
             ? `attachment; filename="${safeFilename}.svg"`
             : `inline; filename="${safeFilename}.svg"`,
           "Cache-Control": "private, max-age=300",
+          "X-Credits-Remaining": String(spend.balanceUnits),
+          "X-Credit-Charged": String(spend.charged),
         },
       });
     }
@@ -95,8 +144,17 @@ export async function GET(
     try {
       pngBuffer = await sharp(svgBuffer).png().toBuffer();
     } catch (err) {
+      // Thrown BEFORE any debit — a failed render never costs a credit.
       throw AppError.pipeline(`Failed to render PNG: ${String(err)}`);
     }
+
+    const spend = await spendUnits({
+      userId,
+      kind: "version_export",
+      refId: version.id,
+      units: cost,
+      reason: "version_export",
+    });
 
     console.log(
       JSON.stringify({
@@ -108,6 +166,9 @@ export async function GET(
         projectId,
         format,
         pngBytes: pngBuffer.length,
+        versionId: version.id,
+        charged: spend.charged,
+        balanceUnits: spend.balanceUnits,
       }),
     );
 
@@ -118,9 +179,21 @@ export async function GET(
         "X-Content-Type-Options": "nosniff",
         "Content-Disposition": `attachment; filename="${safeFilename}.png"`,
         "Cache-Control": "private, max-age=300",
+        "X-Credits-Remaining": String(spend.balanceUnits),
+        "X-Credit-Charged": String(spend.charged),
       },
     });
   } catch (err) {
+    // The DB raises insufficient_credits if the balance moved between the
+    // pre-check and the debit. Surface it as 402, not 500.
+    if (err instanceof InsufficientCreditsError) {
+      return handleError(
+        AppError.paymentRequired("Not enough credits to export"),
+        ROUTE,
+        userId,
+        Date.now() - start,
+      );
+    }
     return handleError(err, ROUTE, userId, Date.now() - start);
   }
 }

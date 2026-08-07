@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Lock, Copy, Check, Download } from "lucide-react";
+import { Lock, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Icon } from "@/lib/types";
 
@@ -44,10 +44,6 @@ export function IconCard({
     },
     [icon.svg_content],
   );
-
-  const handleDownload = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
 
   const handleVisibilityToggle = useCallback(
     (e: React.MouseEvent) => {
@@ -100,16 +96,6 @@ export function IconCard({
             </>
           )}
         </button>
-        <a
-          href={`/api/icons/${icon.id}/download?format=svg`}
-          onClick={handleDownload}
-          download
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
-          aria-label="Download SVG"
-        >
-          <Download className="h-3 w-3" />
-          Download
-        </a>
       </div>
 
       {/* SVG preview — checkerboard background indicates transparency */}

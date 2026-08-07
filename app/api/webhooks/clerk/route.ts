@@ -1,6 +1,9 @@
 import { Webhook } from 'svix'
 import { NextResponse } from 'next/server'
 import { remapLegacyUser } from '@/lib/auth/remap-legacy-user'
+import { grantUnits } from '@/lib/credits/service'
+import { ledgerKeys } from '@/lib/credits/keys'
+import { SIGNUP_GRANT_UNITS } from '@/lib/credits/constants'
 
 type ClerkEmail = { id: string; email_address: string }
 type UserCreatedPayload = {
@@ -50,5 +53,24 @@ export async function POST(req: Request): Promise<Response> {
     prodClerkId: data.id,
   })
 
-  return NextResponse.json({ result }, { status: 200 })
+  // Signup grant: 3 credits — two conversions plus ten edited-version exports.
+  // Idempotent on signup:{userId}, so a replayed event grants once.
+  //
+  // Failures are logged, never thrown: a non-2xx would make Clerk retry the
+  // whole event, and the backfill script is the safety net for a missed grant.
+  let granted = false
+  try {
+    const grant = await grantUnits({
+      userId: data.id,
+      units: SIGNUP_GRANT_UNITS,
+      reason: 'signup_grant',
+      idempotencyKey: ledgerKeys.signup(data.id),
+      metadata: { email: primary.email_address.toLowerCase() },
+    })
+    granted = grant.granted
+  } catch (err) {
+    console.error('[signup-grant]', err)
+  }
+
+  return NextResponse.json({ result, granted }, { status: 200 })
 }

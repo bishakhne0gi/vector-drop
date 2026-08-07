@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { X, Download } from "lucide-react";
+import { X } from "lucide-react";
 import type { Icon } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -10,8 +10,6 @@ const STYLE_LABELS: Record<Icon["style"], string> = {
   flat: "Flat",
   duotone: "Duotone",
 };
-
-const PNG_SIZES = [64, 128, 256, 512] as const;
 
 interface IconDetailModalProps {
   icon: Icon | null;
@@ -117,39 +115,6 @@ export function IconDetailModal({ icon, onClose }: IconDetailModalProps) {
           )}
         </div>
 
-        {/* Downloads */}
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-medium uppercase tracking-widest text-foreground/40">
-            Download
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`/api/icons/${icon.id}/download?format=svg`}
-              download
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground",
-                "transition-colors hover:bg-foreground/5",
-              )}
-            >
-              <Download className="h-3 w-3" />
-              SVG
-            </a>
-            {PNG_SIZES.map((size) => (
-              <a
-                key={size}
-                href={`/api/icons/${icon.id}/download?format=png&size=${size}`}
-                download
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground",
-                  "transition-colors hover:bg-foreground/5",
-                )}
-              >
-                <Download className="h-3 w-3" />
-                PNG {size}px
-              </a>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

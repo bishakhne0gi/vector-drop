@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { auth } from "@clerk/nextjs/server";
-import { createServiceClient } from "@/lib/api/supabase";
+import { createServiceClient, requireAuth } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
 import {
   cacheGet,
@@ -12,6 +11,14 @@ import {
   enforceRateLimit,
 } from "@/lib/cache/redis";
 import { computeImageHash } from "@/lib/conversion/hash";
+import { createVersion } from "@/lib/versions/service";
+import {
+  spendUnits,
+  isUnlocked,
+  getBalance,
+  InsufficientCreditsError,
+} from "@/lib/credits/service";
+import { CONVERSION_UNITS } from "@/lib/credits/constants";
 import { quantizeColors } from "@/lib/conversion/quantize";
 import { traceColorMask } from "@/lib/conversion/maskTrace";
 import { assembleSvg } from "@/lib/conversion/assembleSvg";
@@ -121,6 +128,40 @@ async function setJobStep(supabase: SupabaseClient, jobId: string, step: Convers
   }
 }
 
+/**
+ * Charges for a conversion and grants a permanent free-export entitlement on
+ * the original version.
+ *
+ * Called only AFTER the SVG exists, so a failed trace never costs a credit.
+ * Idempotent per project (`unlocks` unique on user+kind+ref), so re-converting
+ * the same project — including via a Redis cache hit — is free. That matters
+ * for the tracing-presets feature: users must be able to re-run a conversion
+ * with different settings without watching a meter.
+ */
+async function chargeConversion(
+  userId: string,
+  projectId: string,
+  versionId: string,
+): Promise<void> {
+  await spendUnits({
+    userId,
+    kind: "conversion",
+    refId: projectId,
+    units: CONVERSION_UNITS,
+    reason: "conversion",
+  });
+
+  // 0 units: records the entitlement without touching the balance, so the
+  // original traced result is always free to export.
+  await spendUnits({
+    userId,
+    kind: "version_export",
+    refId: versionId,
+    units: 0,
+    reason: "version_export",
+  });
+}
+
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(
@@ -133,13 +174,13 @@ export async function POST(
   try {
     const { id: projectId } = await params;
 
-    // Auth — guests allowed to convert their own (unclaimed) projects
-    const { userId: clerkUserId } = await auth();
-    userId = clerkUserId;
+    // Auth is required everywhere. The guest path was removed with the POC
+    // cutover — app/(app)/layout.tsx already redirected anonymous users, so no
+    // guest could ever reach this route.
+    const authResult = await requireAuth();
+    userId = authResult.userId;
 
-    // Rate limit by user ID or IP
-    const rateLimitKey = userId ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon");
-    const { remaining } = await enforceRateLimit(convertRatelimit, rateLimitKey);
+    const { remaining } = await enforceRateLimit(convertRatelimit, userId);
 
     // Parse body (empty body → defaults)
     let raw: unknown = {};
@@ -156,19 +197,32 @@ export async function POST(
 
     const svc = createServiceClient();
 
-    // Load project — if authenticated check user_id, if guest check user_id is null
-    const projectQuery = svc.from("projects").select().eq("id", projectId);
-    const finalQuery = userId
-      ? projectQuery.eq("user_id", userId)
-      : projectQuery.is("user_id", null);
-
-    const { data: project, error: projectErr } = await finalQuery.single();
+    const { data: project, error: projectErr } = await svc
+      .from("projects")
+      .select()
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .single();
 
     if (projectErr || !project) throw AppError.notFound("Project");
     if (project.status === "converting")
       throw AppError.conflict("Conversion already in progress for this project");
     if (!project.source_image_path)
       throw AppError.validation("Project has no source image — upload first");
+
+    // Credit pre-check: reject BEFORE running the pipeline, so we never burn
+    // CPU tracing an image the user cannot pay for. Not authoritative — the
+    // real charge happens once the SVG exists.
+    const conversionPaid = await isUnlocked(userId, "conversion", projectId);
+    if (!conversionPaid) {
+      const balance = await getBalance(userId);
+      if (balance < CONVERSION_UNITS) {
+        throw AppError.paymentRequired("Not enough credits to convert", {
+          requiredUnits: CONVERSION_UNITS,
+          balanceUnits: balance,
+        });
+      }
+    }
 
     // 5. Create job record
     const { data: job, error: jobErr } = await svc
@@ -216,6 +270,19 @@ export async function POST(
           .update({ status: "ready", svg_path: destPath, source_image_hash: imageHash })
           .eq("id", projectId);
         await setJobStep(svc, job.id, "assemble", "done");
+
+        // Record version 1 and charge. On a cache hit the SVG already exists,
+        // so read it back to hash its canonical content.
+        const { data: cachedSvg } = await svc.storage.from("images").download(destPath);
+        if (cachedSvg) {
+          const { version } = await createVersion({
+            projectId,
+            userId,
+            svg: await cachedSvg.text(),
+            source: "conversion",
+          });
+          await chargeConversion(userId, projectId, version.id);
+        }
 
         const response: ConvertProjectResponse = {
           jobId: job.id,
@@ -276,6 +343,16 @@ export async function POST(
       .update({ status: "ready", svg_path: svgPath, source_image_hash: imageHash })
       .eq("id", projectId);
 
+    // Version 1 exists before any charge is made — a failed trace above means
+    // we never reach this line, so the user is never billed for nothing.
+    const { version } = await createVersion({
+      projectId,
+      userId,
+      svg: svgContent,
+      source: "conversion",
+    });
+    await chargeConversion(userId, projectId, version.id);
+
     console.log(
       JSON.stringify({
         timestamp: new Date().toISOString(),
@@ -301,6 +378,16 @@ export async function POST(
       headers: { "X-RateLimit-Remaining": String(remaining) },
     });
   } catch (err) {
+    // Raised if the balance moved between the pre-check and the debit.
+    // Surface as 402 so the UI can offer checkout, not a generic 500.
+    if (err instanceof InsufficientCreditsError) {
+      return handleError(
+        AppError.paymentRequired("Not enough credits to convert"),
+        ROUTE,
+        userId,
+        Date.now() - start,
+      );
+    }
     return handleError(err, ROUTE, userId, Date.now() - start);
   }
 }
