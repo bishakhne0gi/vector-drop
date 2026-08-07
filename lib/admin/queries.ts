@@ -41,6 +41,37 @@ export interface AdminFeedbackRow {
   created_at: string;
 }
 
+export interface AdminPurchaseRow {
+  id: string;
+  user_id: string;
+  dodo_payment_id: string;
+  /** In the currency's smallest unit — paise for INR, cents for USD. */
+  amount_cents: number;
+  currency: string;
+  /** Units granted, not credits: 200 units = 20 credits. */
+  credits_granted: number;
+  status: string;
+  created_at: string;
+}
+
+export interface AdminCreditRow {
+  user_id: string;
+  balance_units: number;
+  lifetime_granted: number;
+  lifetime_spent: number;
+  updated_at: string;
+}
+
+export interface AdminLedgerRow {
+  id: string;
+  user_id: string;
+  delta_units: number;
+  reason: string;
+  balance_after: number;
+  idempotency_key: string;
+  created_at: string;
+}
+
 // ─── Paging helper ───────────────────────────────────────────────────────────
 
 interface PostgrestPage<T> {
@@ -97,6 +128,9 @@ export function recentDays(n: number): string[] {
 const PROJECT_COLUMNS =
   "id,user_id,name,status,source_image_path,svg_path,error_message,created_at,updated_at";
 
+const PURCHASE_COLUMNS =
+  "id,user_id,dodo_payment_id,amount_cents,currency,credits_granted,status,created_at";
+
 export async function fetchProjects(svc: Svc): Promise<AdminProjectRow[]> {
   return pageThrough<AdminProjectRow>((from, to) =>
     svc
@@ -140,6 +174,84 @@ export async function fetchIconsForUser(
       .from("icons")
       .select("id,user_id,prompt,style,download_count,created_at")
       .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+// ─── Credits & payments ──────────────────────────────────────────────────────
+
+export async function fetchPurchases(svc: Svc): Promise<AdminPurchaseRow[]> {
+  return pageThrough<AdminPurchaseRow>((from, to) =>
+    svc
+      .from("purchases")
+      .select(PURCHASE_COLUMNS)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+export async function fetchPurchasesForUser(
+  svc: Svc,
+  userId: string,
+): Promise<AdminPurchaseRow[]> {
+  return pageThrough<AdminPurchaseRow>((from, to) =>
+    svc
+      .from("purchases")
+      .select(PURCHASE_COLUMNS)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+export async function fetchCredits(svc: Svc): Promise<AdminCreditRow[]> {
+  return pageThrough<AdminCreditRow>((from, to) =>
+    svc
+      .from("user_credits")
+      .select("user_id,balance_units,lifetime_granted,lifetime_spent,updated_at")
+      .order("balance_units", { ascending: false })
+      .range(from, to),
+  );
+}
+
+export async function fetchCreditsForUser(
+  svc: Svc,
+  userId: string,
+): Promise<AdminCreditRow | null> {
+  const { data } = await svc
+    .from("user_credits")
+    .select("user_id,balance_units,lifetime_granted,lifetime_spent,updated_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as AdminCreditRow | null) ?? null;
+}
+
+export async function fetchLedgerForUser(
+  svc: Svc,
+  userId: string,
+): Promise<AdminLedgerRow[]> {
+  return pageThrough<AdminLedgerRow>((from, to) =>
+    svc
+      .from("credit_ledger")
+      .select("id,user_id,delta_units,reason,balance_after,idempotency_key,created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+/**
+ * Spend totals per reason, across all users.
+ *
+ * Read from the ledger rather than from lifetime_spent so the numbers can be
+ * broken down by what the credits were actually used for.
+ */
+export async function fetchLedger(svc: Svc): Promise<AdminLedgerRow[]> {
+  return pageThrough<AdminLedgerRow>((from, to) =>
+    svc
+      .from("credit_ledger")
+      .select("id,user_id,delta_units,reason,balance_after,idempotency_key,created_at")
       .order("created_at", { ascending: false })
       .range(from, to),
   );

@@ -143,3 +143,45 @@ describe("getBalance", () => {
     expect(await getBalance("user_a")).toBe(19);
   });
 });
+
+describe("ensureSignupGrant", () => {
+  it("grants the signup allowance when the user has no credit row", async () => {
+    // The rescue path for users whose Clerk user.created webhook never fired.
+    mockMaybeSingle(null);
+    rpc.mockResolvedValue({ data: [{ granted: true, balance_units: 30 }], error: null });
+
+    const { ensureSignupGrant } = await import("@/lib/credits/service");
+    const balance = await ensureSignupGrant("user_new");
+
+    expect(balance).toBe(30);
+    expect(rpc).toHaveBeenCalledWith(
+      "grant_units",
+      expect.objectContaining({
+        p_user_id: "user_new",
+        p_delta_units: 30,
+        p_idempotency_key: "signup:user_new",
+        p_reason: "signup_grant",
+      }),
+    );
+  });
+
+  it("does NOT grant again when a credit row already exists", async () => {
+    // Someone who spent down to zero must not be topped back up on every
+    // balance check — that would make credits infinite.
+    mockMaybeSingle({ balance_units: 0 });
+    const { ensureSignupGrant } = await import("@/lib/credits/service");
+
+    const balance = await ensureSignupGrant("user_spent_out");
+
+    expect(balance).toBe(0);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing balance untouched", async () => {
+    mockMaybeSingle({ balance_units: 199 });
+    const { ensureSignupGrant } = await import("@/lib/credits/service");
+
+    expect(await ensureSignupGrant("user_a")).toBe(199);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+});

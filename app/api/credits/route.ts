@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
-import { getBalance } from "@/lib/credits/service";
+import { ensureSignupGrant } from "@/lib/credits/service";
 import { formatCredits } from "@/lib/credits/constants";
 import type { CreditBalanceResponse } from "@/lib/types";
 
@@ -20,7 +20,10 @@ export async function GET(): Promise<Response> {
     const auth = await requireAuth();
     userId = auth.userId;
 
-    const balanceUnits = await getBalance(userId);
+    // Also the safety net for the signup grant: the badge is usually the first
+    // credit-aware thing a new user's browser asks for, so if the Clerk webhook
+    // never fired, this is where they still get their free credits.
+    const balanceUnits = await ensureSignupGrant(userId);
 
     const body: CreditBalanceResponse = {
       balanceUnits,
