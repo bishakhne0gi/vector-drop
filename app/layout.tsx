@@ -133,6 +133,32 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/*
+          Sets the theme class BEFORE first paint.
+
+          :root in globals.css holds the LIGHT values and .dark overrides them,
+          so any element styled with a theme variable renders white until this
+          class exists. Applying it from a useEffect is too late — the white
+          frame has already been painted.
+
+          App routes are always dark; elsewhere the stored or system preference
+          wins. Kept in <head> deliberately: a <script> rendered inside the
+          React tree is never executed on the client, which is why the previous
+          force-dark script in app/(app)/layout.tsx silently did nothing on
+          client-side navigation.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+              var p = location.pathname;
+              var appRoute = /^\\/(dashboard|editor|icons|hades)/.test(p);
+              var stored = localStorage.getItem('theme');
+              var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              var dark = appRoute || stored === 'dark' || (!stored && prefersDark);
+              document.documentElement.classList.toggle('dark', dark);
+            }catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <ClerkProvider>
