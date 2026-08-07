@@ -273,6 +273,10 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message ?? `Save failed (${res.status})`);
       }
+      // The saved version must appear in the panel immediately — otherwise the
+      // user cannot tell whether their edit was captured.
+      void queryClient.invalidateQueries({ queryKey: ["versions", projectId] });
+
       setSaveState("success");
       successTimerRef.current = setTimeout(() => setSaveState("idle"), 2500);
     } catch (err) {
@@ -544,30 +548,36 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
           blockedAction="export this version"
         />
 
-        <Tooltip label="Coming soon">
+        {/* Saving is free and is what creates a version. It was previously
+            disabled behind a "Coming soon" tooltip, so edits could never be
+            saved — and therefore never exported. */}
+        <Tooltip label="⌘S">
           <button
-            disabled
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={!svgMeta || saveState === "saving"}
             style={{
               display: "flex",
               height: 32,
               alignItems: "center",
               gap: 8,
               padding: "0 16px",
-              background: "rgba(255,255,255,0.05)",
+              background: saveState === "saving" ? "rgba(255,255,255,0.10)" : "#ffffff",
               border: "1px solid rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.40)",
+              color: saveState === "saving" ? "rgba(255,255,255,0.70)" : "#161516",
               fontSize: 10,
               fontFamily: "auxMono, monospace",
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              fontWeight: 600,
-              cursor: "not-allowed",
+              fontWeight: 700,
+              cursor: !svgMeta || saveState === "saving" ? "wait" : "pointer",
               borderRadius: 0,
-              opacity: 0.5,
+              opacity: !svgMeta ? 0.5 : 1,
+              transition: "background 0.15s, color 0.15s",
             }}
             aria-label="Save project"
           >
-            Save
+            {saveState === "saving" ? "Saving…" : "Save"}
           </button>
         </Tooltip>
       </div>
