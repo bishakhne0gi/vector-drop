@@ -7,12 +7,22 @@ function applySecurityHeaders(response: NextResponse): void {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : ''
 
+  // Browsers upload straight to R2 over a presigned URL, so the bucket's own
+  // host has to be reachable by connect-src or the PUT is blocked before it is
+  // ever sent. The SDK addresses the bucket vhost-style, hence the bucket name
+  // as the leading label.
+  const r2Account = process.env.R2_ACCOUNT_ID ?? ''
+  const r2Bucket = process.env.R2_BUCKET ?? 'vectordrop-images'
+  const r2Host = r2Account
+    ? `${r2Bucket}.${r2Account}.r2.cloudflarestorage.com`
+    : ''
+
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us-assets.i.posthog.com`,
     `style-src 'self' 'unsafe-inline' https://*.clerk.com https://clerk.vectordrop.co.in`,
     `img-src 'self' blob: data: https:`,
-    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}`,
+    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}${r2Host ? ` https://${r2Host}` : ''}`,
     "font-src 'self' data: https://*.clerk.com https://clerk.vectordrop.co.in",
     "object-src 'none'",
     "base-uri 'self'",

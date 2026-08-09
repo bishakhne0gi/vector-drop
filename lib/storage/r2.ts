@@ -52,6 +52,13 @@ export function r2(): S3Client {
       accessKeyId: ACCESS_KEY_ID,
       secretAccessKey: SECRET_ACCESS_KEY,
     },
+    // The SDK otherwise defaults to "WHEN_SUPPORTED", which breaks presigned
+    // uploads: it hashes the body at SIGNING time — when there is no body — and
+    // bakes x-amz-checksum-crc32 of empty content into the URL. The browser
+    // then PUTs the real file and R2 rejects it for not matching the checksum
+    // of nothing. Only compute checksums when the operation actually demands it.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   return client;
