@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { downloadObject } from "@/lib/storage/r2";
 import { aiGenerateRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { generateIcon } from "@/lib/ai/generateIcon";
 import { AppError } from "@/lib/types";
@@ -76,18 +77,7 @@ export async function POST(req: Request): Promise<Response> {
         );
       }
 
-      const { data: fileData, error: downloadErr } = await svc.storage
-        .from("images")
-        .download(typedProject.source_image_path);
-
-      if (downloadErr || !fileData) {
-        throw AppError.storage(
-          `Failed to download source image: ${downloadErr?.message ?? "unknown"}`,
-          { projectId, path: typedProject.source_image_path },
-        );
-      }
-
-      const rawBuffer = Buffer.from(await fileData.arrayBuffer());
+      const rawBuffer = await downloadObject(typedProject.source_image_path);
 
       const sharp = (await import("sharp")).default;
       const resized = await sharp(rawBuffer)

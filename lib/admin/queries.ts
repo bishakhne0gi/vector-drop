@@ -1,5 +1,6 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { createServiceClient } from "@/lib/api/supabase";
+import { objectExists, signedDownloadUrl } from "@/lib/storage/r2";
 import { ADMIN_TIMEZONE } from "./config";
 
 type Svc = ReturnType<typeof createServiceClient>;
@@ -487,11 +488,14 @@ export async function fetchClerkUser(userId: string): Promise<AdminUser | null> 
 const SIGNED_URL_TTL = 600; // 10 minutes — long enough to browse, short enough to leak little
 
 /**
- * Signs storage paths in bulk. Returns a path → URL map; unsignable paths
- * (deleted files) are simply omitted so callers render a placeholder.
+ * Signs storage paths in bulk. Returns a path → URL map; paths whose object is
+ * gone are simply omitted so callers render a placeholder.
+ *
+ * R2 presigning is local and never fails for a missing key, so existence has to
+ * be probed — otherwise the portal would show broken images for deleted files
+ * rather than the placeholder.
  */
 export async function signPaths(
-  svc: Svc,
   paths: Array<string | null | undefined>,
 ): Promise<Map<string, string>> {
   const unique = [...new Set(paths.filter((p): p is string => Boolean(p)))];
@@ -499,10 +503,8 @@ export async function signPaths(
 
   await Promise.all(
     unique.map(async (path) => {
-      const { data, error } = await svc.storage
-        .from("images")
-        .createSignedUrl(path, SIGNED_URL_TTL);
-      if (!error && data?.signedUrl) map.set(path, data.signedUrl);
+      if (!(await objectExists(path))) return;
+      map.set(path, await signedDownloadUrl(path, SIGNED_URL_TTL));
     }),
   );
 

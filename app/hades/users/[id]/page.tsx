@@ -81,7 +81,7 @@ export default async function UserDetailPage({
     notFound();
   }
 
-  const signed = await signPaths(svc, [
+  const signed = await signPaths([
     ...projects.map((p) => p.svg_path),
     ...projects.map((p) => p.source_image_path),
   ]);

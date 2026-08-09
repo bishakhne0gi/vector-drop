@@ -46,6 +46,12 @@ drop policy if exists "ai_usage: no user access" on ai_usage;
 -- Leave as-is: no policies = no access for non-service-role
 
 -- ─── 6. Storage: images bucket RLS ──────────────────────────
+-- SUPERSEDED — object storage moved to Cloudflare R2 (see lib/storage/r2.ts)
+-- once the Supabase storage quota ran out. Section 6 is kept as a record of
+-- what was applied; it no longer governs anything, because no object lives in
+-- the Supabase 'images' bucket any more. Access is now enforced in the API
+-- routes (ownership checks) plus short-lived presigned R2 URLs.
+--
 -- Run these in the Supabase SQL editor. Storage policies use the
 -- storage schema. The bucket name is 'images'.
 

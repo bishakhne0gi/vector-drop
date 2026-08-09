@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient, requireAuth } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { copyObject, downloadObject, downloadText, uploadObject } from "@/lib/storage/r2";
 import {
   cacheGet,
   cacheSet,
@@ -40,19 +41,7 @@ const convertSchema = z.object({
 // ─── Pipeline helpers ────────────────────────────────────────────────────────
 
 async function downloadImage(storagePath: string): Promise<Buffer> {
-  const serviceSupabase = createServiceClient();
-  const { data, error } = await serviceSupabase.storage
-    .from("images")
-    .download(storagePath);
-
-  if (error || !data) {
-    throw AppError.storage(
-      `Failed to download source image: ${error?.message ?? "unknown"}`,
-      { storagePath },
-    );
-  }
-
-  return Buffer.from(await data.arrayBuffer());
+  return downloadObject(storagePath);
 }
 
 async function runConversionPipeline(
@@ -87,18 +76,8 @@ async function uploadSvg(
   projectId: string,
   svgContent: string,
 ): Promise<string> {
-  const serviceSupabase = createServiceClient();
   const svgPath = `projects/${projectId}/output.svg`;
-  const blob = new Blob([svgContent], { type: "image/svg+xml" });
-
-  const { error } = await serviceSupabase.storage
-    .from("images")
-    .upload(svgPath, blob, { upsert: true, contentType: "image/svg+xml" });
-
-  if (error) {
-    throw AppError.storage(`Failed to upload SVG: ${error.message}`, { svgPath });
-  }
-
+  await uploadObject(svgPath, svgContent, "image/svg+xml");
   return svgPath;
 }
 
@@ -261,11 +240,15 @@ export async function POST(
       // the cache entry. If the source is missing, fall through to a full
       // re-run and overwrite the stale cache entry.
       const destPath = `projects/${projectId}/output.svg`;
-      // Remove any pre-existing file at the destination — copy() does not overwrite.
-      await svc.storage.from("images").remove([destPath]);
-      const { error: copyErr } = await svc.storage
-        .from("images")
-        .copy(cached.svgStoragePath, destPath);
+      // R2's CopyObject overwrites, so unlike Supabase's copy() the destination
+      // no longer has to be removed first. It still fails when the SOURCE is
+      // missing, which is exactly how a stale cache entry gets detected.
+      let copyErr: Error | null = null;
+      try {
+        await copyObject(cached.svgStoragePath, destPath);
+      } catch (err) {
+        copyErr = err instanceof Error ? err : new Error(String(err));
+      }
 
       if (!copyErr) {
         await svc
@@ -276,16 +259,14 @@ export async function POST(
 
         // Record version 1 and charge. On a cache hit the SVG already exists,
         // so read it back to hash its canonical content.
-        const { data: cachedSvg } = await svc.storage.from("images").download(destPath);
-        if (cachedSvg) {
-          const { version } = await createVersion({
-            projectId,
-            userId,
-            svg: await cachedSvg.text(),
-            source: "conversion",
-          });
-          await chargeConversion(userId, projectId, version.id);
-        }
+        const cachedSvg = await downloadText(destPath);
+        const { version } = await createVersion({
+          projectId,
+          userId,
+          svg: cachedSvg,
+          source: "conversion",
+        });
+        await chargeConversion(userId, projectId, version.id);
 
         const response: ConvertProjectResponse = {
           jobId: job.id,

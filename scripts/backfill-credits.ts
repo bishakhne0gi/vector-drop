@@ -25,6 +25,8 @@
  * Talks to PostgREST over plain fetch on purpose: lib/api/supabase.ts pulls in
  * @clerk/nextjs/server, which will not resolve under bare node.
  */
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
 import { SIGNUP_GRANT_UNITS } from "../lib/credits/constants.ts";
 import { ledgerKeys } from "../lib/credits/keys.ts";
 import { computeSvgHash } from "../lib/svg/canonicalize.ts";
@@ -34,9 +36,19 @@ const APPLY = process.argv.includes("--apply");
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET = process.env.R2_BUCKET ?? "vectordrop-images";
+
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
   console.error("Run with: node --env-file=.env.local scripts/backfill-credits.ts");
+  process.exit(1);
+}
+
+if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+  console.error("Missing R2_ACCOUNT_ID, R2_ACCESS_KEY_ID or R2_SECRET_ACCESS_KEY.");
   process.exit(1);
 }
 
@@ -69,25 +81,43 @@ async function rpc(fn: string, body: Record<string, unknown>): Promise<unknown> 
   return res.json();
 }
 
+// Objects live in R2, not Supabase Storage. The S3 client is built here rather
+// than imported from lib/storage/r2.ts because that module uses the "@/" path
+// alias, which bare node does not resolve.
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY_ID!,
+    secretAccessKey: R2_SECRET_ACCESS_KEY!,
+  },
+});
+
 async function downloadSvg(storagePath: string): Promise<string | null> {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/images/${storagePath}`, {
-    headers: { apikey: SERVICE_KEY!, Authorization: `Bearer ${SERVICE_KEY}` },
-  });
-  return res.ok ? res.text() : null;
+  try {
+    const res = await r2.send(
+      new GetObjectCommand({ Bucket: R2_BUCKET, Key: storagePath }),
+    );
+    return (await res.Body?.transformToString()) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function uploadSvg(storagePath: string, svg: string): Promise<boolean> {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/images/${storagePath}`, {
-    method: "POST",
-    headers: {
-      apikey: SERVICE_KEY!,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      "Content-Type": "image/svg+xml",
-      "x-upsert": "true",
-    },
-    body: svg,
-  });
-  return res.ok;
+  try {
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: storagePath,
+        Body: svg,
+        ContentType: "image/svg+xml",
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function main() {

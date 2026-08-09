@@ -1,5 +1,6 @@
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { objectExists, signedDownloadUrl } from "@/lib/storage/r2";
 import { AppError } from "@/lib/types";
 
 export async function GET(
@@ -27,18 +28,16 @@ export async function GET(
     if (fetchErr || !project) throw AppError.notFound("Project");
     if (!project.svg_path) throw AppError.notFound("SVG preview");
 
-    // Generate a short-lived signed URL (5 minutes — just for display)
-    const { data, error } = await svc.storage
-      .from("images")
-      .createSignedUrl(project.svg_path, 300);
-
-    if (error || !data?.signedUrl) {
-      throw AppError.storage(
-        `Failed to create preview URL: ${error?.message ?? "unknown"}`,
-      );
+    // Presigning never fails for a missing key, so confirm the object is
+    // actually there — otherwise this redirects to a URL that 404s.
+    if (!(await objectExists(project.svg_path))) {
+      throw AppError.notFound("SVG preview");
     }
 
-    return Response.redirect(data.signedUrl, 302);
+    // Short-lived signed URL (5 minutes — just for display)
+    const url = await signedDownloadUrl(project.svg_path, 300);
+
+    return Response.redirect(url, 302);
   } catch (err) {
     return handleError(err, "GET /api/projects/[id]/preview", userId, Date.now() - start);
   }
