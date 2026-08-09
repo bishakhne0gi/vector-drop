@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/api/supabase";
+import { uploadObject } from "@/lib/storage/r2";
 import { computeSvgHash } from "@/lib/svg/canonicalize";
 import { AppError, type ProjectVersion } from "@/lib/types";
 
@@ -58,16 +59,7 @@ export async function createVersion(args: {
   const storagePath = versionStoragePath(args.projectId, contentHash);
   const byteSize = Buffer.byteLength(args.svg, "utf8");
 
-  const { error: uploadErr } = await svc.storage
-    .from("images")
-    .upload(storagePath, new Blob([args.svg], { type: "image/svg+xml" }), {
-      upsert: true,
-      contentType: "image/svg+xml",
-    });
-
-  if (uploadErr) {
-    throw AppError.storage(`Failed to store version: ${uploadErr.message}`, { storagePath });
-  }
+  await uploadObject(storagePath, args.svg, "image/svg+xml");
 
   const { data: inserted, error: insertErr } = await svc
     .from("project_versions")

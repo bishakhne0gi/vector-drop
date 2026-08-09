@@ -1,5 +1,6 @@
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { downloadObject } from "@/lib/storage/r2";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { getVersion, getLatestVersion } from "@/lib/versions/service";
 import {
@@ -76,23 +77,15 @@ export async function GET(
       }
     }
 
-    // Download SVG from storage using service client (private bucket)
-    const { data: svgBlob, error: dlErr } = await svc.storage
-      .from("images")
-      .download(version.storage_path);
-
-    if (dlErr || !svgBlob) {
-      throw AppError.storage(`Failed to retrieve SVG: ${dlErr?.message ?? "unknown"}`, {
-        storagePath: version.storage_path,
-      });
-    }
+    // Download SVG from the private R2 bucket, server-side
+    const svgBuffer = await downloadObject(version.storage_path);
 
     const safeName = (project.name as string)
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .slice(0, 80);
 
     if (format === "svg") {
-      const svgText = sanitizeSvg(await svgBlob.text());
+      const svgText = sanitizeSvg(svgBuffer.toString("utf8"));
 
       // Debit only now that the deliverable exists. Idempotent per version, so
       // a retry after a dropped response is free.
@@ -138,7 +131,6 @@ export async function GET(
 
     // PNG: render SVG via Sharp
     const sharp = (await import("sharp")).default;
-    const svgBuffer = Buffer.from(await svgBlob.arrayBuffer());
 
     let pngBuffer: Buffer;
     try {

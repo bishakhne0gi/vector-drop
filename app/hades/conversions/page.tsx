@@ -69,7 +69,7 @@ export default async function ConversionsPage({
   const slice = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   // Only sign what is on screen — signed URLs are credentials.
-  const signed = await signPaths(svc, [
+  const signed = await signPaths([
     ...slice.map((p) => p.svg_path),
     ...slice.map((p) => p.source_image_path),
   ]);

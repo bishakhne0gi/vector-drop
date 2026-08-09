@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireAuth, createServiceClient } from "@/lib/api/supabase";
 import { handleError } from "@/lib/api/handleError";
+import { signedDownloadUrl } from "@/lib/storage/r2";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { createVersion } from "@/lib/versions/service";
@@ -29,10 +30,8 @@ export async function GET(
 
     // Always generate a fresh signed URL — stored svg_url may be expired
     if (project.svg_path) {
-      const { data: signed } = await svc.storage
-        .from("images")
-        .createSignedUrl(project.svg_path, 3600); // 1 hour, fresh every request
-      if (signed?.signedUrl) project.svg_url = signed.signedUrl;
+      // 1 hour, fresh every request
+      project.svg_url = await signedDownloadUrl(project.svg_path, 3600);
     }
 
     return Response.json(project);
