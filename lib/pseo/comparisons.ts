@@ -47,6 +47,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "vector-magic",
+    metaTitle: "Free Vector Magic Alternative — No $7.95/mo Subscription",
+    metaDescription:
+      "Vector Magic charges ~$7.95/month. VectorDrop turns PNG and JPG into clean, editable SVG free in your browser — no subscription, no watermark, no signup.",
     competitor: "Vector Magic",
     competitorUrl: "https://vectormagic.com",
     tagline: "A modern, free, browser-native alternative to Vector Magic.",
@@ -154,6 +157,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "svgtrace",
+    metaTitle: "SVGtrace Alternative — Cleaner SVG Paths, Live Preview",
+    metaDescription:
+      "SVGtrace is a thin Potrace wrapper with no tuning. VectorDrop traces in colour with live preview and optimised paths — free, no signup, in your browser.",
     competitor: "SVGtrace",
     competitorUrl: "https://svgtrace.com",
     tagline: "A faster, cleaner, more interactive alternative to SVGtrace.",
@@ -192,6 +198,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "inkscape",
+    metaTitle: "Inkscape Trace Bitmap Online — No 300MB Install",
+    metaDescription:
+      "Get Inkscape's Trace Bitmap result without the download. VectorDrop turns PNG, JPG, and WebP into clean SVG free in your browser — nothing to install.",
     competitor: "Inkscape Trace Bitmap",
     competitorUrl: "https://inkscape.org",
     tagline: "Browser-native alternative to Inkscape's Trace Bitmap feature.",
@@ -231,6 +240,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "picsvg",
+    metaTitle: "PicSVG Alternative — Colour Tracing, No Ads",
+    metaDescription:
+      "PicSVG posterises to mono using fixed filters. VectorDrop traces in full colour with tunable detail and live preview — free, ad-free, and no signup.",
     competitor: "PicSVG",
     competitorUrl: "https://picsvg.com",
     tagline: "A modern, higher-fidelity alternative to PicSVG.",
@@ -274,6 +286,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "recraft-ai",
+    metaTitle: "Recraft AI Alternative — Free Vectoriser, No Credits",
+    metaDescription:
+      "Recraft meters vectorising against credits. VectorDrop converts PNG, JPG, and WebP to clean, editable SVG free — no credits, no signup, in your browser.",
     competitor: "Recraft AI",
     competitorUrl: "https://recraft.ai",
     tagline: "Free, focused vectorising versus Recraft's generative design suite.",
@@ -317,6 +332,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "adobe-express",
+    metaTitle: "Adobe Express SVG Converter Alternative — No Account",
+    metaDescription:
+      "Adobe Express needs an Adobe account to convert to SVG. VectorDrop vectorises PNG, JPG, and WebP free in your browser — no signup, with tunable tracing.",
     competitor: "Adobe Express",
     competitorUrl: "https://www.adobe.com/express/",
     tagline: "A free, no-account alternative to Adobe Express's SVG converter.",
@@ -360,6 +378,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "potrace",
+    metaTitle: "Potrace Online — Colour Tracing, No Command Line",
+    metaDescription:
+      "Potrace is a mono command-line tracer needing bitmap input. VectorDrop traces PNG, JPG, and WebP in colour with live preview — free, no install needed.",
     competitor: "Potrace",
     competitorUrl: "https://potrace.sourceforge.net",
     tagline: "The Potrace tracing engine, without the command line.",
@@ -403,6 +424,9 @@ export const comparisons: ComparisonEntry[] = [
   },
   {
     slug: "convertio",
+    metaTitle: "Convertio PNG to SVG Alternative — Real Vector Paths",
+    metaDescription:
+      "Generic converters wrap the raster inside an SVG container. VectorDrop traces real, editable vector paths from PNG, JPG and WebP — free, no daily limits.",
     competitor: "Convertio",
     competitorUrl: "https://convertio.co",
     tagline: "A real vectoriser, not a general-purpose file converter.",
