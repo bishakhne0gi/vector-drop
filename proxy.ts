@@ -17,18 +17,31 @@ function applySecurityHeaders(response: NextResponse): void {
     ? `${r2Bucket}.${r2Account}.r2.cloudflarestorage.com`
     : ''
 
+  // AdSense pulls its tag, then ad creatives, from a spread of Google hosts and
+  // renders each ad in an iframe, so it needs script-src, connect-src and
+  // frame-src entries as well as the img-src https: we already allow. Kept as a
+  // shared list because the same origins show up under three directives.
+  const adsense = [
+    'https://pagead2.googlesyndication.com',
+    'https://*.googlesyndication.com',
+    'https://*.googleadservices.com',
+    'https://*.google.com',
+    'https://*.doubleclick.net',
+    'https://*.googletagservices.com',
+  ].join(' ')
+
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us-assets.i.posthog.com`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us-assets.i.posthog.com ${adsense}`,
     `style-src 'self' 'unsafe-inline' https://*.clerk.com https://clerk.vectordrop.co.in`,
     `img-src 'self' blob: data: https:`,
-    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}${r2Host ? ` https://${r2Host}` : ''}`,
+    `connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com https://us.i.posthog.com https://us-assets.i.posthog.com${supabaseHost ? ` https://${supabaseHost}` : ''}${r2Host ? ` https://${r2Host}` : ''} ${adsense}`,
     "font-src 'self' data: https://*.clerk.com https://clerk.vectordrop.co.in",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://*.clerk.com https://*.clerk.accounts.dev https://clerk.vectordrop.co.in",
     "frame-ancestors 'none'",
-    "frame-src https://*.clerk.com https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com",
+    `frame-src https://*.clerk.com https://*.clerk.accounts.dev https://clerk.vectordrop.co.in https://challenges.cloudflare.com ${adsense}`,
     "worker-src blob:",
   ].join('; ')
 
