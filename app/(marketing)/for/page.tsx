@@ -4,9 +4,9 @@ import { useCases } from "@/lib/pseo/use-cases";
 import { JsonLd, PseoCta, PseoShell } from "@/components/pseo/PseoShell";
 import { PseoHubGrid, PseoHubHero } from "@/components/pseo/PseoHub";
 
-const TITLE = "Vectorize Logos, Icons, Cricut Files & Embroidery Designs";
+const TITLE = "Vectorize Logos, Icons, Cricut, Laser, Sticker & Apparel Files";
 const DESCRIPTION =
-  "See how VectorDrop handles each job: crisp logo vectors, UI icon sets, cut-ready Cricut SVGs, and clean shapes for embroidery digitizing.";
+  "See how VectorDrop handles each job: crisp logo vectors, UI icon sets, cut-ready Cricut and laser files, die-cut sticker paths, and separations for screen printing and embroidery.";
 const URL = `${SITE_URL}/for`;
 
 export const metadata: Metadata = {

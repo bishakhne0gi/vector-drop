@@ -6,7 +6,7 @@ import { PseoHubGrid, PseoHubHero } from "@/components/pseo/PseoHub";
 
 const TITLE = "Vectorization Guides — How to Convert Images to SVG";
 const DESCRIPTION =
-  "Step-by-step guides for turning images into clean vectors: PNG to SVG, vectorizing a logo, tracing a sketch, and getting SVGs into Figma.";
+  "Step-by-step guides for working with vectors: converting PNG to SVG, vectorizing a logo, editing an SVG file, making an SVG background transparent, and reducing SVG file size.";
 const URL = `${SITE_URL}/how-to`;
 
 export const metadata: Metadata = {

@@ -6,7 +6,7 @@ import { PseoHubGrid, PseoHubHero } from "@/components/pseo/PseoHub";
 
 const TITLE = "Free Vectorizer Alternatives — VectorDrop vs the Alternatives";
 const DESCRIPTION =
-  "Honest side-by-side comparisons of VectorDrop against Vectorizer.AI, Vector Magic, Illustrator Image Trace, Inkscape, and SVGTrace — features, pricing, and when to pick each.";
+  "Honest side-by-side comparisons of VectorDrop against Vectorizer.AI, Vector Magic, PicSVG, Recraft AI, Adobe Express, Illustrator Image Trace, Inkscape, Potrace, and Convertio — features, pricing, and when to pick each.";
 const URL = `${SITE_URL}/vs`;
 
 export const metadata: Metadata = {
