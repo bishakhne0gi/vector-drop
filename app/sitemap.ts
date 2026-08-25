@@ -25,6 +25,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   });
 
+  entries.push({
+    url: `${base}/icons`,
+    lastModified: now,
+    changeFrequency: "weekly",
+    priority: 0.8,
+  });
+
   // Cluster hubs — crawl entry points for each pSEO section.
   for (const hub of ["convert", "vs", "how-to", "for"]) {
     entries.push({

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo/site";
 
 /** Private surfaces — no crawler, conventional or AI, should index these. */
-const DISALLOW = ["/api/", "/dashboard", "/editor", "/icons/my", "/login"];
+const DISALLOW = ["/api/", "/dashboard", "/editor", "/hades", "/icons/my", "/login"];
 
 /**
  * Crawlers that decide whether we can be cited by an AI assistant.
