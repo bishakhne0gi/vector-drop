@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { PostHogProvider } from "@/components/shared/PostHogProvider";
 import { Analytics } from "@vercel/analytics/next";
 import { SITE_URL } from "@/lib/seo/site";
+import { ADSENSE_CLIENT } from "@/lib/adsense";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -80,6 +81,13 @@ export const metadata: Metadata = {
     shortcut: "/icon",
     apple: "/apple-icon",
   },
+  // AdSense verifies site ownership from this meta tag, and it has to be present
+  // on every page — including the app routes that never render an ad — because
+  // Google's reviewer can land anywhere. It only claims the site; the ad script
+  // itself is still marketing-only (see components/shared/AdSense.tsx).
+  ...(ADSENSE_CLIENT
+    ? { other: { "google-adsense-account": ADSENSE_CLIENT } }
+    : {}),
 };
 
 const jsonLd = {
