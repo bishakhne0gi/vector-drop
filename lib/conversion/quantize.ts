@@ -2,7 +2,8 @@
  * K-means++ color quantization on raw image pixels — LAB color space edition.
  *
  * Preprocessing:
- *   - Resize to max 2048 px (fit inside) via Sharp
+ *   - Resize to MAX_TRACE_DIMENSION px (fit inside) via Sharp; sources below
+ *     that are supersampled up to MAX_UPSCALE× so edges trace cleanly
  *   - Flatten transparency onto white; NO blur (blur destroys edge definition)
  *   - Extract raw RGB triples, convert all pixels to CIE LAB before clustering
  *
@@ -28,9 +29,24 @@ export interface ColorCluster {
   indices: Uint32Array; // pixel indices (into the full-image pixel array) assigned to this cluster
 }
 
+/**
+ * Longest-edge cap applied before tracing. Potrace only ever sees this raster,
+ * so it is the ceiling on edge fidelity: detail below one pixel here cannot be
+ * recovered by any downstream setting. Cost grows with pixel count, i.e. with
+ * the square of this number.
+ */
+export const MAX_TRACE_DIMENSION = 2048;
+
+/**
+ * Ceiling on how far a small source may be supersampled before tracing. See
+ * the resize call below for why supersampling happens at all.
+ */
+const MAX_UPSCALE = 2;
+
 export async function quantizeColors(
   imageBuffer: Buffer,
   colorCount: number,
+  maxDimension: number = MAX_TRACE_DIMENSION,
 ): Promise<{ clusters: ColorCluster[]; width: number; height: number }> {
   const sharp = (await import("sharp")).default;
 
@@ -55,9 +71,25 @@ export async function quantizeColors(
       .toBuffer();
   }
 
+  // Supersample sources smaller than the trace resolution instead of tracing
+  // them at native size. The 1px dilation in maskTrace is a fixed pixel cost:
+  // on a small raster it is proportionally huge, and tracing the resulting
+  // bulges produces the scalloped "beaded" edges that read as pixelation on
+  // text. Upscaling first makes that dilation proportionally small and gives
+  // potrace sub-pixel edge information to follow.
+  //
+  // Capped at 2x because the gain saturates — beyond that there is no further
+  // edge detail to recover, only cost. Without the cap a 53px icon would be
+  // blown up to 2048 and traced into a needlessly enormous SVG.
+  const srcLongest = Math.max(meta.width ?? 0, meta.height ?? 0);
+  const targetLongest =
+    srcLongest > 0
+      ? Math.min(maxDimension, Math.max(srcLongest, Math.round(srcLongest * MAX_UPSCALE)))
+      : maxDimension;
+
   const { data, info } = await sharp(preprocessed)
     .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
+    .resize(targetLongest, targetLongest, { fit: "inside" })
     .raw()
     .toBuffer({ resolveWithObject: true });
 

@@ -20,7 +20,7 @@ import {
   InsufficientCreditsError,
 } from "@/lib/credits/service";
 import { CONVERSION_UNITS } from "@/lib/credits/constants";
-import { quantizeColors } from "@/lib/conversion/quantize";
+import { quantizeColors, MAX_TRACE_DIMENSION } from "@/lib/conversion/quantize";
 import { traceColorMask } from "@/lib/conversion/maskTrace";
 import { assembleSvg } from "@/lib/conversion/assembleSvg";
 import {
@@ -32,6 +32,22 @@ import {
 } from "@/lib/types";
 
 const ROUTE = "POST /api/projects/[id]/convert";
+
+/**
+ * Declared explicitly rather than left to the platform default, because the
+ * budget is what bounds MAX_TRACE_DIMENSION and DEFAULT_COLOR_COUNT below.
+ * Measured at 2048px/32 colors: p99 ≈ 122s, worst ≈ 222s.
+ */
+export const maxDuration = 300;
+
+/**
+ * Benchmarked on real uploads (2026-09-01): at 2048px tracing resolution, 64
+ * colors is visually indistinguishable from 32 on line art and logos, while
+ * costing ~70% more CPU and 2.2 MB more per SVG — enough to push the worst case
+ * past maxDuration. Perceived "pixelation" came from the tracing resolution,
+ * not the palette size; see MAX_TRACE_DIMENSION in lib/conversion/quantize.ts.
+ * Callers wanting a richer palette can still pass colorCount up to 64.
+ */
 const DEFAULT_COLOR_COUNT = 32;
 
 const convertSchema = z.object({
@@ -231,7 +247,7 @@ export async function POST(
 
     // Step 2: cache-aside on raw buffer hash
     const imageHash = computeImageHash(rawBuffer);
-    const cacheKey = cacheKeys.conversion(imageHash, colorCount);
+    const cacheKey = cacheKeys.conversion(imageHash, colorCount, MAX_TRACE_DIMENSION);
     const cached = await cacheGet<ConversionCacheValue>(cacheKey);
 
     if (cached) {

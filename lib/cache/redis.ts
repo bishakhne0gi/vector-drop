@@ -63,8 +63,15 @@ export async function enforceRateLimit(
 // ─── Cache Key Builders ───────────────────────────────────────────────────────
 
 export const cacheKeys = {
-  conversion: (sha256: string, colorCount: number) =>
-    `conv:${sha256}:${colorCount}`,
+  /**
+   * Every input that changes the traced output belongs in this key. The trace
+   * dimension is one of them: the same image at the same colour count traces
+   * to a visibly different SVG at 1280 than at 2048, so omitting it would keep
+   * serving a stale, lower-fidelity result for the full 30-day TTL after the
+   * resolution changes.
+   */
+  conversion: (sha256: string, colorCount: number, traceDimension: number) =>
+    `conv:${sha256}:${colorCount}:${traceDimension}`,
   aiAnalysis: (imageHash: string) => `ai:analysis:${imageHash}`,
   aiRestyle: (imageHash: string, themeId: string) =>
     `ai:restyle:${imageHash}:${themeId}`,

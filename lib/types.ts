@@ -133,7 +133,7 @@ export interface CreateProjectResponse {
 }
 
 export interface ConvertProjectRequest {
-  colorCount?: number; // 2–16, default 8
+  colorCount?: number; // 2–64, default 32
 }
 
 export interface ConvertProjectResponse {
