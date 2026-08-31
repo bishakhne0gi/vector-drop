@@ -4,6 +4,13 @@ export interface SVGPath {
   id: string;
   d: string;
   fill: string;
+  /**
+   * Potrace emits an outer contour and its holes as one `d`, which only renders
+   * correctly under even-odd winding. Dropping this attribute fills the holes in
+   * and collapses a traced SVG into solid blocks, so it has to survive the whole
+   * parse → edit → serialize round trip.
+   */
+  fillRule: "nonzero" | "evenodd";
   stroke: string;
   strokeWidth: number;
   strokeLinecap: "butt" | "round" | "square";

@@ -56,10 +56,14 @@ export function parseSvg(text: string): { paths: SVGPath[]; meta: SVGMeta } {
 
     const lc = el.getAttribute("stroke-linecap") ?? "round";
     const lj = el.getAttribute("stroke-linejoin") ?? "round";
+    // Default to the SVG spec's own default rather than to evenodd: a path that
+    // genuinely omits the attribute must keep rendering as nonzero.
+    const fr = el.getAttribute("fill-rule") ?? "nonzero";
     return {
       id,
       d: el.getAttribute("d") ?? "",
       fill: el.getAttribute("fill") ?? "none",
+      fillRule: (fr === "evenodd" ? "evenodd" : "nonzero") as SVGPath["fillRule"],
       stroke: el.getAttribute("stroke") ?? "none",
       strokeWidth: parseFloat(el.getAttribute("stroke-width") ?? "2") || 2,
       strokeLinecap: (["butt", "round", "square"].includes(lc) ? lc : "round") as SVGPath["strokeLinecap"],

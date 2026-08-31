@@ -35,6 +35,7 @@ export function PathElement({ path }: PathElementProps) {
         id={path.id}
         d={path.d}
         fill={path.fill}
+        fillRule={path.fillRule}
         stroke={path.stroke}
         strokeWidth={path.strokeWidth}
         strokeLinecap={path.strokeLinecap}
