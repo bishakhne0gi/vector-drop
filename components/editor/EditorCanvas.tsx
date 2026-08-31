@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useEditorStore, type SVGPath, type SVGMeta } from "@/stores/editorStore";
+import { useEditorStore, type SVGMeta } from "@/stores/editorStore";
 // Single shared parser. EditorCanvas used to keep its own copy, which
 // generated random path ids on every load — so layer names churned between
 // sessions and the two implementations could drift apart.
@@ -20,15 +20,9 @@ interface EditorCanvasProps {
   svgUrl: string;
 }
 
-export function serializeSvg(paths: SVGPath[], viewBox: string, width: number, height: number): string {
-  const pathEls = paths
-    .map(
-      (p) =>
-        `<path id="${p.id}" d="${p.d}" fill="${p.fill}" fill-rule="${p.fillRule}" stroke="${p.stroke}" stroke-width="${p.strokeWidth}" stroke-linecap="${p.strokeLinecap}" stroke-linejoin="${p.strokeLinejoin}" opacity="${p.opacity}" />`,
-    )
-    .join("\n");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="${width}" height="${height}">\n${pathEls}\n</svg>`;
-}
+// Re-exported so existing importers keep working; the definition now lives in
+// lib/editor/serialize because the store needs it too.
+export { serializeSvg } from "@/lib/editor/serialize";
 
 export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,8 +38,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
 
   const paths = useEditorStore((s) => s.paths);
   const selectedIds = useEditorStore((s) => s.selectedIds);
-  const setPaths = useEditorStore((s) => s.setPaths);
-  const setSvgMeta = useEditorStore((s) => s.setSvgMeta);
+  const loadPaths = useEditorStore((s) => s.loadPaths);
   const storeMeta = useEditorStore((s) => s.svgMeta);
   const clearSelection = useEditorStore((s) => s.clearSelection);
   const editingPathId = useEditorStore((s) => s.editingPathId);
@@ -68,9 +61,10 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
       .then((text) => {
         if (cancelled) return;
         const { paths: parsed, meta: parsedMeta } = parseSvg(text);
-        setPaths(parsed);
+        // svgUrl points at the project's current SVG, i.e. its latest version,
+        // so the baseline version id is left null to mean exactly that.
+        loadPaths(parsed, parsedMeta, null);
         setMeta(parsedMeta);
-        setSvgMeta(parsedMeta);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -83,7 +77,7 @@ export function EditorCanvas({ svgUrl }: EditorCanvasProps) {
     return () => {
       cancelled = true;
     };
-  }, [svgUrl, setPaths, setSvgMeta]);
+  }, [svgUrl, loadPaths]);
 
   // Block native wheel on the canvas container (passive:false required for preventDefault)
   useEffect(() => {

@@ -8,6 +8,7 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "PAYMENT_REQUIRED"
   | "CONFLICT"
+  | "PAYLOAD_TOO_LARGE"
   | "PIPELINE_ERROR"
   | "STORAGE_ERROR"
   | "CACHE_ERROR"
@@ -56,6 +57,11 @@ export class AppError extends Error {
 
   static conflict(message: string): AppError {
     return new AppError("CONFLICT", message, 409);
+  }
+
+  /** 413 — the request body is larger than the route is willing to buffer. */
+  static payloadTooLarge(message = "Request body too large"): AppError {
+    return new AppError("PAYLOAD_TOO_LARGE", message, 413);
   }
 
   static pipeline(message: string, context?: Record<string, unknown>): AppError {

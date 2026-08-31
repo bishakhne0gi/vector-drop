@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEditorStore } from "@/stores/editorStore";
-import { serializeSvg } from "./EditorCanvas";
+import { serializeSvg } from "@/lib/editor/serialize";
+import { saveSvgVersion } from "@/lib/editor/saveVersion";
 import { BuyCreditsModal } from "@/components/shared/BuyCreditsModal";
 
 interface ToolbarProps {
@@ -226,6 +227,9 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
   const redo = useEditorStore((s) => s.redo);
   const zoom = useEditorStore((s) => s.zoom);
   const setZoom = useEditorStore((s) => s.setZoom);
+  const baselineSignature = useEditorStore((s) => s.baselineSignature);
+  const baselineVersionId = useEditorStore((s) => s.baselineVersionId);
+  const setBaseline = useEditorStore((s) => s.setBaseline);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -264,15 +268,8 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
 
     const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ svg_content: svgContent }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message ?? `Save failed (${res.status})`);
-      }
+      const version = await saveSvgVersion(projectId, svgContent);
+      if (version) setBaseline(svgContent, version.id);
       // The saved version must appear in the panel immediately — otherwise the
       // user cannot tell whether their edit was captured.
       void queryClient.invalidateQueries({ queryKey: ["versions", projectId] });
@@ -313,19 +310,23 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
     try {
       const svgContent = serializeSvg(paths, svgMeta.viewBox, svgMeta.width, svgMeta.height);
 
-      const saveRes = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ svg_content: svgContent }),
-      });
-      if (!saveRes.ok) {
-        const body = (await saveRes.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message ?? `Save failed (${saveRes.status})`);
-      }
-      const { version } = (await saveRes.json()) as { version: { id: string } | null };
-      if (!version) throw new Error("No version was produced for this export");
+      // Nothing was changed since this document was loaded, so the bytes the
+      // server already holds ARE the deliverable. Saving here would re-upload
+      // several megabytes to be told, via the content hash, that the version
+      // already exists.
+      let versionId = baselineVersionId;
 
-      const params = new URLSearchParams({ format, versionId: version.id, download: "1" });
+      if (svgContent !== baselineSignature) {
+        const version = await saveSvgVersion(projectId, svgContent);
+        if (!version) throw new Error("No version was produced for this export");
+        versionId = version.id;
+        setBaseline(svgContent, version.id);
+      }
+
+      const params = new URLSearchParams({ format, download: "1" });
+      // Omitted entirely when unknown, which the API reads as "the latest
+      // version" — the same thing the canvas loaded.
+      if (versionId) params.set("versionId", versionId);
       const res = await fetch(`/api/projects/${projectId}/export?${params}`);
 
       if (res.status === 402) {
@@ -334,8 +335,12 @@ export function Toolbar({ projectId, projectName }: ToolbarProps) {
         return;
       }
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message ?? `Export failed (${res.status})`);
+        // Failures come back as { error: { code, message } }; reading only a
+        // top-level `message` reduced every real cause to a bare status code.
+        const body = (await res.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        throw new Error(body.error?.message ?? `Export failed (${res.status})`);
       }
 
       const blob = await res.blob();

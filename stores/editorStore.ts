@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { serializeSvg } from "@/lib/editor/serialize";
 
 export interface SVGPath {
   id: string;
@@ -48,8 +49,24 @@ interface EditorState {
   editTool: EditTool;
   selectedAnchorKey: string | null; // "subpathIdx:anchorId"
 
+  /**
+   * The serialised form of the version currently loaded, and that version's id
+   * (null means "whatever the project's latest version is").
+   *
+   * Exporting used to re-upload the whole document every time, even when the
+   * user had changed nothing — several megabytes for a detailed trace, which
+   * the platform rejects outright. Comparing against this lets an untouched
+   * document export the version that is already stored instead.
+   */
+  baselineSignature: string | null;
+  baselineVersionId: string | null;
+
   // Actions
   setPaths: (paths: SVGPath[]) => void;
+  /** Adopts content that already exists server-side, and makes it the baseline. */
+  loadPaths: (paths: SVGPath[], meta: SVGMeta, versionId: string | null) => void;
+  /** Records what was just persisted, so an immediate re-export is a no-op save. */
+  setBaseline: (signature: string, versionId: string | null) => void;
   setSvgMeta: (meta: SVGMeta) => void;
   selectPath: (id: string, additive?: boolean) => void;
   clearSelection: () => void;
@@ -95,12 +112,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   editTool: "move",
   selectedAnchorKey: null,
 
+  baselineSignature: null,
+  baselineVersionId: null,
+
   setSvgMeta: (meta) => set({ svgMeta: meta }),
 
   setPaths: (paths) => {
     const s = get();
     set(pushHistory(s, paths));
   },
+
+  loadPaths: (paths, meta, versionId) =>
+    set({
+      paths,
+      svgMeta: meta,
+      // A freshly loaded document starts its own history — undoing back into
+      // the previous version's edits would silently mix two versions together.
+      history: [{ paths }],
+      historyIndex: 0,
+      selectedIds: new Set(),
+      editingPathId: null,
+      selectedAnchorKey: null,
+      baselineSignature: serializeSvg(paths, meta.viewBox, meta.width, meta.height),
+      baselineVersionId: versionId,
+    }),
+
+  setBaseline: (signature, versionId) =>
+    set({ baselineSignature: signature, baselineVersionId: versionId }),
 
   selectPath: (id, additive = false) => {
     set((s) => {

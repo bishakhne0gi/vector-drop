@@ -5,6 +5,7 @@ import { signedDownloadUrl } from "@/lib/storage/r2";
 import { sanitizeSvg } from "@/lib/svg/sanitize";
 import { writeRatelimit, enforceRateLimit } from "@/lib/cache/redis";
 import { createVersion } from "@/lib/versions/service";
+import { readJsonBody } from "@/lib/api/readJsonBody";
 import { AppError, type ProjectVersion } from "@/lib/types";
 
 export async function GET(
@@ -45,6 +46,11 @@ const ROUTE = "PATCH /api/projects/[id]";
 // 10 MB cap — generous for a real SVG, but prevents memory-exhaustion attacks.
 const MAX_SVG_BYTES = 10 * 1024 * 1024;
 
+// JSON escaping and the surrounding envelope make the body larger than the SVG
+// it carries. Slack enough that a legal 10 MB SVG is never rejected by the
+// stream cap before Zod can report the friendlier error.
+const BODY_OVERHEAD_BYTES = 2 * 1024 * 1024;
+
 const patchProjectSchema = z.object({
   svg_content: z.string().min(1).max(MAX_SVG_BYTES, "svg_content exceeds 10 MB limit").optional(),
   name: z.string().min(1).max(200).optional(),
@@ -67,12 +73,10 @@ export async function PATCH(
 
     await enforceRateLimit(writeRatelimit, userId);
 
-    let raw: unknown;
-    try {
-      raw = await req.json();
-    } catch {
-      throw AppError.validation("Request body must be valid JSON");
-    }
+    // Reads the body itself (rather than req.json()) so that gzipped uploads
+    // are accepted. A 2048px trace is several megabytes of path data, which the
+    // platform 413s before this route is ever entered.
+    const raw = await readJsonBody(req, MAX_SVG_BYTES + BODY_OVERHEAD_BYTES);
 
     const parsed = patchProjectSchema.safeParse(raw);
     if (!parsed.success) {

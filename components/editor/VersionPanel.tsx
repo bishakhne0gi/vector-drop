@@ -19,8 +19,7 @@ interface VersionPanelProps {
  * explicitly, because a history people are afraid to click is not history.
  */
 export function VersionPanel({ projectId }: VersionPanelProps) {
-  const setPaths = useEditorStore((s) => s.setPaths);
-  const setSvgMeta = useEditorStore((s) => s.setSvgMeta);
+  const loadPaths = useEditorStore((s) => s.loadPaths);
 
   const { data: versions, isLoading } = useQuery<ProjectVersionWithUnlock[]>({
     queryKey: ["versions", projectId],
@@ -40,8 +39,9 @@ export function VersionPanel({ projectId }: VersionPanelProps) {
     if (!res.ok) return;
     const text = await res.text();
     const { paths, meta } = parseSvg(text);
-    setPaths(paths);
-    setSvgMeta(meta);
+    // Recorded against this version's id, so exporting straight after a switch
+    // downloads the version being previewed rather than re-uploading it.
+    loadPaths(paths, meta, version.id);
   }
 
   if (isLoading || !versions || versions.length === 0) return null;
