@@ -9,7 +9,7 @@ import {
   CaretRightIcon,
 } from "@phosphor-icons/react";
 import { LegoStud } from "./LegoStud";
-import { SiteLinks } from "@/components/pseo/SiteLinks";
+import { SiteLinks, LegalLinks } from "@/components/pseo/SiteLinks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, useInView, animate } from "motion/react";
 
@@ -2306,8 +2306,9 @@ export function LandingPage() {
               </span>
             </div>
 
-            {/* Center: Better Launch badge */}
-            <div className="flex items-center gap-8">
+            {/* Center: legal links over the Better Launch badge */}
+            <div className="flex flex-col items-center gap-5">
+              <LegalLinks />
               <a
                 href="https://www.betterlaunch.co"
                 target="_blank"

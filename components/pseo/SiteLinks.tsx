@@ -46,6 +46,22 @@ const COLS = [
   },
 ];
 
+/**
+ * Company and legal routes.
+ *
+ * Kept in the footer of every public page — the landing page and the whole
+ * marketing tree both render SiteLinks — because a policy reviewer can land on
+ * any URL, and a privacy policy that is only reachable from the homepage counts
+ * as missing.
+ */
+const LEGAL_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/pricing", label: "Pricing" },
+];
+
 export function SiteLinks() {
   return (
     <div
@@ -120,6 +136,36 @@ export function SiteLinks() {
           </div>
         ))}
       </div>
+
     </div>
+  );
+}
+
+/**
+ * The company/legal links, rendered inline on the footer's bottom bar rather
+ * than as a section of their own.
+ *
+ * Every public page reaches these: the landing page and the marketing tree both
+ * end in a footer that renders this. That matters beyond tidiness, since an ad
+ * reviewer can land on any URL and a policy page linked from only one of them
+ * reads as missing.
+ */
+export function LegalLinks() {
+  return (
+    <nav
+      aria-label="Company"
+      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+    >
+      {LEGAL_LINKS.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="text-[12.5px] transition-colors hover:text-white"
+          style={{ color: "rgba(255,255,255,0.45)", textDecoration: "none" }}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

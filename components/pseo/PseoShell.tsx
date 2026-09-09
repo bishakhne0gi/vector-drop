@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { FaqItem } from "@/lib/pseo/types";
-import { SiteLinks } from "./SiteLinks";
+import { SiteLinks, LegalLinks } from "./SiteLinks";
 
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const FONT_MONO = "auxMono, monospace";
@@ -85,6 +85,8 @@ function PseoFooter() {
             · © 2026
           </span>
         </Link>
+        <LegalLinks />
+
         <span
           style={{
             fontFamily: FONT_MONO,

@@ -32,6 +32,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   });
 
+  // Company / legal. Low priority for ranking, but they must be crawlable:
+  // ad networks and app reviewers check that these pages actually resolve.
+  for (const path of ["about", "contact", "privacy", "terms"]) {
+    entries.push({
+      url: `${base}/${path}`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    });
+  }
+
   // Cluster hubs — crawl entry points for each pSEO section.
   for (const hub of ["convert", "vs", "how-to", "for"]) {
     entries.push({
