@@ -4,6 +4,7 @@ import { BuyCreditsButton } from "@/components/shared/BuyCreditsButton";
 import { SITE_URL } from "@/lib/seo/site";
 import {
   SIGNUP_GRANT_UNITS,
+  PACK_PRICE_USD,
   PURCHASE_GRANT_UNITS,
   UNITS_PER_CREDIT,
   formatCredits,
@@ -12,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Pricing — VectorDrop",
   description:
-    "Convert images to SVG for $3. Twenty credits, no subscription, credits never expire. Start with three free credits — enough for two complete projects.",
+    "Convert images to SVG for $4. Twenty credits, no subscription, credits never expire. Start with one free credit — enough for a complete project.",
   alternates: { canonical: `${SITE_URL}/pricing` },
 };
 
@@ -72,7 +73,9 @@ export default function PricingPage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 44, fontWeight: 700, letterSpacing: "-0.02em" }}>$3</span>
+          <span style={{ fontSize: 44, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            {PACK_PRICE_USD}
+          </span>
           <span style={{ fontSize: 15, color: "rgba(255,255,255,0.55)" }}>
             for {packCredits} credits
           </span>
@@ -106,11 +109,12 @@ export default function PricingPage() {
         }}
       >
         <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>
-          {freeCredits} credits free when you sign up
+          {freeCredits} free credit when you sign up
         </h2>
         <p style={{ fontSize: 14, color: "rgba(255,255,255,0.60)", margin: 0, lineHeight: 1.7 }}>
-          Enough for two complete projects — convert, edit, and export them without paying
-          anything. We would rather you finish something real than hit a wall halfway.
+          Enough for one complete project — convert an image, edit it, and export the result
+          without paying anything. We would rather you finish something real than hit a wall
+          halfway.
         </p>
       </section>
 
@@ -169,7 +173,9 @@ export default function PricingPage() {
           adjusting settings and trying again costs nothing.
         </dd>
 
-        <dt style={{ fontWeight: 600, marginTop: 20 }}>Why is my total higher than $3?</dt>
+        <dt style={{ fontWeight: 600, marginTop: 20 }}>
+          Why is my total higher than {PACK_PRICE_USD}?
+        </dt>
         <dd style={{ margin: "6px 0 0", color: "rgba(255,255,255,0.60)" }}>
           Tax is added at checkout and varies by country, and you are billed in your local
           currency.

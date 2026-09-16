@@ -41,9 +41,9 @@ export function CreditBadge() {
 
   const label = `${data.credits} credit${data.credits === "1" ? "" : "s"}`;
 
-  // Red below 1.5 credits: at that point one more conversion plus a few exports
-  // is all that is left, so the warning arrives while the user can still act on
-  // it rather than at zero, mid-task.
+  // Red at or below 1 credit: one conversion is all that is left, so the
+  // warning arrives while the user can still act on it rather than at zero,
+  // mid-task.
   const isLow = data.balanceUnits < LOW_BALANCE_UNITS;
 
   const palette = isLow

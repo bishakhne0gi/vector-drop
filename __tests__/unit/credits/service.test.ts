@@ -13,6 +13,7 @@ import {
   getBalance,
   InsufficientCreditsError,
 } from "@/lib/credits/service";
+import { SIGNUP_GRANT_UNITS } from "@/lib/credits/constants";
 
 beforeEach(() => {
   rpc.mockReset();
@@ -148,17 +149,20 @@ describe("ensureSignupGrant", () => {
   it("grants the signup allowance when the user has no credit row", async () => {
     // The rescue path for users whose Clerk user.created webhook never fired.
     mockMaybeSingle(null);
-    rpc.mockResolvedValue({ data: [{ granted: true, balance_units: 30 }], error: null });
+    rpc.mockResolvedValue({
+      data: [{ granted: true, balance_units: SIGNUP_GRANT_UNITS }],
+      error: null,
+    });
 
     const { ensureSignupGrant } = await import("@/lib/credits/service");
     const balance = await ensureSignupGrant("user_new");
 
-    expect(balance).toBe(30);
+    expect(balance).toBe(SIGNUP_GRANT_UNITS);
     expect(rpc).toHaveBeenCalledWith(
       "grant_units",
       expect.objectContaining({
         p_user_id: "user_new",
-        p_delta_units: 30,
+        p_delta_units: SIGNUP_GRANT_UNITS,
         p_idempotency_key: "signup:user_new",
         p_reason: "signup_grant",
       }),

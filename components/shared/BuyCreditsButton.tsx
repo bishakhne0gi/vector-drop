@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PACK_CREDITS } from "@/lib/credits/constants";
 
 const FONT_MONO = "auxMono, monospace";
 
@@ -13,7 +14,9 @@ const FONT_MONO = "auxMono, monospace";
  * client hook that disagrees just produces a button that lies about its own
  * behaviour. A 401 sends the user to sign in and back.
  */
-export function BuyCreditsButton({ label = "Buy 20 credits" }: { label?: string }) {
+export function BuyCreditsButton({
+  label = `Buy ${PACK_CREDITS} credits`,
+}: { label?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

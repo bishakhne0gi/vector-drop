@@ -124,6 +124,70 @@ async function setJobStep(supabase: SupabaseClient, jobId: string, step: Convers
 }
 
 /**
+ * How long a project may sit in `converting` before the next request treats the
+ * run as dead and takes over.
+ *
+ * A conversion that outlives `maxDuration` is killed by the platform mid-flight:
+ * no catch block runs, so the project keeps the `converting` status and the job
+ * keeps `running` forever. The dashboard then polls a job that will never
+ * finish and the card pulses "Converting" for eternity, with no way for the
+ * user to retry. Anything older than the function budget (plus a minute of
+ * slack) cannot still be alive, so it is safe to reclaim.
+ */
+const STALE_CONVERSION_MS = (maxDuration + 60) * 1000;
+
+/**
+ * Marks a conversion as failed on both rows it touches.
+ *
+ * Without this, any throw between "mark converting" and "mark ready" left the
+ * project stuck on `converting` and the job stuck on `pending`/`running` — the
+ * UI's two hanging states. Both must land, so each is best-effort: a failure to
+ * write one must not stop the other, and neither may mask the original error.
+ */
+async function failConversion(
+  supabase: SupabaseClient,
+  jobId: string,
+  projectId: string,
+  err: unknown,
+): Promise<void> {
+  const appErr = err instanceof AppError ? err : null;
+  const message =
+    appErr?.message ??
+    (err instanceof Error ? err.message : "Conversion failed");
+  const code = appErr?.code ?? "PIPELINE_ERROR";
+
+  const results = await Promise.allSettled([
+    supabase
+      .from("conversion_jobs")
+      .update({
+        status: "failed",
+        completed_at: new Date().toISOString(),
+        error: { code, message },
+      })
+      .eq("id", jobId),
+    supabase
+      .from("projects")
+      .update({ status: "error", error_message: message })
+      .eq("id", projectId),
+  ]);
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.warn(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "warn",
+          route: ROUTE,
+          userId: null,
+          message: "Failed to record conversion failure",
+          context: { jobId, projectId, error: String(result.reason) },
+        }),
+      );
+    }
+  }
+}
+
+/**
  * Charges for a conversion and grants a permanent free-export entitlement on
  * the original version.
  *
@@ -166,6 +230,16 @@ export async function POST(
   const start = Date.now();
   let userId: string | null = null;
 
+  // Tracked outside the try so the catch can clean up whatever the pipeline
+  // left half-written. `inFlight` is true only between marking the project
+  // `converting` and marking it `ready`: before that there is nothing to undo,
+  // and after it the SVG exists, so a later failure (a short balance at charge
+  // time) must not turn a finished project into an errored one.
+  let inFlight: { jobId: string; projectId: string } | null = null;
+
+  // Hoisted above the try: the catch needs it to write the failure state.
+  const svc = createServiceClient();
+
   try {
     const { id: projectId } = await params;
 
@@ -190,8 +264,6 @@ export async function POST(
     }
     const { colorCount } = parsed.data;
 
-    const svc = createServiceClient();
-
     const { data: project, error: projectErr } = await svc
       .from("projects")
       .select()
@@ -200,8 +272,34 @@ export async function POST(
       .single();
 
     if (projectErr || !project) throw AppError.notFound("Project");
-    if (project.status === "converting")
-      throw AppError.conflict("Conversion already in progress for this project");
+    if (project.status === "converting") {
+      // Only refuse while a run could genuinely still be in flight. Past the
+      // function budget the previous attempt is dead, and refusing forever
+      // would strand the project with no way back.
+      const lastTouched = new Date(project.updated_at ?? project.created_at).getTime();
+      if (Date.now() - lastTouched < STALE_CONVERSION_MS)
+        throw AppError.conflict("Conversion already in progress for this project");
+
+      console.warn(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "warn",
+          route: ROUTE,
+          userId,
+          message: "Reclaiming stale converting project",
+          context: { projectId, updatedAt: project.updated_at },
+        }),
+      );
+      await svc
+        .from("conversion_jobs")
+        .update({
+          status: "failed",
+          completed_at: new Date().toISOString(),
+          error: { code: "PIPELINE_ERROR", message: "Conversion timed out" },
+        })
+        .eq("project_id", projectId)
+        .in("status", ["pending", "running"]);
+    }
     if (!project.source_image_path)
       throw AppError.validation("Project has no source image — upload first");
 
@@ -237,6 +335,7 @@ export async function POST(
       .from("projects")
       .update({ status: "converting", error_message: null })
       .eq("id", projectId);
+    inFlight = { jobId: job.id, projectId };
 
     // ── Pipeline ──────────────────────────────────────────────────────────────
 
@@ -272,6 +371,7 @@ export async function POST(
           .update({ status: "ready", svg_path: destPath, source_image_hash: imageHash })
           .eq("id", projectId);
         await setJobStep(svc, job.id, "assemble", "done");
+        inFlight = null;
 
         // Record version 1 and charge. On a cache hit the SVG already exists,
         // so read it back to hash its canonical content.
@@ -342,6 +442,7 @@ export async function POST(
       .from("projects")
       .update({ status: "ready", svg_path: svgPath, source_image_hash: imageHash })
       .eq("id", projectId);
+    inFlight = null;
 
     // Version 1 exists before any charge is made — a failed trace above means
     // we never reach this line, so the user is never billed for nothing.
@@ -378,6 +479,13 @@ export async function POST(
       headers: { "X-RateLimit-Remaining": String(remaining) },
     });
   } catch (err) {
+    // Nothing may be left mid-conversion. A project stuck on `converting` and a
+    // job stuck on `pending`/`running` are what the dashboard polls forever, so
+    // every exit from the pipeline has to land on a terminal state.
+    if (inFlight) {
+      await failConversion(svc, inFlight.jobId, inFlight.projectId, err);
+    }
+
     // Raised if the balance moved between the pre-check and the debit.
     // Surface as 402 so the UI can offer checkout, not a generic 500.
     if (err instanceof InsufficientCreditsError) {

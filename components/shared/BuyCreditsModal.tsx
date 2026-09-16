@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PACK_CREDITS, PACK_PRICE_USD } from "@/lib/credits/constants";
 
 const FONT_MONO = "auxMono, monospace";
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -17,8 +18,8 @@ interface BuyCreditsModalProps {
  *
  * The price line says "+ tax, billed in your local currency" deliberately:
  * Dodo adds tax on top and localises the currency, so an Indian customer sees
- * roughly ₹351 for a "$3" pack. A total that changes between this button and
- * the payment page is how cheap purchases get abandoned.
+ * a local total well above the sticker price. A total that changes between
+ * this button and the payment page is how cheap purchases get abandoned.
  */
 export function BuyCreditsModal({ open, onClose, blockedAction }: BuyCreditsModalProps) {
   const [loading, setLoading] = useState(false);
@@ -86,7 +87,7 @@ export function BuyCreditsModal({ open, onClose, blockedAction }: BuyCreditsModa
         </p>
 
         <h2 style={{ fontSize: 20, color: "#fff", margin: "10px 0 6px", fontWeight: 600 }}>
-          20 credits for $3
+          {PACK_CREDITS} credits for {PACK_PRICE_USD}
         </h2>
 
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", margin: "0 0 18px" }}>

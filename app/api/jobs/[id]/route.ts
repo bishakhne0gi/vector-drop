@@ -4,6 +4,22 @@ import { AppError, JobStatusResponse, ConversionStep, JobStatus } from "@/lib/ty
 
 const ROUTE = "GET /api/jobs/[id]";
 
+/**
+ * Past this, a job that still says `pending` or `running` is dead.
+ *
+ * The convert route runs the whole pipeline inside the request, with
+ * `maxDuration = 300`. When the platform kills it at the budget, no catch block
+ * runs: the job keeps its non-terminal status and the project keeps
+ * `converting`, so the dashboard polls every 2s forever and the card pulses
+ * "Converting" with no error and no way out. Nothing can still be running an
+ * hour — or a minute — past the budget, so this route reports the truth and
+ * writes it back.
+ */
+const JOB_TIMEOUT_MS = (300 + 60) * 1000;
+
+const TIMEOUT_MESSAGE =
+  "Conversion timed out — the image may be too large or detailed. Try again, or use a smaller image.";
+
 const STEP_PROGRESS: Record<ConversionStep, number> = {
   upload: 20,
   normalize: 45,
@@ -50,7 +66,52 @@ export async function GET(
     if (projectUserId !== userId) throw AppError.forbidden();
 
     const step = job.step as ConversionStep;
-    const status = job.status as JobStatus;
+    let status = job.status as JobStatus;
+    let jobError = (job.error ?? null) as JobStatusResponse["error"];
+
+    const isTerminal = status === "done" || status === "failed";
+    const ageMs = Date.now() - new Date(job.started_at ?? job.created_at).getTime();
+
+    if (!isTerminal && ageMs > JOB_TIMEOUT_MS) {
+      status = "failed";
+      jobError = { code: "PIPELINE_ERROR", message: TIMEOUT_MESSAGE };
+
+      // Persist it, so the project card stops saying "Converting" too. The
+      // response does not depend on these writes — the status above is already
+      // the answer — so failures here only cost a stale row, not a hung client.
+      const { error: jobWriteErr } = await svc
+        .from("conversion_jobs")
+        .update({
+          status: "failed",
+          completed_at: new Date().toISOString(),
+          error: jobError,
+        })
+        .eq("id", jobId)
+        .in("status", ["pending", "running"]);
+
+      const { error: projectWriteErr } = await svc
+        .from("projects")
+        .update({ status: "error", error_message: TIMEOUT_MESSAGE })
+        .eq("id", job.project_id)
+        .eq("status", "converting");
+
+      if (jobWriteErr || projectWriteErr) {
+        console.warn(
+          JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: "warn",
+            route: ROUTE,
+            userId,
+            message: "Failed to persist job timeout",
+            context: {
+              jobId,
+              jobError: jobWriteErr?.message,
+              projectError: projectWriteErr?.message,
+            },
+          }),
+        );
+      }
+    }
 
     const response: JobStatusResponse = {
       jobId: job.id,
@@ -60,7 +121,7 @@ export async function GET(
       progress: computeProgress(step, status),
       startedAt: job.started_at ?? null,
       completedAt: job.completed_at ?? null,
-      error: job.error ?? null,
+      error: jobError,
     };
 
     console.log(

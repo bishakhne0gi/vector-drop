@@ -14,7 +14,7 @@ import {
   SIGNUP_GRANT_UNITS,
   PURCHASE_GRANT_UNITS,
   UNITS_PER_CREDIT,
-  PACK_PRICE_CENTS,
+  PACK_PRICE_USD,
   formatCredits,
 } from "@/lib/credits/constants";
 
@@ -32,7 +32,7 @@ export default function TermsPage() {
   // the terms cannot promise a price or a grant the product does not honour.
   const freeCredits = formatCredits(SIGNUP_GRANT_UNITS);
   const packCredits = PURCHASE_GRANT_UNITS / UNITS_PER_CREDIT;
-  const packPrice = `$${(PACK_PRICE_CENTS / 100).toFixed(0)}`;
+  const packPrice = PACK_PRICE_USD;
 
   return (
     <PseoShell>
@@ -73,7 +73,7 @@ export default function TermsPage() {
       <LegalSection n="04" title="Credits and payment">
         <LegalP>
           VectorDrop runs on credits rather than a subscription. New accounts receive{" "}
-          {freeCredits} free credits. Additional credits are sold in a pack of {packCredits}{" "}
+          {freeCredits} free credit. Additional credits are sold in a pack of {packCredits}{" "}
           credits for {packPrice}. Purchased credits do not expire.
         </LegalP>
         <LegalRows

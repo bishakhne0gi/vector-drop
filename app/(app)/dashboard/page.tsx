@@ -12,12 +12,20 @@ import { Navbar } from "@/components/shared/Navbar";
 import { FloatingStatusHint } from "@/components/shared/FloatingStatusHint";
 import { FeedbackButton } from "@/components/shared/FeedbackButton";
 import { CreditToast } from "@/components/shared/CreditToast";
-import { PURCHASE_GRANT_UNITS, UNITS_PER_CREDIT } from "@/lib/credits/constants";
+import { Toast } from "@/components/shared/Toast";
+import {
+  CONVERSION_UNITS,
+  PACK_CREDITS,
+  PACK_PRICE_USD,
+  PURCHASE_GRANT_UNITS,
+  UNITS_PER_CREDIT,
+} from "@/lib/credits/constants";
 import type {
   Project,
   CreateProjectRequest,
   CreateProjectResponse,
   ConvertProjectResponse,
+  CreditBalanceResponse,
   JobStatusResponse,
 } from "@/lib/types";
 
@@ -53,7 +61,29 @@ function isOutOfCredits(err: unknown): boolean {
   return err instanceof ConversionError && err.status === 402;
 }
 
+/**
+ * Fresh balance, straight from the server.
+ *
+ * The badge's cached copy is up to 30s old, which is long enough to start a
+ * conversion the account cannot pay for.
+ */
+async function fetchCredits(): Promise<CreditBalanceResponse> {
+  const res = await fetch("/api/credits", { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load credits (${res.status})`);
+  return res.json() as Promise<CreditBalanceResponse>;
+}
+
 async function createAndConvert(file: File): Promise<{ jobId: string; projectId: string }> {
+  // Check the balance BEFORE creating anything. Converting costs one credit, and
+  // starting the flow without one used to leave a project row behind at
+  // `pending` — with the image uploaded, no way to resume it from the
+  // dashboard, and a card that reads "Pending" forever. Nothing is created
+  // until we know the conversion can actually be paid for.
+  const balance = await fetchCredits();
+  if (balance.balanceUnits < CONVERSION_UNITS) {
+    throw new ConversionError("Not enough credits to convert", 402);
+  }
+
   const body: CreateProjectRequest = {
     name: file.name
       .replace(/\.[^.]+$/, "")
@@ -174,6 +204,10 @@ export default function DashboardPage() {
   const [activeJob, setActiveJob] = useState<{ jobId: string; projectId: string } | null>(null);
   const [hintPhase, setHintPhase] = useState<"uploading" | "converting" | "done" | null>(null);
   const [creditsAdded, setCreditsAdded] = useState<string | null>(null);
+  // Failure notice. The inline strips only exist next to the drop zone, and a
+  // conversion can fail minutes later — by then the user may have scrolled, or
+  // be reading the project grid. A failure nobody sees is a retry nobody makes.
+  const [failure, setFailure] = useState<string | null>(null);
 
   const userId = isLoaded ? (user?.id ?? null) : undefined;
 
@@ -205,6 +239,19 @@ export default function DashboardPage() {
       });
   }, [isLoaded, user, queryClient, ph]);
 
+  // Same query key as CreditBadge, so both read one cached balance.
+  const { data: credits } = useQuery<CreditBalanceResponse>({
+    queryKey: ["credits"],
+    queryFn: fetchCredits,
+    enabled: isLoaded && !!user,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
+  });
+
+  // Known-empty balance: block the drop zone rather than letting the user pick a
+  // file, watch it upload, and only then be told it cannot be converted.
+  const outOfCredits = !!credits && credits.balanceUnits < CONVERSION_UNITS;
+
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ["projects", userId],
     queryFn: () => fetchProjects(userId),
@@ -214,6 +261,7 @@ export default function DashboardPage() {
   const mutation = useMutation({
     mutationFn: createAndConvert,
     onMutate: () => {
+      setFailure(null);
       setHintPhase("uploading");
       ph.capture("conversion_started");
     },
@@ -223,6 +271,10 @@ export default function DashboardPage() {
     },
     onError: (err) => {
       setHintPhase(null);
+      // Out of credits is not a failure — it is a transaction, and the inline
+      // panel below already says what it costs and links to checkout. A toast
+      // on top of it would be the same news twice, with less to act on.
+      if (!isOutOfCredits(err)) setFailure((err as Error).message);
       ph.capture("conversion_failed", { error: (err as Error).message });
     },
   });
@@ -235,15 +287,20 @@ export default function DashboardPage() {
       setTimeout(() => setHintPhase(null), 2500);
       setActiveJob(null);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      // The conversion just spent a credit — refresh the balance so the badge
+      // and the drop-zone gate agree with the server.
+      void queryClient.invalidateQueries({ queryKey: ["credits"] });
       ph.capture("conversion_completed");
     },
     [queryClient, ph],
   );
 
-  const onConversionError = useCallback(() => {
+  const onConversionError = useCallback((message: string) => {
     setHintPhase(null);
     setActiveJob(null);
+    setFailure(message);
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
+    void queryClient.invalidateQueries({ queryKey: ["credits"] });
     ph.capture("conversion_error");
   }, [queryClient, ph]);
 
@@ -314,7 +371,7 @@ export default function DashboardPage() {
         <section className="animate-fade-up" style={{ marginBottom: 48, animationDelay: "80ms" }}>
           {/* The drop zone stays put while converting — replacing it hid the
               thing the user just interacted with. Progress appears beneath it. */}
-          <DropZone onFile={onFile} disabled={mutation.isPending || !!activeJob} />
+          <DropZone onFile={onFile} disabled={mutation.isPending || !!activeJob || outOfCredits} />
 
           {activeJob && (
             <ConversionProgress
@@ -324,7 +381,7 @@ export default function DashboardPage() {
             />
           )}
 
-          {mutation.isError && isOutOfCredits(mutation.error) && (
+          {(outOfCredits || (mutation.isError && isOutOfCredits(mutation.error))) && (
             /* Out of credits is not an error the user can debug — it is a
                transaction they need to complete. Say what happened, what it
                costs, and give them the way out in the same box. */
@@ -351,10 +408,10 @@ export default function DashboardPage() {
                 Out of credits
               </p>
               <p style={{ margin: "8px 0 4px", fontSize: 14, color: "rgba(255,255,255,0.88)" }}>
-                Converting an image costs 1 credit, and your balance is empty.
+                Converting an image costs 1 credit, and your balance is short.
               </p>
               <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "rgba(255,255,255,0.50)" }}>
-                Your image was uploaded and is safe — top up and convert it whenever you like.
+                Nothing was uploaded — top up and drop your image in whenever you like.
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <Link href="/pricing" style={{ textDecoration: "none" }}>
@@ -373,7 +430,7 @@ export default function DashboardPage() {
                       fontWeight: 700,
                     }}
                   >
-                    Get 20 credits for $3
+                    Get {PACK_CREDITS} credits for {PACK_PRICE_USD}
                   </span>
                 </Link>
                 <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)" }}>
@@ -457,6 +514,14 @@ export default function DashboardPage() {
 
       {creditsAdded && (
         <CreditToast credits={creditsAdded} onDismiss={() => setCreditsAdded(null)} />
+      )}
+
+      {failure && (
+        // 8s rather than the success toast's 5: a failure carries something the
+        // user has to read and decide about, not just acknowledge.
+        <Toast tone="error" durationMs={8000} onDismiss={() => setFailure(null)}>
+          {failure}
+        </Toast>
       )}
     </div>
   );

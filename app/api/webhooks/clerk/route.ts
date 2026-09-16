@@ -53,7 +53,7 @@ export async function POST(req: Request): Promise<Response> {
     prodClerkId: data.id,
   })
 
-  // Signup grant: 3 credits — two conversions plus ten edited-version exports.
+  // Signup grant: 1 credit — one conversion, whose export is included.
   // Idempotent on signup:{userId}, so a replayed event grants once.
   //
   // Failures are logged, never thrown: a non-2xx would make Clerk retry the

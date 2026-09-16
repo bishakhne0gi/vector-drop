@@ -19,18 +19,20 @@ export const CONVERSION_UNITS = 10;
 export const VERSION_EXPORT_UNITS = 1;
 
 /**
- * Balance at which the UI switches to a warning state. 1.5 credits — one more
- * conversion plus a few exports — so the warning lands while the user can still
- * act on it, rather than at zero in the middle of a task.
+ * Balance at which the UI switches to a warning state. 1 credit — exactly one
+ * conversion left. Above the old 1.5 the signup grant itself would land in the
+ * warning state, painting every new account red on arrival; at 1 credit the
+ * warning still reaches the user while they can finish one more conversion.
  */
-export const LOW_BALANCE_UNITS = 15;
+export const LOW_BALANCE_UNITS = 10;
 
 /**
- * Signup grant. 3 credits = two conversions (20 units) plus ten edited-version
- * exports (10 units). Sized so a new user can finish two real projects — a free
- * tier that cannot complete anything is worse than none.
+ * Signup grant. 1 credit = exactly one conversion (10 units). Exporting the
+ * converted original is free (the conversion charge includes that entitlement),
+ * so a new user can still take one real project from image to downloaded SVG —
+ * the smallest grant that completes something end to end.
  */
-export const SIGNUP_GRANT_UNITS = 30;
+export const SIGNUP_GRANT_UNITS = 10;
 
 /** One purchase. 20 credits. */
 export const PURCHASE_GRANT_UNITS = 200;
@@ -40,7 +42,21 @@ export const PURCHASE_GRANT_UNITS = 200;
  * customer's checkout total is higher than this. All pricing copy must say
  * "+ tax" for that reason.
  */
-export const PACK_PRICE_CENTS = 300;
+export const PACK_PRICE_CENTS = 400;
+
+/**
+ * The pack, ready for display: "20" and "$4".
+ *
+ * Every surface that quotes the offer — pricing page, checkout modal, the
+ * out-of-credits panel, the buy button — used to hardcode its own copy of the
+ * number and the price. A price change then meant finding all of them, and
+ * missing one means the site advertises a price the checkout does not charge.
+ */
+export const PACK_CREDITS = PURCHASE_GRANT_UNITS / UNITS_PER_CREDIT;
+
+export const PACK_PRICE_USD = `$${(PACK_PRICE_CENTS / 100).toFixed(
+  PACK_PRICE_CENTS % 100 === 0 ? 0 : 2,
+)}`;
 
 /**
  * Renders units for humans: 30 -> "3", 19 -> "1.9", 1 -> "0.1", -1 -> "-0.1".

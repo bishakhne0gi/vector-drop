@@ -17,13 +17,13 @@ describe("credit constants", () => {
     expect(VERSION_EXPORT_UNITS).toBe(1); // 0.1 credits
   });
 
-  it("grants 3 credits at signup — two projects with edits", () => {
-    expect(SIGNUP_GRANT_UNITS).toBe(30);
+  it("grants 1 credit at signup — one project, conversion and export", () => {
+    expect(SIGNUP_GRANT_UNITS).toBe(10);
   });
 
-  it("grants 20 credits per $3.00 purchase", () => {
+  it("grants 20 credits per $4.00 purchase", () => {
     expect(PURCHASE_GRANT_UNITS).toBe(200);
-    expect(PACK_PRICE_CENTS).toBe(300);
+    expect(PACK_PRICE_CENTS).toBe(400);
   });
 });
 
@@ -75,20 +75,27 @@ describe("creditsToUnits", () => {
 });
 
 describe("LOW_BALANCE_UNITS", () => {
-  it("warns at 1.5 credits", async () => {
+  it("warns at 1 credit", async () => {
     const { LOW_BALANCE_UNITS } = await import("@/lib/credits/constants");
-    expect(LOW_BALANCE_UNITS).toBe(15);
+    expect(LOW_BALANCE_UNITS).toBe(10);
   });
 
-  it("leaves room for one more conversion plus a few exports", async () => {
+  it("leaves room for one more conversion", async () => {
     // The warning must arrive while the user can still finish something, not
     // at zero in the middle of a task.
-    const { LOW_BALANCE_UNITS, CONVERSION_UNITS, VERSION_EXPORT_UNITS } = await import(
+    const { LOW_BALANCE_UNITS, CONVERSION_UNITS } = await import(
       "@/lib/credits/constants"
     );
-    expect(LOW_BALANCE_UNITS).toBeGreaterThan(CONVERSION_UNITS);
-    expect(LOW_BALANCE_UNITS - CONVERSION_UNITS).toBeGreaterThanOrEqual(
-      5 * VERSION_EXPORT_UNITS,
+    expect(LOW_BALANCE_UNITS).toBeGreaterThanOrEqual(CONVERSION_UNITS);
+  });
+
+  it("does not put a brand-new account in the warning state", async () => {
+    // The signup grant is the balance every new user arrives with. If the
+    // threshold sits above it, the badge is red before they have spent
+    // anything — a warning about nothing.
+    const { LOW_BALANCE_UNITS, SIGNUP_GRANT_UNITS } = await import(
+      "@/lib/credits/constants"
     );
+    expect(SIGNUP_GRANT_UNITS).toBeGreaterThanOrEqual(LOW_BALANCE_UNITS);
   });
 });

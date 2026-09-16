@@ -2,18 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   SIGNUP_GRANT_UNITS,
   CONVERSION_UNITS,
-  VERSION_EXPORT_UNITS,
   PURCHASE_GRANT_UNITS,
 } from "@/lib/credits/constants";
 
 describe("signup grant sizing", () => {
-  it("covers two conversions and ten edited exports", () => {
-    // The grant exists so a new user can finish two real projects. If this
-    // fails, the free tier no longer delivers what the pricing promises and
-    // users hit a paywall mid-task.
-    const twoConversions = 2 * CONVERSION_UNITS;
-    const tenExports = 10 * VERSION_EXPORT_UNITS;
-    expect(SIGNUP_GRANT_UNITS).toBe(twoConversions + tenExports);
+  it("covers exactly one conversion", () => {
+    // The grant exists so a new user can finish one real project: the
+    // conversion, plus the export of its result, which the conversion charge
+    // already entitles them to. If this fails, the free tier no longer
+    // delivers what the pricing promises.
+    expect(SIGNUP_GRANT_UNITS).toBe(CONVERSION_UNITS);
   });
 
   it("is a small fraction of a paid pack", () => {
@@ -21,7 +19,7 @@ describe("signup grant sizing", () => {
     expect(SIGNUP_GRANT_UNITS).toBeLessThan(PURCHASE_GRANT_UNITS / 4);
   });
 
-  it("allows at least two conversions", () => {
-    expect(Math.floor(SIGNUP_GRANT_UNITS / CONVERSION_UNITS)).toBeGreaterThanOrEqual(2);
+  it("allows at least one conversion", () => {
+    expect(Math.floor(SIGNUP_GRANT_UNITS / CONVERSION_UNITS)).toBeGreaterThanOrEqual(1);
   });
 });
